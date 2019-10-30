@@ -22,6 +22,7 @@ dependencies:
 - extra
 - directory
 - timeit
+- random
 
 library:
   source-dirs: 
