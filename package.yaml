@@ -27,7 +27,8 @@ dependencies:
 library:
   source-dirs: 
   - src/
-  - src/programs/
+  - src/old_programs/
+  - src/new_programs/
   - src/utils
 
 executables:
