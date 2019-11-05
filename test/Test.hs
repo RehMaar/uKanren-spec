@@ -3,6 +3,7 @@ module Test where
 import System.Process (system)
 import System.Exit (ExitCode)
 import Data.Maybe
+import Text.Printf
 
 import Syntax
 import DotPrinter
@@ -11,6 +12,7 @@ import GlobalTreePrinter
 import Utils
 
 import qualified CPD
+import qualified CpdResidualization as CR
 import qualified GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
@@ -55,7 +57,6 @@ openInPdfWithName name t = do
     -- rm '$pdf' '$dot'
     system $ "rm '" ++ pdffilename ++ "' '" ++ dotfilename ++ "'"
 
-
 ocanren filename goal = do
   let p = pur goal
   let name = filename ++ ".ml"
@@ -67,5 +68,22 @@ ocanren filename goal = do
         (goal', names', defs) = P.purification (f, vident <$> reverse names)
       in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
 
+ocanrenCPD filename goal = do
+  let (t, lg, n) = GC.topLevel goal
+  let f = CR.residualizationTopLevel t
+  let p = P.purification (f, vident <$> reverse n)
+  let name = printf "%s.ml" filename
+  OC.topLevel name "topLevelCPD" Nothing p
+
+open g = openInPdf $ fst3 $ SU.topLevel g
+
+openMarked g = openInPdf $ DTR.cutFailedDerivations $ DTR.makeMarkedTree $ fst3 $ SU.topLevel g
+
 testRev2 = L.reverso $ fresh ["xs", "sx"] $
   call "reverso" [V "xs", V "sx"] &&& call "reverso" [V "sx", V "xs"]
+
+testRev2Res = L.reverso $
+  call "reverso" [list, listR] &&& call "reverso" [listR, list]
+  where
+    list = C "x" [] L.% C "y" [] L.% C "z" [] L.% L.nil
+    listR = C "z" [] L.% C "y" [] L.% C "x" [] L.% L.nil

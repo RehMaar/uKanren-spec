@@ -45,6 +45,7 @@ data DTree = Fail   -- Failed derivation.
   -- Not in use now
   | Node DTree DDescendGoal E.Sigma -- Auxiliary node.
   | Prune DGoal -- Debug node
+  | Debug E.Gamma E.Sigma DGoal (Set.Set DGoal) -- Debug node
 
 
 --
