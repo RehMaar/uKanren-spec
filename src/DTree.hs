@@ -1,6 +1,7 @@
 module DTree where
 
 import Syntax
+import Embedding
 
 import qualified CPD
 import qualified Eval as E
@@ -94,12 +95,12 @@ leaves _ = []
 
 findVariantNode :: DGoal ->  DTree -> Maybe DTree
 findVariantNode dg n@(Or ts _ g)
-  | CPD.isVariant (CPD.getCurr g) dg
+  | isVariant (CPD.getCurr g) dg
   = Just n
   | otherwise
   = findFirst (findVariantNode dg) ts
 findVariantNode dg n@(And ts _ g)
-  | CPD.isVariant (CPD.getCurr g) dg
+  | isVariant (CPD.getCurr g) dg
   = Just n
   | otherwise
   = findFirst (findVariantNode dg) ts

@@ -2,6 +2,7 @@ module DTResidualize where
 
 import Syntax
 import DotPrinter
+import Embedding
 
 import qualified DTree as DT
 import qualified Eval as E
@@ -110,11 +111,11 @@ makeMarkedTree x = makeMarkedTree' x (DT.leaves x) x
     makeMarkedTree' root leaves (DT.Gen t s)     = Gen (makeMarkedTree' root leaves t) s
     makeMarkedTree' root leaves (DT.Leaf df s g) = Leaf (CPD.getCurr df) s
     makeMarkedTree' root leaves (DT.Or ts s dg@(CPD.Descend g _))  = let
-        isVar = any (`CPD.isVariant` g) leaves
+        isVar = any (`isVariant` g) leaves
         ts'   = makeMarkedTree' root leaves <$> ts
       in Or ts' s g isVar
     makeMarkedTree' root leaves (DT.And ts s dg@(CPD.Descend g _))  = let
-        isVar = any (`CPD.isVariant` g) leaves
+        isVar = any (`isVariant` g) leaves
         ts'   = makeMarkedTree' root leaves <$> ts
       in And ts' s g isVar
 
@@ -303,7 +304,7 @@ groupAndChildren = groupBy (\a1 a2 -> isGenNode a1 && isGenNode a2 && (getGen a1
 
 findCall cs goal = snd
   $ fromMaybe (error $ "No invocation for the leaf: " ++ show goal)
-  $ find (CPD.isVariant goal . fst) cs
+  $ find (isVariant goal . fst) cs
 
 --
 -- Find a call and generate `Invoke`.
@@ -346,7 +347,7 @@ cutFailedDerivations = fromMaybe Fail . fst . cfd Set.empty
     cfd gs Fail = (Nothing, gs)
     cfd gs t@(Success _) = (Just t, gs)
     cfd gs t@(Leaf goal _)
-      | Just _ <- find (CPD.isVariant goal) gs
+      | Just _ <- find (isVariant goal) gs
       = (Nothing, gs)
       | otherwise
       = (Just t, gs)

@@ -45,6 +45,7 @@ import Debug.Trace
 
 import Syntax
 import Purification
+import Embedding
 import qualified Eval as E
 import qualified Driving as D
 
@@ -88,14 +89,14 @@ abstract descend goals d =
     | Just b <- whistle descend m =
           let (goals, delta) = generalize m b d
               goals' = case goals of
-                         [(goal, _)] | CPD.isVariant goal m -> []
+                         [(goal, _)] | isVariant goal m -> []
                          _ -> goals
           in  go (gs ++ goals') delta
     | otherwise = first ((m, gen):) (go gs d)
 
 whistle :: Descend [G S] -> [G S] -> Maybe [G S]
 whistle descend m =
-  find (\b -> CPD.embed b m && not (CPD.isVariant b m)) (sequence descend)
+  find (\b -> embed b m && not (isVariant b m)) (sequence descend)
 
 generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], D.Generalizer)], E.Delta)
 generalize m b d =
@@ -130,7 +131,7 @@ topLevel goal =
           abstracted = map (abstractChild ancs) bodies
           (toUnfold, toNotUnfold, newNodes) =
             foldl (\ (yes, no, seen) gs ->
-                    let (variants, brandNew) = partition (\(_, g, _, _) -> null g || any (CPD.isVariant g) seen) gs in
+                    let (variants, brandNew) = partition (\(_, g, _, _) -> null g || any (isVariant g) seen) gs in
                     (yes ++ brandNew, no ++ variants, map snd4 brandNew ++ seen)
                   )
                   ([], [], nodes)

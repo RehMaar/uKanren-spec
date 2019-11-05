@@ -9,6 +9,12 @@ copyright:           "2019 Karia Kuklina"
 extra-source-files:
 - README.md
 
+default-extensions:
+- FlexibleInstances
+- MultiParamTypeClasses
+- TypeFamilies
+- FunctionalDependencies
+- FlexibleContexts
 
 dependencies:
 - base >= 4.7 && < 5
@@ -27,9 +33,9 @@ dependencies:
 library:
   source-dirs: 
   - src/
-  - src/old_programs/
   - src/new_programs/
-  - src/utils
+  - src/old_programs/
+  - src/utils/
 
 executables:
   uks-exe:

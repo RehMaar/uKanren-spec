@@ -4,6 +4,7 @@ module Unfold where
     
 import DTree
 import Syntax
+import Embedding
 
 import qualified CPD
 import qualified Eval as E
@@ -116,7 +117,7 @@ thd (_,_,f) = f
 p43 (_,_,f,_) = f
 
 getVariant goal nodes = let
-    vs = Set.filter (CPD.isVariant goal) nodes
+    vs = Set.filter (isVariant goal) nodes
   in assert (length vs == 1) $ Set.elemAt 0 vs
 
 --
@@ -129,7 +130,7 @@ goalXtoGoalS g = let
 
 --
 
-isGen goal ancs = any (`CPD.embed` goal) ancs && not (Set.null ancs)
+isGen goal ancs = any (`embed` goal) ancs && not (Set.null ancs)
 
 --
 
@@ -166,4 +167,4 @@ conjOfDNFtoDNF' (x {- Disj (Conj a) -} :xs) = concat $ addConjToDNF x <$> conjOf
 addConjToDNF :: Disj (Conj a) -> Conj a -> Disj (Conj a)
 addConjToDNF ds c = (c ++) <$> ds
 
-checkLeaf = CPD.variantCheck
+checkLeaf = variantCheck
