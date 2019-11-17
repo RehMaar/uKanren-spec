@@ -8,20 +8,23 @@ import Embedding
 
 import qualified CPD
 import qualified Eval as E
+import qualified Driving as D
 import qualified GlobalControl as GC
 import qualified Purification as P
 
 import DotPrinter
 
 import Data.Maybe (mapMaybe)
-import Data.List (group, sort, groupBy)
+import Data.List (group, sort, groupBy, find, intersect)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
 
 import Text.Printf
 import Debug.Trace
 
+import Control.Arrow (first)
 import Control.Exception
+import PrettyPrint
 
 trace' _ = id
 -- trace' = trace
@@ -57,7 +60,8 @@ class Show a => Unfold a where
     | checkLeaf (getGoal goal) seen
     = (Leaf (CPD.Descend (getGoal goal) ancs) subst env, seen, head $ thd env)
     | otherwise
-    = let
+    =
+    let
       realGoal = getGoal goal
       descend = CPD.Descend realGoal ancs
       newAncs = Set.insert realGoal ancs
@@ -79,10 +83,11 @@ class Show a => Unfold a where
     | emptyGoal goal
     = (seen, Success subst, head $ thd env)
     | not (checkLeaf realGoal seen)
-    , isGen realGoal ancs
+    , (isGen realGoal ancs || toSplit realGoal)
     =
+    -- (seen, Debug env subst realGoal ancs, head $ thd env)
       let
-        absGoals = GC.abstractChild ancs (subst, realGoal, Just env)
+        absGoals = abstract ancs realGoal subst env
         -- Add `realGoal` to a seen set (`And` node in the tree).
         newSeen = Set.insert realGoal seen
 
@@ -92,7 +97,8 @@ class Show a => Unfold a where
                 (newSeen, [], head $ thd env) absGoals
       in (seen', And (reverse ts) subst descend, maxVarNum)
     | otherwise
-    = let
+    =
+      let
         newDepth = 1 + depth
         (tree, seen', maxVarNum) = derivationStep goal ancs env subst seen newDepth
       in (seen', tree, maxVarNum)
@@ -113,8 +119,6 @@ fixEnv i (f1, f2, d:ds)
   | otherwise = (f1, f2, d:ds)
 
 thd (_,_,f) = f
-
-p43 (_,_,f,_) = f
 
 getVariant goal nodes = let
     vs = Set.filter (isVariant goal) nodes
@@ -168,3 +172,53 @@ addConjToDNF :: Disj (Conj a) -> Conj a -> Disj (Conj a)
 addConjToDNF ds c = (c ++) <$> ds
 
 checkLeaf = variantCheck
+abstract
+  :: Set.Set [G S]                         -- Ancestors of the goal
+  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
+  -> [(E.Sigma, [G S], D.Generalizer, E.Gamma)]
+abstract = abstractChild
+
+abstractChild
+  :: Set.Set [G S]                         -- Ancestors of the goal
+  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
+  -> [(E.Sigma, [G S], D.Generalizer, E.Gamma)]
+abstractChild ancs g subst (p, iota, delt) =
+  let (abstracted, delta) = abstract' ancs g delt
+  in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
+
+abstract'
+  :: Set.Set [G S] -- The goal's ancs
+  -> [G S]         -- The goal
+  -> E.Delta       -- Set of used semantic variables
+  -> ([([G S], D.Generalizer)], E.Delta)
+abstract' ancs goals d =
+ go ((,[]) <$> CPD.mcs goals) d
+ where
+  go []              d@(x : _) = ([], d)
+  go ((m, gen) : gs) d
+    | Just b <- whistle ancs m =
+          -- trace ("Whisle: b = " ++ prettyList b ++ " m = " ++ prettyList m ++ "\n") $
+          let (goals, delta) = generalize m b d
+              goals' = case goals of
+                         [(goal, _)] | isVariant goal m -> []
+                         _ -> goals
+          in  go (gs ++ goals') delta
+    | otherwise = first ((m, gen):) (go gs d)
+
+whistle :: Set.Set [G S] -> [G S] -> Maybe [G S]
+whistle ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
+
+generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], D.Generalizer)], E.Delta)
+generalize m b d =
+  let ((m1, m2), genOrig, delta) = CPD.split d b m in
+  -- trace ("Gen:\nm1 = " ++ prettyList m1 ++ "\nm2 = " ++ prettyList m2 ++ "\n") $
+  ((map (,genOrig) (CPD.mcs m1)) ++ (map (,[]) (CPD.mcs m2)), delta)
+
+toSplit :: [G S] -> Bool
+toSplit = null . foldl1 intersect . map getInvokeArgs . filter isInvoke
+
+getInvokeArgs (Invoke _ ts) = ts
+getInvokeArgs _ = []
+
+isInvoke (Invoke _ _) = True
+isInvoke _ = False

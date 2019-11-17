@@ -19,6 +19,7 @@ import DotPrinter
 import Unfold
 
 import Debug.Trace
+import Control.Exception (assert)
 
 trace' _ = id
 
@@ -27,7 +28,8 @@ data SUGoal = SUGoal DGoal Int deriving Show
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
-  igoal = SUGoal [lgoal] 0
+  lgoal' = CPD.normalize lgoal
+  igoal = assert (length lgoal' == 1) $ SUGoal (head lgoal') 0
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
 
