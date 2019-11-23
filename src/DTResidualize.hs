@@ -231,7 +231,6 @@ topLevel t = topLevel' $ cutFailedDerivations $ makeMarkedTree t
 getArgsForPostEval cs goal = let Call _ args _ = findCall cs goal in args
 postEval cs goal body = E.postEval' (vident <$> getArgsForPostEval cs goal) body
 
-
 foldDefs [] g = g
 foldDefs xs g = foldr1 (.) xs g
 
@@ -241,27 +240,22 @@ foldGoals f gs  = foldr1 f gs
 
 res = f
   where
-    helper cs s ts subst goal foldf defs goals = let
+    helper cs s ts subst goal foldf = let
+        (defs, goals) = unzip $ f cs (subst `union` s) <$> ts
+
         Call name args argsOrig = findCall cs goal
 
         argsS = vident <$> args
         body = E.postEval' argsS $ foldGoals foldf goals
-
         def = Let (name, argsS, body)
-
         goalArgs = genArgs' goal
-
         iargs = map toX $ genArgsByOrig args argsOrig goalArgs
-
         diff  = subst \\ s
         goal' = applySubst diff $ Invoke name iargs
       in (def : concat defs, goal')
 
 
-    f cs s (Or ts subst dg True) = let
-        un   = subst `union` s
-        (defs, goals) = unzip $ f cs un <$> ts
-      in helper cs un ts subst dg (:\/:) defs goals
+    f cs s (Or ts subst dg True) = helper cs s ts subst dg (:\/:)
 
     f cs s (Or ts subst dg _)    = let
         diff = subst \\ s
@@ -269,10 +263,7 @@ res = f
         (defs, goals) = unzip $ f cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:\/:) goals)
 
-    f cs s (And ts subst dg True)    = let
-        un   = subst `union` s
-        (defs, goals) = unzip $ f cs un <$> ts
-      in helper cs un ts subst dg (:/\:) defs goals
+    f cs s (And ts subst dg True) = helper cs s ts subst dg (:/\:)
 
     f cs s (And ts subst dg _)    = let
         diff = subst \\ s
@@ -280,9 +271,11 @@ res = f
         (defs, goals) = unzip $ f cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:/\:) goals)
 
-    f cs s (Gen t subst) = second (applySubst (subst \\ s)) $ f cs (s `union` subst) t
+    f cs s (Gen t subst) =
+      second (applySubst (subst \\ s)) $ f cs (s `union` subst) t
 
-    f cs s (Leaf dg subst) = ([], applySubst (subst \\ s) $ findInvoke cs dg)
+    f cs s (Leaf dg subst) =
+        ([], applySubst (subst \\ s) $ findInvoke cs dg)
 
     f _ s  (Success subst)
       | null (subst \\ s) = ([], Invoke "success" [])
