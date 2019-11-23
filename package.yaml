@@ -15,6 +15,7 @@ default-extensions:
 - TypeFamilies
 - FunctionalDependencies
 - FlexibleContexts
+- TupleSections
 
 dependencies:
 - base >= 4.7 && < 5
@@ -50,12 +51,24 @@ executables:
     dependencies:
     - uKanren-spec
 
+executables:
+  uks-test-exe:
+    main:                TestMain.hs
+    source-dirs:         
+    - app
+    - test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - uKanren-spec
+
 tests:
   uks-test:
     main:                Test.hs
     source-dirs:         
     - test/
-    - test/test/
     ghc-options:
     - -threaded
     - -rtsopts
