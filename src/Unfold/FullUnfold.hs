@@ -1,4 +1,4 @@
-module FullUnfold where
+module Unfold.FullUnfold where
 
 import DTree
 import Syntax
@@ -16,7 +16,7 @@ import Data.Tuple (swap)
 
 import Text.Printf
 import DotPrinter
-import Unfold
+import Unfold.Unfold
 
 import Debug.Trace
 

@@ -1,4 +1,4 @@
-module RandUnfold where
+module Unfold.RandUnfold where
     
 import Syntax
 import DTree
@@ -8,7 +8,9 @@ import qualified CPD
 import qualified Eval as E
 import qualified Purification as P
 import qualified GlobalControl as GC
-import qualified SeqUnfold as SU
+import qualified Unfold.SeqUnfold as SU
+
+import Unfold.Unfold
 
 import Data.Maybe (mapMaybe)
 import Data.List
@@ -18,7 +20,6 @@ import Control.Monad
 
 import Text.Printf
 import DotPrinter
-import Unfold
 
 import Debug.Trace
 

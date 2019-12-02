@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Unfold where
+module Unfold.Unfold where
     
 import DTree
 import Syntax
@@ -83,7 +83,7 @@ class Show a => Unfold a where
     | emptyGoal goal
     = (seen, Success subst, head $ thd env)
     | not (checkLeaf realGoal seen)
-    , (isGen realGoal ancs || toSplit realGoal)
+    , (isGen realGoal ancs {-|| toSplit realGoal-})
     =
     -- (seen, Debug env subst realGoal ancs, head $ thd env)
       let

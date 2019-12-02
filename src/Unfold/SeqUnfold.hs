@@ -1,4 +1,4 @@
-module SeqUnfold where
+module Unfold.SeqUnfold where
     
 import Syntax
 import DTree
@@ -16,7 +16,7 @@ import qualified Data.Set as Set
 
 import Text.Printf
 import DotPrinter
-import Unfold
+import Unfold.Unfold
 
 import Debug.Trace
 import Control.Exception (assert)
