@@ -17,9 +17,9 @@ import qualified GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
 
-import qualified SeqUnfold as SU
-import qualified FullUnfold as FU
-import qualified RandUnfold as RU
+import qualified Unfold.SeqUnfold as SU
+import qualified Unfold.FullUnfold as FU
+import qualified Unfold.RandUnfold as RU
 
 import qualified DTree as DT
 import qualified DTResidualize as DTR

@@ -17,9 +17,9 @@ import qualified GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
 
-import qualified SeqUnfold as SU
-import qualified FullUnfold as FU
-import qualified RandUnfold as RU
+import qualified Unfold.SeqUnfold as SU
+import qualified Unfold.FullUnfold as FU
+import qualified Unfold.RandUnfold as RU
 
 import qualified DTree as DT
 import qualified DTResidualize as DTR
@@ -66,6 +66,23 @@ ocanren filename goal = do
         f = DTR.topLevel tree
         (goal', names', defs) = P.purification (f, vident <$> reverse names)
       in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+
+
+spec goal = let
+    (tree, logicGoal, names) = SU.topLevel goal
+    f = DTR.topLevel tree
+    (goal', names', defs) = P.purification (f, vident <$> reverse names)
+    (g, a, d) = (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+  in foldl (flip Let) (fresh a g) d
+
+specCPD goal =
+  let (t, lg, n) = GC.topLevel goal
+      f = CR.residualizationTopLevel t
+      (gl, args, def) = P.purification (f, vident <$> reverse n)
+  in foldl (flip Let) (fresh' args gl) def
+  where
+    fresh' [] g = g
+    fresh' a g = fresh a g
 
 ocanrenCPD filename goal = do
   let (t, lg, n) = GC.topLevel goal
