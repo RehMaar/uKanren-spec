@@ -6,7 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections, InstanceSigs #-}
 
-module CpdMod.CharacteristicAtoms where
+module CpdMod.ChAtoms where
     
 import CPD
 import Embedding
@@ -22,8 +22,6 @@ import qualified Data.Map.Strict as Map
 import qualified Control.Arrow as A ((&&&), (***), first, second)
 import qualified Data.Set                      as Set
 import Debug.Trace
-
-
 
 --
 -- For CPD atom can be a conj of goals.

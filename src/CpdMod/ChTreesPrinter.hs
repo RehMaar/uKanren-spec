@@ -1,11 +1,11 @@
-module CpdMod.CharacteristicTreesPrinter where
+module CpdMod.ChTreesPrinter where
 
 import DotPrinter
 import Syntax (Dot(..))
 import CPD
 import Eval as E
 import CpdMod.GlobalControlCA
-import CpdMod.CharacteristicAtoms
+import CpdMod.ChAtoms
 import Text.Printf
 
 instance DotPrinter ChTree where
