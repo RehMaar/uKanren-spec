@@ -92,15 +92,20 @@ sldResolution goal gamma subst = sldResolutionStep
   (map (\x -> Descend x Set.empty) goal)
   gamma subst Set.empty True
 
+isSelectable :: Show a => (G a -> G a -> Bool) -> G a -> Set (G a) -> Bool
+isSelectable emb goal ancs =
+  (not (any (`emb` goal) ancs) || Set.null ancs)
+
 select :: [DescendGoal] -> Maybe DescendGoal
 select = find (\x -> isSelectable embed (getCurr x) (getAncs x))
 
 selecter :: [DescendGoal] -> ([DescendGoal], [DescendGoal])
 selecter gs = span (\x -> not $ isSelectable embed (getCurr x) (getAncs x)) gs
 
-isSelectable :: Show a => (G a -> G a -> Bool) -> G a -> Set (G a) -> Bool
-isSelectable emb goal ancs =
-  (not (any (`emb` goal) ancs) || Set.null ancs)
+selectNext :: [DescendGoal] -> Maybe ([DescendGoal], DescendGoal, [DescendGoal])
+selectNext gs =
+  let (ls, rs) = selecter gs
+  in if null rs then Nothing else Just (ls, head rs, tail rs)
 
 substituteDescend s =
   map $ \(Descend g ancs) -> Descend (E.substituteGoal s g) ancs
@@ -118,11 +123,6 @@ unfold g@(Invoke f as) env@(p, i, d)
   | otherwise
   = error "Unfolding error: different number of factual and actual arguments"
 unfold g env = (g, env)
-
-selectNext :: [DescendGoal] -> Maybe ([DescendGoal], DescendGoal, [DescendGoal])
-selectNext gs =
-  let (ls, rs) = selecter gs
-  in if null rs then Nothing else Just (ls, head rs, tail rs)
 
 sldResolutionStep
   :: [DescendGoal] -> E.Gamma -> E.Sigma -> Set [G S] -> Bool -> SldTree

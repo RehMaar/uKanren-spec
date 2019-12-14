@@ -55,6 +55,7 @@ ando =
   in
   Let (def "ando" ["a", "b", "result"] $
     (a === trueo &&& b === trueo &&& result === trueo) |||
+    -- TODO: possible problems
     (result === falso)
   )
 
@@ -80,7 +81,8 @@ noto =
     | !formula
 -}
 
-lit b = C "lit" [b]
+true = C "ltrue" []
+false = C "lfalse" []
 var x = C "var" [x]
 neg x = C "neg" [x]
 conj x y = C "conj" [x, y]
@@ -94,7 +96,9 @@ loginto =
   in
   Let (def "loginto" ["subst", "formula", "result"] $
   fresh ["x", "l", "r", "rl", "rr"] (
-      (formula === lit (result))
+      (formula === true &&& result === trueo)
+  ||| (formula === false &&& result === falso)
+--      (formula === lit (result))
   ||| (formula === var (V "x") &&& call "lookupo" [subst, V "x", result])
   ||| (formula === neg (V "x")
        &&& call "loginto" [subst, V "x", V "rl"]
@@ -112,14 +116,14 @@ loginto =
 --
 -- Test formulas
 --
-logintoTest1 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", lit trueo, V "r"]
-logintoTest2 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", lit falso, V "r"]
-logintoTest3 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", neg (lit falso), V "r"]
-logintoTest4 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", conj (lit trueo) (lit falso), V "r"]
-logintoTest5 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", disj (lit trueo) (lit falso), V "r"]
-logintoTest6 = loginto $ fresh ["r", "x"] $ call "loginto" [(pair (C "x" []) trueo) % nil, var (C "x" []), V "rs"]
+logintoTest1 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", true, V "r"]
+logintoTest2 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", false, V "r"]
+logintoTest3 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", neg false, V "r"]
+logintoTest4 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", conj true false, V "r"]
+logintoTest5 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", disj true false, V "r"]
+logintoTest6 = loginto $ fresh ["r", "x"] $ call "loginto" [(pair (C "x" []) true) % nil, var (C "x" []), V "rs"]
 logintoTest7 = loginto $ fresh ["r", "x", "y"] $
-  call "loginto" [(pair (C "y" []) trueo) % nil,
+  call "loginto" [(pair (C "y" []) true) % nil,
     conj (V "x") (neg (var $ C "y" [])),
     V "r"]
 
@@ -127,14 +131,14 @@ logintoTest7 = loginto $ fresh ["r", "x", "y"] $
 -- Log expressions
 --
 
-litX = lit (V "x")
-litY = lit (V "y")
+varX = var (V "x")
+varY = var (V "y")
 
 --
 -- (x \/ y) /\ (\neg x \/ y)
 --
-logExpr1 = conj (disj litX litY) (disj (neg litX) litY)
-logExpr2 = conj (conj (disj (conj litX (neg litY)) (conj (neg litX) litY)) litX) litY
+logExpr1 = conj (disj varX varY) (disj (neg varX) varY)
+logExpr2 = conj (conj (disj (conj varX (neg varY)) (conj (neg varX) varY)) varX) varY
 
 --
 -- Test queries
