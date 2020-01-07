@@ -16,6 +16,7 @@ import qualified CpdResidualization as CR
 import qualified GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
+import qualified Embedding as Emb
 
 import qualified Unfold.SeqUnfold as SU
 import qualified Unfold.FullUnfold as FU
@@ -26,6 +27,9 @@ import qualified DTResidualize as DTR
 
 import qualified LogicInt as LI
 import qualified List as L
+
+import Data.Monoid
+
 --
 -- Save a tree into pdf file.
 --
@@ -56,17 +60,20 @@ openInPdfWithName name t = do
     -- rm '$pdf' '$dot'
     system $ "rm '" ++ pdffilename ++ "' '" ++ dotfilename ++ "'"
 
-ocanren filename goal = do
+ocanren specMethod filename goal = do
   let p = pur goal
   let name = filename ++ ".ml"
   OC.topLevel name "topLevelSU" Nothing p
   where
     pur goal = let
-        (tree, logicGoal, names) = SU.topLevel goal
+        (tree, logicGoal, names) = specMethod goal
         f = DTR.topLevel tree
         (goal', names', defs) = P.purification (f, vident <$> reverse names)
       in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
 
+ocanrenSU = ocanren SU.topLevel
+ocanrenFU = ocanren FU.topLevel
+ocanrenRU seed = ocanren (RU.topLevel seed)
 
 spec goal = let
     (tree, logicGoal, names) = SU.topLevel goal
@@ -117,3 +124,18 @@ statMTree t = do
   let (l, f, s) = DTR.countLeafs t
   let (n, fn) = DTR.countNodes t
   putStrLn $ "Depth: " ++ show d ++ " Leafs: " ++ show l ++ " Fail: " ++ show f ++ " Success: " ++ show s ++ " Nodes: " ++ show n ++ " FunCallNodes: " ++ show fn
+
+--
+-- DTree test utils
+--
+findGoal :: DT.DGoal -> DT.DTree -> Maybe DT.DTree
+findGoal g t@(DT.Or ts _ g')
+  | Emb.isVariant g (CPD.getCurr g') = Just t
+  | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
+findGoal g t@(DT.And ts _ g')
+  | Emb.isVariant g (CPD.getCurr g')  = Just t
+  | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
+findGoal g (DT.Gen t _) = findGoal g t
+findGoal g t@(DT.Leaf g' _ _)
+  | Emb.isVariant g (CPD.getCurr g') = Just t
+findGoal _ _ = Nothing
