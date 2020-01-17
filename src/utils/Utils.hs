@@ -63,3 +63,9 @@ subconjs gs n = combinations n gs
     combinations 0 _ = [[]]
     combinations _ [] = []
     combinations n (x:xs) = (map (x:) (combinations (n-1) xs)) ++ (combinations n xs)
+
+zipBy :: Eq a => (b -> a) -> [b] -> [b] -> [(b, b)]
+zipBy f b1 b2 = zipBy' f f b1 b2
+  where
+    zipBy' :: Eq a => (b -> a) -> (c -> a) -> [b] -> [c] -> [(b, c)]
+    zipBy' f g bs cs = filter (\(b, c) -> f b == g c) $ (,) <$> bs <*> cs
