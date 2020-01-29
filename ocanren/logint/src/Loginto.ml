@@ -1,74 +1,123 @@
-open GT
+module L = List
+
 open OCanren
+open GT
 open Std
-open Nat
-open Bool
 
 open LogicExpr
 
-let topLevelSU x0 x1 x2 =
-  let rec loginto y0 y1 y2 =
-    fresh (q1 q2 q3 q4 q5 q6 q7 q8 q9 q10)
-      ( y1 === lit y2
-      ||| ( lookupo y0 y2
-      ||| ( y1 === neg q1
-          &&& (loginto y0 q1 q2 &&& (q2 === !!true &&& (y2 === !!false) ||| (y2 === !!true)))
-      ||| ( y1 === conj q3 q4
-          &&& (loginto y0 q3 q5 &&& (loginto y0 q4 q6 &&& (q5 === !!true &&& (q6 === !!true) &&& (y2 === !!true) ||| (y2 === !!false))))
-      ||| ( y1 === disj q7 q8
-          &&& ( loginto y0 q7 q9
-          &&& (loginto y0 q8 q10 &&& (q9 === !!true &&& (y2 === !!true) ||| (q10 === !!true &&& (y2 === !!true) ||| (y2 === !!false)))))))
-          ) ) )
-  and lookupo y3 y5 = fresh (q1 q2 q3 q4) (y3 === pair q1 y5 % q2 ||| (y3 === pair q3 q4 % q2 &&& lookupo q2 y5)) in
-  loginto x0 x1 x2
+let topLevelSU x0 =
+  let rec loginto y0 =
+    fresh
+      (q1 q2 q3 q4 q5 q6 q7 q8 q9 q10 q11 q12 q13 q14 q15 q16 q17 q18 q19 q20 q21 q22 q23 q24 q25 q26 q27 q28 q29 q30 q31 q32 q33 q34 q35 q36 q37 q38 q39 q40
+         q41 q42 q43 q44 q45 q46 q47 q48 q49 q50 q51 q52 q53 q54 q55 q56 q57 q58 q59 q60 q61 q62 q63 q64)
+      ( y0
+      === pair (y ()) q1 % q2
+      &&& ( q2
+          === pair (x ()) !!true % q3
+          &&& ( q1 === !!true &&& lookupo q3
+              ||| (q3 === pair (y ()) !!true % q4 &&& __lookupo q4 ||| (q3 === pair q5 q6 % q7 &&& (lookupo (pair q5 q6 % q7) &&& ___lookupo q7))) )
+          ||| ( q2
+              === pair q8 q9 % q10
+              &&& ( _lookupo q10
+                  &&& ( pair q8 q9 % q10
+                      === q11 &&& (q1 === !!true)
+                      &&& __lookupo (pair q8 q9 % q10)
+                      ||| (pair q8 q9 % q10 === q11 &&& lookupoLookupo q1 (pair q8 q9 % q10)) ) ) )
+          ||| ( q2
+              === pair (x ()) !!true % q12
+              &&& ( _loginto q1 q12
+                  ||| ( q12
+                      === pair (y ()) q13 % q14
+                      &&& ______lookupo q13 q14
+                      ||| (q12 === pair q15 q16 % q17 &&& (_loginto q1 (pair q15 q16 % q17) &&& _______lookupo q17)) ) )
+              ||| ( q2
+                  === pair q18 q19 % q20
+                  &&& ( _lookupo q20
+                      &&& ( pair q18 q19 % q20
+                          === q21
+                          &&& ______lookupo q1 (pair q18 q19 % q20)
+                          ||| (pair q18 q19 % q20 === q21 &&& _lookupoLookupo q1 (pair q18 q19 % q20)) ) ) )
+              ||| ( q2
+                  === pair (x ()) !!true % q22
+                  &&& ( q1 === !!true &&& ____lookupo q22
+                      ||| ( q22
+                          === pair (y ()) !!true % q23
+                          &&& ________lookupo q23
+                          ||| (q22 === pair q24 q25 % q26 &&& (_loginto q1 (pair q24 q25 % q26) &&& ___lookupo q26)) ) )
+                  ||| ( q2
+                      === pair q27 q28 % q29
+                      &&& ( _lookupo q29
+                          &&& ( pair q27 q28 % q29
+                              === q30 &&& (q1 === !!true)
+                              &&& ________lookupo (pair q27 q28 % q29)
+                              ||| (pair q27 q28 % q29 === q30 &&& __lookupoLookupo q1 (pair q27 q28 % q29)) ) ) ) ) ) )
+      ||| (y0 === pair q31 q32 % q33 &&& (_lookupo (pair q31 q32 % q33) &&& (_______lookupo q33 &&& __loginto (pair q31 q32 % q33))))
+      ||| ( y0
+          === pair (y ()) !!true % q34
+          &&& ( q34
+              === pair (x ()) q35 % q36
+              &&& ( ___loginto q35 q36
+                  ||| ( q36
+                      === pair (y ()) !!true % q37
+                      &&& (q35 === !!true ||| __lookupo q37)
+                      ||| (q36 === pair q38 q39 % q40 &&& (___loginto q35 (pair q38 q39 % q40) &&& ___lookupo q40)) ) )
+              ||| (q34 === pair q41 q42 % q43 &&& (_____lookupo q43 &&& (__lookupo (pair q41 q42 % q43) &&& ____loginto (pair q41 q42 % q43))))
+              ||| ( q34
+                  === pair (x ()) q35 % q44
+                  &&& ( _____loginto q35 q44
+                      ||| ( q44
+                          === pair (y ()) q45 % q46
+                          &&& ______lookupo q45 q46
+                          ||| (q44 === pair q47 q48 % q49 &&& (_____loginto q35 (pair q47 q48 % q49) &&& _______lookupo q49)) ) )
+                  ||| ( q34
+                      === pair q50 q51 % q52
+                      &&& ( _____lookupo q52
+                          &&& (______loginto (pair q50 q51 % q52) &&& (pair q50 q51 % q52 === q53 ||| (pair q50 q51 % q52 === q53 &&& _______lookupo q53))) )
+                      )
+                  ||| ( q34
+                      === pair (x ()) q35 % q54
+                      &&& ( _____loginto q35 q54
+                          ||| ( q54
+                              === pair (y ()) !!true % q55
+                              &&& ________lookupo q55
+                              ||| (q54 === pair q56 q57 % q58 &&& (_____loginto q35 (pair q56 q57 % q58) &&& ___lookupo q58)) ) )
+                      ||| (q34 === pair q59 q60 % q61 &&& (_____lookupo q61 &&& (______loginto (pair q59 q60 % q61) &&& ____loginto (pair q59 q60 % q61)))) )
+                  ) )
+          ||| (y0 === pair q62 q63 % q64 &&& (_____lookupo (pair q62 q63 % q64) &&& (___lookupo q64 &&& __loginto (pair q62 q63 % q64)))) ) )
+  and lookupo y1 = _lookupo y1
+  and _lookupo y2 = fresh (q1 q2 q3) (y2 === pair (x ()) !!true % q1 ||| (y2 === pair q2 q3 % q1 &&& _lookupo q1))
+  and __lookupo y3 = _lookupo y3
+  and ___lookupo y4 = fresh (q1 q2 q3) (y4 === pair (y ()) !!true % q1 ||| (y4 === pair q2 q3 % q1 &&& ___lookupo q1))
+  and lookupoLookupo y5 y6 = _lookupo y6 ||| lookupoLookupo y5 y6
+  and _loginto y8 y9 = ____lookupo y9
+  and ____lookupo y11 = _____lookupo y11
+  and _____lookupo y13 = fresh (q1 q2 q3 q4) (y13 === pair (x ()) q1 % q2 ||| (y13 === pair q3 q4 % q2 &&& _____lookupo q2))
+  and ______lookupo y15 y16 = _____lookupo y16
+  and _______lookupo y18 = fresh (q1 q2 q3 q4) (y18 === pair (y ()) q1 % q2 ||| (y18 === pair q3 q4 % q2 &&& _______lookupo q2))
+  and _lookupoLookupo y20 y21 = ______lookupo y20 y21 ||| _lookupoLookupo y20 y21
+  and ________lookupo y25 = _____lookupo y25
+  and __lookupoLookupo y27 y28 = ______lookupo y27 y28 ||| __lookupoLookupo y27 y28
+  and __loginto y31 =
+    fresh (q1 q2 q3 q4 q5 q6 q7 q8 q9 q10 q11 q12 q13)
+      ( y31
+      === pair (y ()) !!true % q1
+      &&& __lookupo q1
+      ||| (y31 === pair q2 q3 % q4 &&& (_lookupo (pair q2 q3 % q4) &&& ___lookupo q4))
+      ||| ( y31
+          === pair (y ()) q5 % q6
+          &&& ______lookupo q5 q6
+          ||| (y31 === pair q7 q8 % q9 &&& (_____lookupo (pair q7 q8 % q9) &&& _______lookupo q9))
+          ||| (y31 === pair (y ()) !!true % q10 &&& ________lookupo q10 ||| (y31 === pair q11 q12 % q13 &&& (_____lookupo (pair q11 q12 % q13) &&& ___lookupo q13)))
+          ) )
+  and ___loginto y32 y33 = y32 === !!true ||| _lookupo y33
+  and ____loginto y34 = ___lookupo y34
+  and _____loginto y35 y36 = _____lookupo y36
+  and ______loginto y38 = ________lookupo y38 in
+  loginto x0
 
-(*
-let topLevelCPD x0 x1 x2 =
-  let rec loginto y0 y1 y2 =
-    fresh (q1 q2 q3)
-      ( y1 === lit y2
-      ||| (y1 === var q1 &&& lookupo y0 y2 q1)
-      ||| (y1 === neg q1 &&& logintoNoto y0 y2 q1)
-      ||| (y1 === conj q2 q3 &&& logintoLogintoAndo y0 y2 q2 q3)
-      ||| (y1 === disj q2 q3 &&& logintoLogintoOro y0 y2 q2 q3) )
-  and lookupo y3 y4 y5 = fresh (q1 q2 q3) (y3 === pair y5 y4 % q1 ||| (y3 === pair q2 q3 % q1 &&& lookupo q1 y4 y5))
-  and logintoNoto y6 y7 y8 =
-    fresh (q1 q2 q3 q4)
-      ( y8 === lit q1 &&& noto y7 q1
-      ||| (y8 === var q2 &&& lookupoNoto y6 y7 q2)
-      ||| (y8 === neg q2 &&& (logintoNoto y6 q1 q2 &&& noto y7 q1))
-      ||| (y8 === conj q3 q4 &&& (logintoLogintoAndo y6 q1 q3 q4 &&& noto y7 q1))
-      ||| (y8 === disj q3 q4 &&& (logintoLogintoOro y6 q1 q3 q4 &&& noto y7 q1)) )
-  and noto y10 y11 = y11 === !!true &&& (y10 === !!false) ||| (y10 === !!true)
-  and lookupoNoto y12 y13 y15 = fresh (q1 q2 q3 q4) (y12 === pair y15 q1 % q2 &&& noto y13 q1 ||| (y12 === pair q3 q4 % q2 &&& lookupoNoto q2 y13 y15))
-  and logintoLogintoAndo y30 y31 y32 y33 =
-    fresh (q1 q2 q3 q4 q5)
-      ( y32 === lit q1
-      &&& (loginto y30 y33 q2 &&& ando y31 q1 q2)
-      ||| (y32 === var q3 &&& (lookupoAndo y30 y31 q2 q3 &&& loginto y30 y33 q2))
-      ||| (y32 === neg q3 &&& (logintoNoto y30 q1 q3 &&& loginto y30 y33 q2 &&& ando y31 q1 q2))
-      ||| (y32 === conj q4 q5 &&& (logintoLogintoAndo y30 q1 q4 q5 &&& loginto y30 y33 q2 &&& ando y31 q1 q2))
-      ||| (y32 === disj q4 q5 &&& (logintoLogintoOro y30 q1 q4 q5 &&& loginto y30 y33 q2 &&& ando y31 q1 q2)) )
-  and ando y36 y37 y38 = y37 === !!true &&& (y38 === !!true) &&& (y36 === !!true) ||| (y36 === !!false)
-  and lookupoAndo y39 y40 y42 y43 =
-    fresh (q1 q2 q3 q4) (y39 === pair y43 q1 % q2 &&& ando y40 q1 y42 ||| (y39 === pair q3 q4 % q2 &&& lookupoAndo q2 y40 y42 y43))
-  and logintoLogintoOro y64 y65 y66 y67 =
-    fresh (q1 q2 q3 q4 q5)
-      ( y66 === lit q1
-      &&& (loginto y64 y67 q2 &&& oro y65 q1 q2)
-      ||| (y66 === var q3 &&& (lookupoOro y64 y65 q2 q3 &&& loginto y64 y67 q2))
-      ||| (y66 === neg q3 &&& (logintoNoto y64 q1 q3 &&& loginto y64 y67 q2 &&& oro y65 q1 q2))
-      ||| (y66 === conj q4 q5 &&& (logintoLogintoAndo y64 q1 q4 q5 &&& loginto y64 y67 q2 &&& oro y65 q1 q2))
-      ||| (y66 === disj q4 q5 &&& (logintoLogintoOro y64 q1 q4 q5 &&& loginto y64 y67 q2 &&& oro y65 q1 q2)) )
-  and oro y70 y71 y72 = y71 === !!true &&& (y70 === !!true) ||| (y72 === !!true &&& (y70 === !!true)) ||| (y70 === !!false)
-  and lookupoOro y73 y74 y76 y77 =
-    fresh (q1 q2 q3 q4) (y73 === pair y77 q1 % q2 &&& oro y74 q1 y76 ||| (y73 === pair q3 q4 % q2 &&& lookupoOro q2 y74 y76 y77))
-  in
-  loginto x0 x1 x2
-*)
+let runTestOnSubst query = L.iter (fun s -> Printf.printf "%s\n" @@ show(answer) (s#reify (Std.List.reify (Std.Pair.reify reify reify))))
+		@@ RStream.take ~n:1 @@ query (fun i -> i)
 
-let formula = lit !!true
-let subst = nil ()
-let result = run q (fun q -> topLevelSU subst formula q) id
 
-let _ = Printf.printf "Ok"
+let _ = runTestOnSubst @@ run q (fun q -> topLevelSU q) 

@@ -1,32 +1,30 @@
 open GT
 open OCanren
 open Std
+open Core
 
-@type ('a, 'l) expr = 
-    Lit of 'a
-  | Var of 'a
-  | Conj of 'l * 'l
-  | Disj of 'l * 'l
-  | Not  of 'l
-  with show, gmap, eq, compare, foldl, foldr
+@type ('a, 'b) fa =
+  | Conj of 'a * 'a
+  | Disj of 'a * 'a
+  | Neg  of 'a
+  | Var  of 'b 
+  | LTrue 
+  | LFalse 
+  with show, gmap
 
-@type 'a logic'     = 'a logic              with show, gmap, eq, compare, foldl, foldr
-@type ('a, 'l) t    = ('a, 'l) expr         with show, gmap, eq, compare, foldl, foldr
+@type name   = X | Y | Z with show, gmap
+@type f      = (f, name logic) fa logic with show, gmap
+@type answer = ocanren ((name * bool) list) with show
 
-let logic' = logic
-           
-module X =
-  struct
-    @type ('a,'b) t = ('a, 'b) expr with show, gmap, eq, compare, foldl, foldr
-    let fmap f g x = GT.gmap expr f g x
-  end
+module F = Fmap2 (struct type ('a, 'b) t = ('a, 'b) fa let fmap f g x = gmap(fa) f g x end)
+            
+let conj   x y = inj @@ F.distrib (Conj (x, y))
+let disj   x y = inj @@ F.distrib (Disj (x, y))
+let var    x   = inj @@ F.distrib (Var x)
+let neg    x   = inj @@ F.distrib (Neg x)
+let ltrue  ()  = inj @@ F.distrib LTrue 
+let lfalse ()  = inj @@ F.distrib LFalse
 
-module F = Fmap2 (X)
-
-let f a = Logic.inj @@ F.distrib a
-
-let lit a    = f (Lit a)
-let var a    = f (Var a)
-let neg a    = f (Not a)
-let conj a b = f (Conj (a, b))
-let disj a b = f (Disj (a, b))
+let x () = !! X
+let y () = !! Y
+let z () = !! Z
