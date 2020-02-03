@@ -6,6 +6,10 @@ import List hiding (lit)
 
 pair x y = C "pair" [x, y]
 
+{-
+lookupo([(K, V) | T], K, V).
+lookupo([H | T], K, R) :- lookupo(T, K, R).
+-}
 lookupo :: G a -> G a
 lookupo =
   let subst = V "subst"
@@ -33,7 +37,10 @@ lookupoTest2 = lookupo $ fresh ["res"] $
 lookupoTest3 = lookupo $ fresh ["res", "st", "k"] $
   call "lookupo" [V "st", V "k", V "res"]
 
------------------------------------------------------------
+lookupoTest4 = lookupo $ fresh ["res", "tail"] $
+  call "lookupo" [pair (C "x" []) trueo % (V "tail"), C "x" [], V "res"]
+
+-------------------------------------------------------------
 
 oro :: G a -> G a
 oro =
@@ -71,14 +78,47 @@ noto =
   )
 
 {-
-  Interpterer of logic formulas
 
-  forumla :=
-      lit Bool
-    | var String
-    | formula && formula
-    | formula || formula
-    | !formula
+--
+-- Funny, but trees are larger when we use tables!
+--
+
+oro :: G a -> G a
+oro =
+  let result = V "result"
+      a = V "a"
+      b = V "b"
+  in
+  Let (def "oro" ["a", "b", "result"] $
+    (a === falso &&& b === falso &&& result === falso) |||
+    (a === falso &&& b === trueo &&& result === trueo) |||
+    (a === trueo &&& b === falso &&& result === trueo) |||
+    (a === trueo &&& b === trueo &&& result === trueo)
+  )
+
+ando :: G a -> G a
+ando =
+  let result = V "result"
+      a = V "a"
+      b = V "b"
+  in
+  Let (def "ando" ["a", "b", "result"] $
+    (a === falso &&& b === falso &&& result === falso) |||
+    (a === falso &&& b === trueo &&& result === falso) |||
+    (a === trueo &&& b === falso &&& result === falso) |||
+    (a === trueo &&& b === trueo &&& result === trueo)
+  )
+
+noto :: G a -> G a
+noto =
+  let result = V "result"
+      a = V "a"
+      b = V "b"
+  in
+  Let (def "noto" ["a", "result"] $
+    (a === trueo &&& result === falso) |||
+    (result === trueo)
+  )
 -}
 
 true = C "ltrue" []
@@ -98,7 +138,6 @@ loginto =
   fresh ["x", "l", "r", "rl", "rr"] (
       (formula === true &&& result === trueo)
   ||| (formula === false &&& result === falso)
---      (formula === lit (result))
   ||| (formula === var (V "x") &&& call "lookupo" [subst, V "x", result])
   ||| (formula === neg (V "x")
        &&& call "loginto" [subst, V "x", V "rl"]
@@ -113,6 +152,44 @@ loginto =
        &&& call "oro" [V "rl", V "rr", result])
   )) . lookupo . noto . ando . oro
 
+
+--
+-- Logic interpreter Not-And basis.
+--
+logintoNotAnd :: G a -> G a
+logintoNotAnd =
+  let subst = V "subst"
+      formula = V "formula"
+      result = V "result"
+  in
+  Let (def "loginto" ["subst", "formula", "result"] $
+  fresh ["x", "l", "r", "rl", "rr"] (
+      (formula === true &&& result === trueo)
+  ||| (formula === false &&& result === falso)
+  ||| (formula === var (V "x") &&& call "lookupo" [subst, V "x", result])
+  ||| (formula === neg (V "x")
+       &&& call "loginto" [subst, V "x", V "rl"]
+       &&& call "noto" [V "rl", result])
+  ||| (formula === conj (V "l") (V "r")
+       &&& call "loginto" [subst, V "l", V "rl"]
+       &&& call "loginto" [subst, V "r", V "rr"]
+       &&& call "ando" [V "rl", V "rr", result])
+  ||| (formula === disj (V "l") (V "r")
+       &&& call "loginto" [subst, V "l", V "rl"]
+       &&& call "loginto" [subst, V "r", V "rr"]
+       &&& call "oroNotAnd" [V "rl", V "rr", result])
+  )) . lookupo . oroNotAnd . noto . ando
+  where
+    oroNotAnd :: G a -> G a
+    oroNotAnd =
+      Let (def "oroNotAnd" ["a", "b", "result"] $
+        fresh ["x", "y", "z"] (
+          call "noto" [V "x", V "result"] &&&
+          call "ando" [V "y", V "z", V "x"] &&&
+          call "noto" [V "a", V "y"] &&&
+          call "noto" [V "b", V "z"]
+      )) . noto . ando
+
 --
 -- Test formulas
 --
@@ -122,17 +199,14 @@ logintoTest3 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", neg false, V 
 logintoTest4 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", conj true false, V "r"]
 logintoTest5 = loginto $ fresh ["s", "r"] $ call "loginto" [V "s", disj true false, V "r"]
 logintoTest6 = loginto $ fresh ["r", "x"] $ call "loginto" [(pair (C "x" []) true) % nil, var (C "x" []), V "rs"]
-logintoTest7 = loginto $ fresh ["r", "x", "y"] $
-  call "loginto" [(pair (C "y" []) true) % nil,
-    conj (V "x") (neg (var $ C "y" [])),
-    V "r"]
+logintoTest7 = loginto $ fresh ["r", "x", "y"] $ call "loginto" [(pair (C "y" []) true) % nil, conj (V "x") (neg (var $ C "y" [])), V "r"]
 
 --
 -- Log expressions
 --
 
-varX = var (V "x")
-varY = var (V "y")
+varX = var (C "x" [])
+varY = var (C "y" [])
 
 --
 -- (x \/ y) /\ (\neg x \/ y)
@@ -140,9 +214,17 @@ varY = var (V "y")
 logExpr1 = conj (disj varX varY) (disj (neg varX) varY)
 logExpr2 = conj (conj (disj (conj varX (neg varY)) (conj (neg varX) varY)) varX) varY
 
+logExpr3 = neg varX
 --
 -- Test queries
 --
+logintoQuery6 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", true, trueo]
+logintoQuery5 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", logExpr3, trueo]
 logintoQuery1 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
+--
+-- loginto st (x \/ y) /\ (\neg x \/ y) trueo -- найти подстановку, в которой выполняется формула
+--
+-- Это только x = true, y == true
 logintoQuery2 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr1, trueo]
 logintoQuery3 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr2, trueo]
+logintoQuery4 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
