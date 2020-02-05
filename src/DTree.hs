@@ -11,7 +11,6 @@ import qualified Data.Set as Set
 import Data.Monoid
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
-import Control.Arrow (second)
 import Text.Printf
 import DotPrinter
 
@@ -112,7 +111,7 @@ findVariantNode _ _ = Nothing
 -- Match leaves' goals and nodes
 --
 matchVariants :: DTree -> [(DGoal, DTree)]
-matchVariants t = second fromJust <$>
+matchVariants t = fmap fromJust <$>
                   filter (isJust . snd)
                   ((,) <*> flip findVariantNode t <$> leaves t)
 
@@ -133,14 +132,16 @@ treeGoals _ = Set.empty
 -- Evaluate tree's metrics.
 --
 
---                    (leafs, pruned leafs)
-countLeafs :: DTree -> (Int, Int)
-countLeafs (Or ts _ _) = foldl (\(n1, m1) (n2, m2) -> (n1 + n2, m1 + m2)) (0, 0) (countLeafs <$> ts)
-countLeafs (And ts _ _) = foldl (\(n1, m1) (n2, m2) -> (n1 + n2, m1 + m2)) (0, 0) (countLeafs <$> ts)
+--                    (leafs, Success, Fail)
+countLeafs :: DTree -> (Int, Int, Int)
+countLeafs (Or ts _ _) = foldl (\(n1, m1, h1) (n2, m2, h2) -> (n1 + n2, m1 + m2, h1 + h2)) (0, 0, 0) (countLeafs <$> ts)
+countLeafs (And ts _ _) = foldl (\(n1, m1, h1) (n2, m2, h2) -> (n1 + n2, m1 + m2, h1 + h2)) (0, 0, 0) (countLeafs <$> ts)
 countLeafs (Node t _ _) = countLeafs t
 countLeafs (Gen t _) = countLeafs t
-countLeafs (Prune _) = (1, 1)
-countLeafs _ = (1, 0)
+countLeafs (Leaf _ _ _) = (1, 0, 0)
+countLeafs (Success _) = (0, 1, 0)
+countLeafs Fail = (0, 0, 1)
+countLeafs _ = (0, 0, 0)
 
 countDepth :: DTree -> Int
 countDepth (Or ts _ _) = 1 + foldl max 0 (countDepth <$> ts)

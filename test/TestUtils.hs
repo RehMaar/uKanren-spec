@@ -21,6 +21,9 @@ import qualified Embedding as Emb
 import qualified Unfold.SeqUnfold as SU
 import qualified Unfold.FullUnfold as FU
 import qualified Unfold.RandUnfold as RU
+import qualified Unfold.UnrecUnfold as UU
+import qualified Unfold.RecUnfold as RecU
+import qualified Unfold.Unfold as U
 
 import qualified DTree as DT
 import qualified DTResidualize as DTR
@@ -29,6 +32,7 @@ import qualified LogicInt as LI
 import qualified List as L
 
 import Data.Monoid
+import Control.Arrow (second)
 
 --
 -- Save a tree into pdf file.
@@ -69,6 +73,17 @@ ocanren specMethod filename goal = do
         (tree, logicGoal, names) = specMethod goal
         f = DTR.topLevel tree
         (goal', names', defs) = P.purification (f, vident <$> reverse names)
+      in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+
+ocanrenId specMethod filename goal = do
+  let p = pur goal
+  let name = filename ++ ".ml"
+  OC.topLevel name "topLevelSU" Nothing p
+  where
+    pur goal = let
+        (tree, logicGoal, names) = specMethod goal
+        f = DTR.topLevel tree
+        (goal', names', defs) = P.identity (f, vident <$> reverse names)
       in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
 
 ocanrenSU = ocanren SU.topLevel
@@ -114,9 +129,9 @@ ocanrenPrint goal = do
 statTree :: DT.DTree -> IO ()
 statTree t = do
   let d = DT.countDepth t
-  let (l, p) = DT.countLeafs t
+  let (l, s, f) = DT.countLeafs t
   let n = DT.countNodes t
-  putStrLn $ "Depth: " ++ show d ++ " Leafs: " ++ show l ++  " (Pruned: " ++ show p ++ ")" ++ " Nodes: " ++ show n
+  putStrLn $ "Depth: " ++ show d ++ " Leafs: " ++ show l ++  " Success: " ++ show s ++ " Fail: " ++ show f ++ " Nodes: " ++ show n
 
 statMTree :: DTR.MarkedTree -> IO ()
 statMTree t = do
@@ -139,3 +154,43 @@ findGoal g (DT.Gen t _) = findGoal g t
 findGoal g t@(DT.Leaf g' _ _)
   | Emb.isVariant g (CPD.getCurr g') = Just t
 findGoal _ _ = Nothing
+
+--
+-- Rand Unfold
+--
+findBest whatToDo goal num step =
+    checkTrees whatToDo $ (\seed -> (seed,) $ fst3 $ RU.topLevel seed goal) <$> [1, succ step .. num ]
+  where
+    checkTrees whatToDo = minimum . fmap (second (treeParam whatToDo))
+    treeParam whatToDo tree =
+      let (l, s, f) = DT.countLeafs tree
+          n         = DT.countNodes tree
+      in if whatToDo then l else n
+
+findBestByNodes = findBest False
+findBestByLeafs = findBest True
+
+--
+-- Test methods
+--
+statMethods goal = do
+  statMethod goal "FU  " FU.topLevel
+  statMethod goal "SU  " SU.topLevel
+  statMethod goal "RU  " (RU.topLevel 1)
+  statMethod goal "UU  " UU.topLevel
+  statMethod goal "RecU" RecU.topLevel
+  where
+    statMethod goal name topLevel = do
+      putStr $ name ++ ": "
+      statTree $ fst3 $ topLevel goal
+
+statMMethods goal = do
+  statMMethod goal "FU  " FU.topLevel
+  statMMethod goal "SU  " SU.topLevel
+  statMMethod goal "RU  " (RU.topLevel 1)
+  statMMethod goal "UU  " UU.topLevel
+  statMMethod goal "RecU" RecU.topLevel
+  where
+    statMMethod goal name topLevel = do
+      putStr $ name ++ ": "
+      statMTree $ DTR.makeMarkedTree $ fst3 $ topLevel goal

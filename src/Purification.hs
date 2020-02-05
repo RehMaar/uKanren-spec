@@ -251,46 +251,46 @@ removeRedundantArgs r e =
   case find (isBadErasureElem r e) $ erasureToList e of
     Nothing     -> e
     Just (f, i) -> removeRedundantArgs r $ Map.insert f (delete i $ e Map.! f) e
-  where
+--  where
 
-    {-------------------------------------------}
-    erasureToList :: Erasure -> [ErasureElem]
-    erasureToList = concatMap (\(n,i) -> map ((,) n) i) . Map.toList
+{-------------------------------------------}
+erasureToList :: Erasure -> [ErasureElem]
+erasureToList = concatMap (\(n,i) -> map ((,) n) i) . Map.toList
 
-    {-------------------------------------------}
-    isBadErasureElem :: Rules -> Erasure -> ErasureElem -> Bool
-    isBadErasureElem rules er el = any (isBadForRule er el) rules
+{-------------------------------------------}
+isBadErasureElem :: Rules -> Erasure -> ErasureElem -> Bool
+isBadErasureElem rules er el = any (isBadForRule er el) rules
 
-    {-------------------------------------------}
-    isBadForRule :: Erasure -> ErasureElem -> Rule -> Bool
-    isBadForRule er el (hd, bd) = isBadForFunc er el hd [] bd
+{-------------------------------------------}
+isBadForRule :: Erasure -> ErasureElem -> Rule -> Bool
+isBadForRule er el (hd, bd) = isBadForFunc er el hd [] bd
 
-    {-------------------------------------------}
-    isBadForFunc :: Erasure -> ErasureElem -> Func -> Funcs -> Funcs -> Bool
-    isBadForFunc _ _ _ _ [] = False
-    isBadForFunc er p@(n, i) hd pref (f@(n', a):suff) =
-      if n /= n' then isBadForFunc er p hd (f:pref) suff
-        else case splitAt (i-1) a of
-          (_,  C _ _ : _ ) -> True
-          (a1, V v   : a2) ->
-            if any (hasVarInTerm v) a1 ||
-               any (hasVarInTerm v) a2 ||
-               any (hasVarInFunc v) pref ||
-               any (hasVarInFunc v) suff ||
-               hasVarInFunc v (applyErasureToFunc er hd)
-            then True
-            else isBadForFunc er p hd (f:pref) suff
-          -- x -> error $ "Purification: " ++ show x
-          _ -> True
+{-------------------------------------------}
+isBadForFunc :: Erasure -> ErasureElem -> Func -> Funcs -> Funcs -> Bool
+isBadForFunc _ _ _ _ [] = False
+isBadForFunc er p@(n, i) hd pref (f@(n', a):suff) =
+  if n /= n' then isBadForFunc er p hd (f:pref) suff
+    else case splitAt (i-1) a of
+      (_,  C _ _ : _ ) -> True
+      (a1, V v   : a2) ->
+        if any (hasVarInTerm v) a1 ||
+           any (hasVarInTerm v) a2 ||
+           any (hasVarInFunc v) pref ||
+           any (hasVarInFunc v) suff ||
+           hasVarInFunc v (applyErasureToFunc er hd)
+        then True
+        else isBadForFunc er p hd (f:pref) suff
+      -- x -> error $ "Purification: " ++ show x
+      _ -> True
 
-    {-------------------------------------------}
-    hasVarInFunc :: X -> Func -> Bool
-    hasVarInFunc v (_, a) = any (hasVarInTerm v) a
+{-------------------------------------------}
+hasVarInFunc :: X -> Func -> Bool
+hasVarInFunc v (_, a) = any (hasVarInTerm v) a
 
-    {-------------------------------------------}
-    hasVarInTerm :: X -> Term X -> Bool
-    hasVarInTerm v1 (V v2)  = v1 == v2
-    hasVarInTerm v  (C _ a) = any (hasVarInTerm v) a
+{-------------------------------------------}
+hasVarInTerm :: X -> Term X -> Bool
+hasVarInTerm v1 (V v2)  = v1 == v2
+hasVarInTerm v  (C _ a) = any (hasVarInTerm v) a
 
 {-------------------------------------------}
 applyErasureToRule :: Erasure -> Rule -> Rule
@@ -333,8 +333,8 @@ defToRules (n, a, g) = map (\(s, f) -> (applyInFunc s (n, ta), map (applyInFunc 
   gToRules (Fresh _ g)   = gToRules g
   gToRules (g1 :\/: g2)  = gToRules g1 ++ gToRules g2
   gToRules (g1 :/\: g2)  = [(s1 ++ s2, f1 ++ f2) | (s1, f1) <- gToRules g1, (s2, f2) <- gToRules g2]
-  gToRules _ = [([], [])]
-  -- gToRules x = error $ "gToRules: " ++ show x
+ -- gToRules _ = [([], [])]
+  gToRules x = error $ "gToRules: " ++ show x
 
   applySubst :: Subst -> Term X -> Term X
   applySubst s t@(V v) = case lookup v s of

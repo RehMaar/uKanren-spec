@@ -57,12 +57,14 @@ instance OCanren v => OCanren (Term v) where
   ocanren (C "%"    [h,t]) = printf "(%s %% %s)" (ocanren h) (ocanren t)
   ocanren (C "O" []) = "zero"
   ocanren (C "S" [x]) = printf "succ (%s)" (ocanren x)
-  ocanren (C "o" []) = "o"
+  ocanren (C "o" []) = "zero"
   ocanren (C "s" [x]) = printf "s (%s)" (ocanren x)
   ocanren (C "true" []) = printf "!!true"
   ocanren (C "false" []) = printf "!!false"
   ocanren (C "z" []) = "zero"
   ocanren (C "none" []) = "none ()"
+  ocanren (C "ltrue" []) = "ltrue ()"
+  ocanren (C "lfalse" []) = "lfalse ()"
   ocanren (C (f:o) ts) = printf "(%s)" $ (toLower f : o) ++ ' ' : printArgs (map ocanren ts)
 
 instance OCanren v => OCanren (G v) where
