@@ -42,6 +42,15 @@ lookupoTest4 = lookupo $ fresh ["res", "tail"] $
 
 -------------------------------------------------------------
 
+true = C "ltrue" []
+false = C "lfalse" []
+var x = C "var" [x]
+neg x = C "neg" [x]
+conj x y = C "conj" [x, y]
+disj x y = C "disj" [x, y]
+
+
+{-
 oro :: G a -> G a
 oro =
   let result = V "result"
@@ -76,12 +85,7 @@ noto =
     (a === trueo &&& result === falso) |||
     (result === trueo)
   )
-
-{-
-
---
--- Funny, but trees are larger when we use tables!
---
+-}
 
 oro :: G a -> G a
 oro =
@@ -116,17 +120,9 @@ noto =
       b = V "b"
   in
   Let (def "noto" ["a", "result"] $
-    (a === trueo &&& result === falso) |||
-    (result === trueo)
+    (a === trueo&&& result === falso) |||
+    (a === falso &&& result === trueo)
   )
--}
-
-true = C "ltrue" []
-false = C "lfalse" []
-var x = C "var" [x]
-neg x = C "neg" [x]
-conj x y = C "conj" [x, y]
-disj x y = C "disj" [x, y]
 
 loginto :: G a -> G a
 loginto =
@@ -135,10 +131,10 @@ loginto =
       result = V "result"
   in
   Let (def "loginto" ["subst", "formula", "result"] $
-  fresh ["x", "l", "r", "rl", "rr"] (
+  fresh ["x", "y", "l", "r", "rl", "rr"] (
       (formula === true &&& result === trueo)
   ||| (formula === false &&& result === falso)
-  ||| (formula === var (V "x") &&& call "lookupo" [subst, V "x", result])
+  ||| (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
   ||| (formula === neg (V "x")
        &&& call "loginto" [subst, V "x", V "rl"]
        &&& call "noto" [V "rl", result])
@@ -156,6 +152,8 @@ loginto =
 --
 -- Logic interpreter Not-And basis.
 --
+-- Results are even worse.
+--
 logintoNotAnd :: G a -> G a
 logintoNotAnd =
   let subst = V "subst"
@@ -163,10 +161,10 @@ logintoNotAnd =
       result = V "result"
   in
   Let (def "loginto" ["subst", "formula", "result"] $
-  fresh ["x", "l", "r", "rl", "rr"] (
-      (formula === true &&& result === trueo)
-  ||| (formula === false &&& result === falso)
-  ||| (formula === var (V "x") &&& call "lookupo" [subst, V "x", result])
+  fresh ["x", "y", "l", "r", "rl", "rr"] (
+      (formula === true &&& result === true)
+  ||| (formula === false &&& result === false)
+  ||| (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
   ||| (formula === neg (V "x")
        &&& call "loginto" [subst, V "x", V "rl"]
        &&& call "noto" [V "rl", result])
@@ -207,6 +205,7 @@ logintoTest7 = loginto $ fresh ["r", "x", "y"] $ call "loginto" [(pair (C "y" []
 
 varX = var (C "x" [])
 varY = var (C "y" [])
+varZ = var (C "z" [])
 
 --
 -- (x \/ y) /\ (\neg x \/ y)
@@ -215,10 +214,15 @@ logExpr1 = conj (disj varX varY) (disj (neg varX) varY)
 logExpr2 = conj (conj (disj (conj varX (neg varY)) (conj (neg varX) varY)) varX) varY
 
 logExpr3 = neg varX
+
+-- (x || y)(x || z)(!y || z)(!y || x)
+logExpr4 = conj (conj (conj (disj varX varY) (disj varX varZ)) (disj (neg varY) varX)) (disj (neg varY) varX)
+subst4 = pair varX trueo % pair varY trueo % pair varZ trueo % nil
+
 --
 -- Test queries
 --
-logintoQuery6 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", true, trueo]
+logintoQuery6 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", trueo, trueo]
 logintoQuery5 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", logExpr3, trueo]
 logintoQuery1 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
 --
@@ -228,3 +232,4 @@ logintoQuery1 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", 
 logintoQuery2 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr1, trueo]
 logintoQuery3 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr2, trueo]
 logintoQuery4 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
+logintoQuery7 = loginto $ fresh ["s"] $ call "loginto" [subst4, logExpr4, trueo]
