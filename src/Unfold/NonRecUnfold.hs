@@ -1,4 +1,4 @@
-module Unfold.UnrecUnfold where
+module Unfold.NonRecUnfold where
     
 import Syntax
 import DTree
@@ -24,29 +24,28 @@ import Control.Exception (assert)
 
 trace' _ = id
 
-data UUGoal = UUGoal DGoal deriving Show
+data NUGoal = NUGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   lgoal' = CPD.normalize lgoal
-  igoal = assert (length lgoal' == 1) $ UUGoal (head lgoal')
+  igoal = assert (length lgoal' == 1) $ NUGoal (head lgoal')
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
 
-instance Unfold UUGoal where
-  getGoal (UUGoal dgoal) = dgoal
+instance UnfoldableGoal NUGoal where
+  getGoal (NUGoal dgoal) = dgoal
+  initGoal goal = NUGoal goal
+  emptyGoal (NUGoal dgoal) = null dgoal
+  mapGoal (NUGoal dgoal) f = NUGoal (f dgoal)
 
-  initGoal goal = UUGoal goal
 
-  emptyGoal (UUGoal dgoal) = null dgoal
-
-  mapGoal (UUGoal dgoal) f = UUGoal (f dgoal)
-
+instance Unfold NUGoal where
   unfoldStep = unreqUnfoldStep
 
-unreqUnfoldStep :: UUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, UUGoal)], E.Gamma)
-unreqUnfoldStep (UUGoal dgoal) env subst = let
+unreqUnfoldStep :: NUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, NUGoal)], E.Gamma)
+unreqUnfoldStep (NUGoal dgoal) env subst = let
     (conj, rest) = splitGoal env dgoal
     (newEnv, uConj) = unfold conj env
 
@@ -55,7 +54,7 @@ unreqUnfoldStep (UUGoal dgoal) env subst = let
     us = (\(cs, subst) -> (subst, suGoal subst cs rest)) <$> unConj
   in (us, newEnv)
   where
-    suGoal subst cs rest = UUGoal $ E.substituteConjs subst $ cs ++ rest
+    suGoal subst cs rest = NUGoal $ E.substituteConjs subst $ cs ++ rest
 
 splitGoal :: E.Gamma -> DGoal -> (G S, [G S])
 splitGoal env gs = let (c:cs) = sortBy ((compare `on` (isRec env)) <>
@@ -77,5 +76,5 @@ compareGoals (p, _, _) (Invoke g1 _) (Invoke g2 _)
   | otherwise
   = let n1 = length $ normalize $ trd3 $ p g1
         n2 = length $ normalize $ trd3 $ p g2
-    in compare n1 n2
+    in compare n2 n1
 compareGoals _ _ _ = EQ

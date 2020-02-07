@@ -24,7 +24,7 @@ import qualified OCanrenize as OC
 import qualified Unfold.SeqUnfold as SU
 import qualified Unfold.FullUnfold as FU
 import qualified Unfold.RandUnfold as RU
-import qualified Unfold.UnrecUnfold as UU
+import qualified Unfold.NonRecUnfold as NU
 import qualified Unfold.RecUnfold as RecU
 import qualified Unfold.Unfold as U
 
@@ -114,12 +114,3 @@ gfun g =
 
 ffun :: G a -> G a
 ffun g = Let (def "f" ["x", "y"] (call "listo" [V "x"])) $ L.listo g
-
-
-(tree, _, names) = UU.topLevel testMaxLen
-prg = DTR.topLevel tree
-(goal, args, defs) = P.justTakeOutLets (prg, vident <$> reverse names)
-mf = P.defToRules ("main", args, goal)
-ifs = P.defToRules <$> defs
-iers = Map.fromList $ map (\(n, a, _) -> (n, [1 .. length a])) defs
-fs = mf ++ concat ifs

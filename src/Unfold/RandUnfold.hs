@@ -25,68 +25,87 @@ import Debug.Trace
 
 data RndGoal = RndGoal DGoal StdGen deriving Show
 
-
 topLevel :: Int -> G X -> (DTree, G S, [S])
 topLevel seed g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   igoal = RndGoal [lgoal] (mkStdGen seed)
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
-
---
--- Helpers
---
-
-seedFromGoal dgoal = foldPoly (fst $ random (mkStdGen $ length dgoal)) $ concatMap getVarFromDGoal dgoal
-
-foldPoly x  = foldr (\el acc -> el + acc * x) 0
-
-getVarFromDGoal (Invoke _ as) = concatMap getVarS as
-getVarFromDGoal _ = []
-
-getVarS (C _ ts) = concatMap getVarS ts
-getVarS (V t) = [t]
-
---
-
-instance Unfold RndGoal where
-    getGoal (RndGoal dgoal _) = dgoal
-
-    initGoal dgoal = RndGoal dgoal (mkStdGen $ seedFromGoal dgoal)
-
-    emptyGoal (RndGoal dgoal _) = null dgoal
-
-    mapGoal (RndGoal dgoal rng) f = RndGoal (f dgoal) rng
-
-    unfoldStep = randUnfoldStep
-
-randUnfoldStep :: RndGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, RndGoal)], E.Gamma)
-randUnfoldStep (RndGoal dgoal rng) env subst = let
-    len = length dgoal
-
-    (idx, rng') = randomR (0, len) rng
-
-    (_, (ls, conj, rs)) = SU.splitGoal idx dgoal
-
-    (newEnv, uConj) = unfold conj env
-    nConj = goalToDNF uConj
-    unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, rndGoal subst ls cs rs rng')) <$> unConj
-
-  in (us, newEnv)
   where
-    rndGoal subst ls cs rs rng = let
-        goal = ls ++ cs ++ rs
-        len = length goal
-        (_, rng') = random rng :: (Int, StdGen)
-        dgoal = E.substituteConjs subst goal
-      in RndGoal dgoal rng
+    randUnfoldStep :: RndGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, RndGoal)], E.Gamma)
+    randUnfoldStep (RndGoal dgoal rng) env subst = let
+        len = length dgoal
 
+        (idx, rng') = randomR (0, len) rng
+
+        (_, (ls, conj, rs)) = SU.splitGoal idx dgoal
+
+        (newEnv, uConj) = unfold conj env
+        nConj = goalToDNF uConj
+        unConj = unifyAll subst nConj
+        us = (\(cs, subst) -> (subst, rndGoal subst ls cs rs rng')) <$> unConj
+
+      in (us, newEnv)
+      where
+        rndGoal subst ls cs rs rng = let
+            goal = ls ++ cs ++ rs
+            dgoal = E.substituteConjs subst goal
+          in RndGoal dgoal rng
+
+    derivationStep goal@(RndGoal realGoal rng) ancs env subst seen depth
+      | checkLeaf realGoal seen
+      = (Leaf (CPD.Descend realGoal ancs) subst env, seen, head $ thd env)
+      | otherwise
+      =
+      let
+        descend = CPD.Descend realGoal ancs
+        newAncs = Set.insert realGoal ancs
+      in case randUnfoldStep goal env subst of
+         ([], _)          -> (Fail, seen, head $ thd env)
+         (uGoals, newEnv) -> let
+             newSeen = Set.insert realGoal seen
+             (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
+                 (\(a, t, i) -> (a, t:ts, max i m)) $
+                   evalSubTree depth (fixEnv m newEnv) newAncs seen g)
+                 (newSeen, [], head $ thd env) uGoals
+           in (Or (reverse ts) subst descend, seen', maxVarNum)
+
+    evalSubTree depth env ancs seen (subst, goal@(RndGoal realGoal rng))
+      | null realGoal
+      = (seen, Success subst, head $ thd env)
+      | not (checkLeaf realGoal seen)
+      , isGen realGoal ancs
+      =
+        let
+          absGoals = abstract ancs realGoal subst env
+          newSeen = Set.insert realGoal seen
+
+          (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
+                  (\(a, t, i) -> (a, t:ts, max i m)) $
+                  evalGenSubTree m depth ancs seen rng g)
+                  (newSeen, [], head $ thd env) absGoals
+        in (seen', And (reverse ts) subst descend, maxVarNum)
+      | otherwise
+      =
+        let
+          newDepth = 1 + depth
+          (tree, seen', maxVarNum) = derivationStep goal ancs env subst seen newDepth
+        in (seen', tree, maxVarNum)
+      where
+        descend  = CPD.Descend realGoal ancs
+
+        evalGenSubTree m depth ancs seen rng (subst, goal, gen, env') =
+          let
+            env = fixEnv m env'
+            newDepth = if null gen then 2 + depth else 3 + depth
+            rngGoal = RndGoal goal rng
+            (tree, seen', maxVarNum) = derivationStep rngGoal  ancs env subst seen newDepth
+            subtree  = if null gen then tree else Gen tree gen
+          in (seen', subtree, maxVarNum)
 
 --
--- Implementation of the Random Unfolding rule using fair randomization.
+-- Implementation of the Random Unfolding rule using global randomizer.
 --
-
 data RndGoalIO = RndGoalIO DGoal deriving Show
 
 

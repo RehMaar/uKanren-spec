@@ -33,7 +33,7 @@ topLevel g = let
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
 
-instance Unfold SUGoal where
+instance UnfoldableGoal SUGoal where
   getGoal (SUGoal dgoal _) = dgoal
 
   initGoal goal = SUGoal goal 0
@@ -42,6 +42,8 @@ instance Unfold SUGoal where
 
   mapGoal (SUGoal dgoal idx) f = SUGoal (f dgoal) idx
 
+
+instance Unfold SUGoal where
   unfoldStep = seqUnfoldStep
 
 

@@ -35,15 +35,13 @@ topLevel g = let
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
 
-instance Unfold RecGoal where
+instance UnfoldableGoal RecGoal where
   getGoal (RecGoal dgoal) = dgoal
-
   initGoal goal = RecGoal goal
-
   emptyGoal (RecGoal dgoal) = null dgoal
-
   mapGoal (RecGoal dgoal) f = RecGoal (f dgoal)
 
+instance Unfold RecGoal where
   unfoldStep = unreqUnfoldStep
 
 unreqUnfoldStep :: RecGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, RecGoal)], E.Gamma)

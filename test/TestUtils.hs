@@ -21,8 +21,10 @@ import qualified Embedding as Emb
 import qualified Unfold.SeqUnfold as SU
 import qualified Unfold.FullUnfold as FU
 import qualified Unfold.RandUnfold as RU
-import qualified Unfold.UnrecUnfold as UU
+import qualified Unfold.NonRecUnfold as NU
 import qualified Unfold.RecUnfold as RecU
+import qualified Unfold.MaxUnfold as MaxU
+import qualified Unfold.MinUnfold as MinU
 import qualified Unfold.Unfold as U
 
 import qualified DTree as DT
@@ -32,7 +34,6 @@ import qualified LogicInt as LI
 import qualified List as L
 
 import Data.Monoid
-import Control.Arrow (second)
 
 --
 -- Save a tree into pdf file.
@@ -85,6 +86,13 @@ ocanrenId specMethod filename goal = do
         f = DTR.topLevel tree
         (goal', names', defs) = P.identity (f, vident <$> reverse names)
       in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+
+ocanrenWithoutSpec filename prg = do
+  let fname = filename ++ ".ml"
+  let (_, _, ns) = U.goalXtoGoalS prg
+  let p@(g, n, d)  = P.justTakeOutLets (prg, vident <$> reverse ns)
+  OC.topLevel fname "topLevel" Nothing p
+
 
 ocanrenSU = ocanren SU.topLevel
 ocanrenFU = ocanren FU.topLevel
@@ -161,7 +169,7 @@ findGoal _ _ = Nothing
 findBest whatToDo goal num step =
     checkTrees whatToDo $ (\seed -> (seed,) $ fst3 $ RU.topLevel seed goal) <$> [1, succ step .. num ]
   where
-    checkTrees whatToDo = minimum . fmap (second (treeParam whatToDo))
+    checkTrees whatToDo = {- minimum .-} fmap (fmap (treeParam whatToDo))
     treeParam whatToDo tree =
       let (l, s, f) = DT.countLeafs tree
           n         = DT.countNodes tree
@@ -173,23 +181,32 @@ findBestByLeafs = findBest True
 --
 -- Test methods
 --
+
+statMethod goal name topLevel = do
+  putStr $ name ++ ": "
+  statTree $ fst3 $ topLevel goal
+
 statMethods goal = do
-  statMethod goal "FU  " FU.topLevel
+  -- statMethod goal "FU  " FU.topLevel
   statMethod goal "SU  " SU.topLevel
-  statMethod goal "RU  " (RU.topLevel 1)
-  statMethod goal "UU  " UU.topLevel
+  statMethod goal "RU  " (RU.topLevel 17)
+  statMethod goal "NU  " NU.topLevel
   statMethod goal "RecU" RecU.topLevel
-  where
-    statMethod goal name topLevel = do
-      putStr $ name ++ ": "
-      statTree $ fst3 $ topLevel goal
+  statMethod goal "MinU  " MinU.topLevel
+  statMethod goal "MaxU  " MaxU.topLevel
+
+statRandIO goal = do
+  (t, g, ns) <- RU.topLevelIO goal
+  statTree t
 
 statMMethods goal = do
-  statMMethod goal "FU  " FU.topLevel
+  -- statMMethod goal "FU  " FU.topLevel
   statMMethod goal "SU  " SU.topLevel
-  statMMethod goal "RU  " (RU.topLevel 1)
-  statMMethod goal "UU  " UU.topLevel
+  statMMethod goal "RU  " (RU.topLevel 17)
+  statMMethod goal "NU  " NU.topLevel
   statMMethod goal "RecU" RecU.topLevel
+  statMMethod goal "MinU  " MinU.topLevel
+  statMMethod goal "MaxU  " MaxU.topLevel
   where
     statMMethod goal name topLevel = do
       putStr $ name ++ ": "

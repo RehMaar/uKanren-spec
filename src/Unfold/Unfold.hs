@@ -29,8 +29,7 @@ import PrettyPrint
 trace' _ = id
 -- trace' = trace
 
-class Show a => Unfold a where
-
+class UnfoldableGoal a where
   -- Что-то вроде интерфейса для `a'. Может, следует вынести в отдельный класс.
   -- Получить цель из `a'.
   getGoal    :: a -> DGoal
@@ -41,6 +40,8 @@ class Show a => Unfold a where
   -- Применить функцию к цели в `a'.
   mapGoal    :: a -> (DGoal -> DGoal) -> a
 
+
+class (UnfoldableGoal a, Show a) => Unfold a where
   --
   -- `unfold` цели в `a'.
   --
@@ -222,3 +223,31 @@ getInvokeArgs _ = []
 
 isInvoke (Invoke _ _) = True
 isInvoke _ = False
+
+getInvokeName (Invoke name _) = name
+getInvokeName g = error $ "getInvokeName: not Invoke: " ++ show g
+
+normalize :: G a -> [[G a]]
+normalize (f :\/: g) = normalize f ++ normalize g
+normalize (f :/\: g) = (++) <$> normalize f <*> normalize g
+normalize g@(Invoke _ _) = [[g]]
+normalize g@(_ :=: _) = [[g]]
+normalize (Fresh _ goal) = normalize goal
+
+genUnfoldStep :: UnfoldableGoal a =>
+     (E.Gamma -> a -> (G S, DGoal))
+  -> (DGoal -> a)
+  -> a
+  -> E.Gamma
+  -> E.Sigma
+  -> ([(E.Sigma, a)], E.Gamma)
+genUnfoldStep split ctr goal env subst = let
+    (conj, rest) = split env goal
+    (newEnv, uConj) = unfold conj env
+
+    nConj = goalToDNF uConj
+    unConj = unifyAll subst nConj
+    us = (\(cs, subst) -> (subst, construct subst cs rest)) <$> unConj
+  in (us, newEnv)
+  where
+    construct subst cs rest = ctr $ E.substituteConjs subst $ cs ++ rest
