@@ -39,7 +39,7 @@ import Syntax
 import Text.Printf
 import Data.List
 import qualified Data.Set as Set
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified CPD
 import Debug.Trace
 import Eval

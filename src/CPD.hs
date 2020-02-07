@@ -169,7 +169,7 @@ sldResolutionStep gs env@(p, i, d@(temp : _)) s seen isFirstTime
             (selectNext rs)
           ns -> Leaf gs s env
 
-normalize :: G S -> [[G S]]
+normalize :: G a -> [[G a]]
 normalize (f :\/: g) = normalize f ++ normalize g
 normalize (f :/\: g) = (++) <$> normalize f <*> normalize g
 normalize g@(Invoke _ _) = [[g]]
