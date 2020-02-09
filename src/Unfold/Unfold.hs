@@ -56,8 +56,10 @@ class (UnfoldableGoal a, Show a) => Unfold a where
     -> Int               -- Depth for debug.
     -> (DTree, Set.Set DGoal, S)
   derivationStep goal ancs env subst seen depth
-    -- | depth >= 50
-    -- = (Prune (getGoal goal), seen)
+--    | depth >= 10
+--    = (Prune (getGoal goal), seen, head $ thd env)
+
+    -- Проверяем, не является ли цель переименованием уже встреченной.
     | checkLeaf (getGoal goal) seen
     = (Leaf (CPD.Descend (getGoal goal) ancs) subst env, seen, head $ thd env)
     | otherwise
@@ -66,17 +68,23 @@ class (UnfoldableGoal a, Show a) => Unfold a where
       realGoal = getGoal goal
       descend = CPD.Descend realGoal ancs
       newAncs = Set.insert realGoal ancs
-      -- Add `goal` to a seen set (`Or` node in the tree).
+    -- Раскрываем цель по определениям из окружения.
     in case unfoldStep goal env subst of
        ([], _)          -> (Fail, seen, head $ thd env)
        (uGoals, newEnv) -> let
            -- Делаем свёртку, чтобы просмотренные вершины из одного обработанного поддерева
            -- можно было передать в ещё не обработанное.
            newSeen = Set.insert realGoal seen
-           (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
-               (\(a, t, i) -> (a, t:ts, max i m)) $
-                 evalSubTree depth (fixEnv m newEnv) newAncs seen g)
-               (newSeen, [], head $ thd env) uGoals
+           (seen', ts, maxVarNum) =
+             foldl
+               (\(seen, ts, m) g ->
+                 (\(a, t, i) -> (a, t:ts, max i m)) $
+                 evalSubTree depth (fixEnv m newEnv) newAncs seen g
+               )
+               -- Список просмотренных вершин, поддеревья и номер первой свободной переменной.
+               -- Держим её для того, чтобы имена не пересекались.
+               (newSeen, [], head $ thd env)
+               uGoals
          in (Or (reverse ts) subst descend, seen', maxVarNum)
 
   evalSubTree :: Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, a) -> (Set.Set DGoal, DTree, S)
@@ -86,7 +94,7 @@ class (UnfoldableGoal a, Show a) => Unfold a where
     | not (checkLeaf realGoal seen)
     , (isGen realGoal ancs {-|| toSplit realGoal-})
     =
-    -- (seen, Debug env subst realGoal ancs, head $ thd env)
+     -- (seen, Debug env subst realGoal ancs, head $ thd env)
       let
         absGoals = abstract ancs realGoal subst env
         -- Add `realGoal` to a seen set (`And` node in the tree).
@@ -117,7 +125,7 @@ class (UnfoldableGoal a, Show a) => Unfold a where
 
 fixEnv i (f1, f2, d:ds)
   | i > d = (f1, f2, drop (i - d) ds)
-  | otherwise = (f1, f2, d:ds)
+  | otherwise = (f1, f2, ds)
 
 thd (_,_,f) = f
 
@@ -172,7 +180,19 @@ conjOfDNFtoDNF' (x {- Disj (Conj a) -} :xs) = concat $ addConjToDNF x <$> conjOf
 addConjToDNF :: Disj (Conj a) -> Conj a -> Disj (Conj a)
 addConjToDNF ds c = (c ++) <$> ds
 
+--checkLeaf = instanceCheck
 checkLeaf = variantCheck
+checkLeaf' g = any (\sg -> all' $ uncurry isRenaming <$> zip' g sg)
+  where
+    all' [] = False
+    all' xs = all id xs
+
+    zip' xs ys
+      | length xs == length ys
+      = zip xs ys
+      | otherwise
+      = []
+
 abstract
   :: Set.Set [G S]                         -- Ancestors of the goal
   -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx

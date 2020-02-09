@@ -33,6 +33,14 @@ topLevel g = let
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
 
+-- topLevel :: G X -> (DTree, G S, [S])
+topLevelDebug g = let
+  (lgoal, lgamma, lnames) = goalXtoGoalS g
+  lgoal' = CPD.normalize lgoal
+  igoal = assert (length lgoal' == 1) $ SUGoal (head lgoal') 0
+  (tree, seen, _) =  derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
+  in (tree, Set.toList seen)
+
 instance UnfoldableGoal SUGoal where
   getGoal (SUGoal dgoal _) = dgoal
 
@@ -65,6 +73,6 @@ splitGoal _ [g] = (0, ([], g, []))
 splitGoal idx gs = let
   (ls, rs) = splitAt idx gs
   in case uncons rs of
-      Just (c, []) -> (length ls, (ls, c, []))
+      Just (c, []) -> (idx, (ls, c, []))
       Just (c, rs) -> (succ idx, (ls, c, rs))
       Nothing -> splitGoal 0 gs

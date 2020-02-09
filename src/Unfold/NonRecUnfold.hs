@@ -76,5 +76,5 @@ compareGoals (p, _, _) (Invoke g1 _) (Invoke g2 _)
   | otherwise
   = let n1 = length $ normalize $ trd3 $ p g1
         n2 = length $ normalize $ trd3 $ p g2
-    in compare n2 n1
+    in compare n1 n2
 compareGoals _ _ _ = EQ
