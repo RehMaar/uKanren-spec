@@ -1,0 +1,6 @@
+out
+.stack-work
+_build
+*.native
+*.cabal
+*.dot
