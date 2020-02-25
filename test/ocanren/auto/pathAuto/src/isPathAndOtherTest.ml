@@ -317,18 +317,18 @@ let topLevelSU x0 x1 =
   isPath x0 x1
 
 let loop = ocanren([(1, 1)])
+let dag = ocanren([(1, 2); (2, 3)])
+let g = ocanren([(1, 2); (2, 3); (3, 1)])
 
 let topLevelMyTest = topLevelSU
 
 let result_cpd_1 = run q (fun q -> topLevelCPD q loop) id
 let result_my_1 = run q (fun q -> topLevelMyTest q loop) id
 
-let dag = ocanren([(1, 2); (2, 3)])
 
 let result_cpd_2 = run q (fun q -> topLevelCPD q dag) id
 let result_my_2 = run q (fun q -> topLevelMyTest q dag ) id
 
-let g = ocanren([(1, 2); (2, 3); (3, 1)])
 
 let result_cpd_3 = run q (fun q -> topLevelCPD q g) id
 let result_my_3 = run q (fun q -> topLevelMyTest q g) id

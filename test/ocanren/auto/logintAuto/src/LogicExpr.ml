@@ -12,11 +12,14 @@ open Core
   | LFalse 
   with show, gmap
 
-@type name   = X | Y | Z with show, gmap
+@type name   = X | Y | Z | A | B with show, gmap
 @type f      = (f, name logic) expr logic with show, gmap
+@type fs     = (f, string logic) expr logic with show, gmap
 @type answer = ocanren ((name * bool) list) with show
 
 module F = Fmap2 (struct type ('a, 'b) t = ('a, 'b) expr let fmap f g x = gmap(expr) f g x end)
+
+let rec reify_f f = F.reify reify_f reify f
             
 
 let toL x = inj @@ F.distrib x
@@ -31,3 +34,5 @@ let lfalse ()  = inj @@ F.distrib LFalse
 let x () = !! X
 let y () = !! Y
 let z () = !! Z
+let a () = !! A
+let b () = !! B
