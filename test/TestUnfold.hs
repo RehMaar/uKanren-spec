@@ -1,22 +1,47 @@
 module TestUnfold where
 
 import Syntax
-import qualified Unfold.Unfold as U
-import qualified DTResidualize as DTR
+import qualified CPD.LocalControl as CPD
+import qualified Eval as E
+import qualified SC.Unfold.SeqUnfold as SU
+import qualified SC.Unfold.FullUnfold as FU
+import qualified SC.Unfold.RandUnfold as RU
+import qualified SC.Unfold.RecUnfold as RecU
+import qualified SC.Unfold.NonRecUnfold as NU
+import qualified SC.Unfold.MaxUnfold as MaxU
+import qualified SC.Unfold.MinUnfold as MinU
+
+import qualified SC.SC as U
+import qualified SC.DTResidualize as DTR
+import SC.DTree
+import Utils
+
+import qualified LogicInt as LI
 
 import qualified Num as N
+import qualified Path
+
+-- import System.Directory
+
+import TestUtils
+import Test
 
 import Data.List
+import Data.Char (toUpper)
+import Data.Monoid (First(..), getFirst)
+import Data.Maybe (fromMaybe)
 
+------------------------------------------
+-- Run tests of utils functions
+------------------------------------------
 runTests = all id [testFlatConj
                   , testGetVarFromTerm
                   , testGenLetSig
                   ]
 
---
--- Tests
---
-
+-------------------------------------------
+-- Test utls
+------------------------------------------
 testFlatConj = all id [testFlatConjOfDNF1, testFlatConjOfDNF2, testFlatConjOfDNF3]
   where
     t1 :: [[[String]]]
@@ -53,3 +78,41 @@ testMWL = DTR.mapTwoLists [1, 2, 2] [1, 2, 3] == Nothing
        && DTR.mapTwoLists [1] [1] == Just [(1, 1)]
        && DTR.mapTwoLists [1] [2] == Just [(1, 2)]
        && DTR.mapTwoLists [1, 2] [2, 5] == Just [(1, 2), (2, 5)]
+
+------------------------------------------
+-- Test unfold methods
+------------------------------------------
+
+pathPrefix :: String
+pathPrefix = "test/ocanren/auto/"
+
+toTestPath fpath (n:name) = pathPrefix ++ fromMaybe "" fpath ++ toUpper n : name ++ ".ml"
+
+testMethod :: (G X -> (DTree, G S, [S])) -> IO ()
+testMethod method = undefined
+
+type UnfoldMethod = (G X -> (DTree, G S, [S]))
+
+data TestMethod = TM { tmName :: String, tmFun :: UnfoldMethod}
+
+data TestQuery = TQ { tqName :: String, tqQuery :: G X, env :: Maybe String, tmDir :: Maybe String}
+
+methods =
+  [
+    TM "sequ" SU.topLevel,
+    -- TM "fulu" FU.topLevel,
+    TM "ranu" (RU.topLevel 17),
+    TM "nrcu" NU.topLevel,
+    TM "recu" RecU.topLevel,
+    TM "minu" MinU.topLevel,
+    TM "maxu" MaxU.topLevel
+  ]
+
+logintTQ = TQ "Logint" LI.logintoQuery4 (Just LI.logintoEnv) (Just "logintAuto/src/")
+maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
+isPathTQ = TQ "IsPath" Path.query1 (Just Path.env) (Just "pathAuto/src/")
+
+testMethodsOnTest query = mapM_ (testMethodOnTest query) methods
+
+testMethodOnTest (TQ qname query env path) (TM fname fun) = do
+   TestUtils.ocanrenUltraGen env fun (fname ++ qname) (toTestPath path $ fname ++ qname) query

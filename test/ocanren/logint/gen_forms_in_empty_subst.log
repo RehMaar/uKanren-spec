@@ -1,0 +1,56 @@
+Formula: in empty subst 10 formulas
+Orig: 0.002442s
+CPD : 0.010255s
+NU  : 0.001580s
+RU  : 0.000086s
+Formula: in empty subst 100 formulas
+Orig: 0.010305s
+CPD : 0.175280s
+NU  : 0.002771s
+RU  : 0.006926s
+Formula: in empty subst 1000 formulas
+Orig: 0.200076s
+CPD : 2.710349s
+NU  : 0.054767s
+RU  : 0.094316s
+Formula: in empty subst 10 formulas
+Orig (0.000167s) >> Value (LTrue)
+Orig (0.000167s) >> Value (Neg (Value (LFalse)))
+Orig (0.000167s) >> Value (Neg (Value (Neg (Value (LTrue)))))
+Orig (0.000167s) >> Value (Conj (Value (LTrue), Value (LTrue)))
+Orig (0.000167s) >> Value (Disj (Value (LTrue), Value (LTrue)))
+Orig (0.000167s) >> Value (Disj (Value (LTrue), Value (LFalse)))
+Orig (0.000167s) >> Value (Disj (Value (LFalse), Value (LTrue)))
+Orig (0.000167s) >> Value (Neg (Value (Neg (Value (Neg (Value (LFalse)))))))
+Orig (0.000167s) >> Value (Disj (Value (LTrue), Value (Neg (Value (LTrue)))))
+Orig (0.000167s) >> Value (Neg (Value (Neg (Value (Neg (Value (Neg (Value (LTrue)))))))))
+CPD (0.013579s) >> Value (LTrue)
+CPD (0.013579s) >> Value (Neg (Value (LFalse)))
+CPD (0.013579s) >> Value (Conj (Value (LTrue), Value (LTrue)))
+CPD (0.013579s) >> Value (Neg (Value (Neg (Value (LTrue)))))
+CPD (0.013579s) >> Value (Neg (Value (Disj (Value (LFalse), Value (LFalse)))))
+CPD (0.013579s) >> Value (Conj (Value (LTrue), Value (Neg (Value (LFalse)))))
+CPD (0.013579s) >> Value (Conj (Value (Neg (Value (LFalse))), Value (LTrue)))
+CPD (0.013579s) >> Value (Conj (Value (LTrue), Value (Disj (Value (LTrue), Value (LTrue)))))
+CPD (0.013579s) >> Value (Disj (Value (LTrue), Value (LTrue)))
+CPD (0.013579s) >> Value (Neg (Value (Conj (Value (LFalse), Value (LTrue)))))
+NU (0.000069s) >> Value (LTrue)
+NU (0.000069s) >> Value (Neg (Value (LFalse)))
+NU (0.000069s) >> Value (Neg (Value (Neg (Value (LTrue)))))
+NU (0.000069s) >> Value (Conj (Value (LTrue), Value (LTrue)))
+NU (0.000069s) >> Value (Disj (Value (LFalse), Value (LTrue)))
+NU (0.000069s) >> Value (Neg (Value (Neg (Value (Neg (Value (LFalse)))))))
+NU (0.000069s) >> Value (Neg (Value (Disj (Value (LFalse), Value (LFalse)))))
+NU (0.000069s) >> Value (Conj (Value (LTrue), Value (Neg (Value (LFalse)))))
+NU (0.000069s) >> Value (Conj (Value (Neg (Value (LFalse))), Value (LTrue)))
+NU (0.000069s) >> Value (Disj (Value (LTrue), Value (LFalse)))
+RU (0.000092s) >> Value (LTrue)
+RU (0.000092s) >> Value (Neg (Value (LFalse)))
+RU (0.000092s) >> Value (Conj (Value (LTrue), Value (LTrue)))
+RU (0.000092s) >> Value (Neg (Value (Neg (Value (LTrue)))))
+RU (0.000092s) >> Value (Disj (Value (LFalse), Value (LTrue)))
+RU (0.000092s) >> Value (Conj (Value (LTrue), Value (Neg (Value (LFalse)))))
+RU (0.000092s) >> Value (Conj (Value (Neg (Value (LFalse))), Value (LTrue)))
+RU (0.000092s) >> Value (Neg (Value (Conj (Value (LTrue), Value (LFalse)))))
+RU (0.000092s) >> Value (Neg (Value (Neg (Value (Neg (Value (LFalse)))))))
+RU (0.000092s) >> Value (Disj (Value (LTrue), Value (LFalse)))

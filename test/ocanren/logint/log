@@ -1,0 +1,54 @@
+Formula: true
+
+CPD  (0.000059s) >> Var (10, [])
+NU   (0.000020s) >> Var (10, [])
+
+Formula: x
+
+CPD  (0.000041s) >> Value (Cons ((X, true), Var (16, [])))
+NU   (0.000033s) >> Value (Cons ((X, true), Var (17, [])))
+
+Formula: !x
+
+CPD  (0.000050s) >> Value (Cons ((X, false), Var (21, [])))
+NU   (0.000037s) >> Value (Cons ((X, false), Var (21, [])))
+
+Formula: !x \/ y
+
+CPD  (0.000154s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (50, [])))))
+NU   (0.000208s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Var (92, [])))))
+
+Formula: !x /\ y
+
+CPD  (0.000141s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (48, [])))))
+NU   (0.000109s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (45, [])))))
+
+Formula: (x \/ y)(!x \/ !y)
+
+CPD  (0.000472s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Value (Cons ((X, false), Var (191, [])))))))
+NU   (0.000553s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Y, false), Value (Cons ((X, true), Var (320, [])))))))))
+
+Formula: (x /\ y)\/(!x /\ !y)
+
+CPD  (0.001637s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((X, true), Var (199, [])))))))
+
+NU   (0.000850s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (344, [])))))
+
+Formula: (a \/ x)(a \/ !y)(b \/ !y)(b \/ !z)(x \/ y)
+
+CPD  (0.002470s) >> Value (Cons ((X, true), Value (Cons ((A, true), Value (Cons ((Y, true), Value (Cons ((Z, true), Value (Cons ((B, true), Var (759, [])))))))))))
+
+NU   (0.009700s) >> Value (Cons ((X, true), Value (Cons ((A, false), Value (Cons ((Y, false), Value (Cons ((B, false), Value (Cons ((Z, false), Value (Cons ((Y, true), Value (Cons ((X, false), Var (3841, [])))))))))))))))
+
+Formula: (x \/ y)(y \/ z)
+
+CPD  (0.000143s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Value (Cons ((Z, true), Var (112, [])))))))
+
+NU   (0.000546s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Z, false), Value (Cons ((Y, false), Var (278, [])))))))))
+
+Formula: (x \/ y)(x \/ z)(!y \/ z)(!y \/ x)
+
+CPD  (0.000852s) >> Value (Cons ((Z, true), Value (Cons ((Y, false), Value (Cons ((X, true), Var (425, [])))))))
+
+NU   (0.000540s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Z, true), Value (Cons ((X, true), Var (495, [])))))))))
+

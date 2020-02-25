@@ -8,28 +8,27 @@ import qualified Data.Map.Strict as Map
 
 import Syntax
 import DotPrinter
-import SldTreePrinter
-import GlobalTreePrinter
+import CPD.SldTreePrinter
+import CPD.GlobalTreePrinter
 import Utils
 import Stream
 import Eval
 
-import qualified PD
-import qualified CPD
-import qualified CpdResidualization as CR
-import qualified GlobalControl as GC
+import qualified CPD.LocalControl as CPD
+import qualified CPD.CpdResidualization as CR
+import qualified CPD.GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
 
-import qualified Unfold.SeqUnfold as SU
-import qualified Unfold.FullUnfold as FU
-import qualified Unfold.RandUnfold as RU
-import qualified Unfold.NonRecUnfold as NU
-import qualified Unfold.RecUnfold as RecU
-import qualified Unfold.Unfold as U
+import qualified SC.Unfold.SeqUnfold as SU
+import qualified SC.Unfold.FullUnfold as FU
+import qualified SC.Unfold.RandUnfold as RU
+import qualified SC.Unfold.NonRecUnfold as NU
+import qualified SC.Unfold.RecUnfold as RecU
+import qualified SC.SC as U
 
-import qualified DTree as DT
-import qualified DTResidualize as DTR
+import qualified SC.DTree as DT
+import qualified SC.DTResidualize as DTR
 
 import qualified LogicInt as LI
 import qualified List as L
@@ -114,3 +113,24 @@ gfun g =
 
 ffun :: G a -> G a
 ffun g = Let (def "f" ["x", "y"] (call "listo" [V "x"])) $ L.listo g
+
+{-
+f(u) = g(u, Z);
+g(Z, y) = y;
+g(S(x), y) = g(x, S(y));
+-}
+
+{--
+
+!! TODO: хороший пример!
+--}
+
+g = Let (def "g" ["x", "y", "r"] $ (
+     fresh ["x'", "y'"] $(
+         (V "x" === L.zero &&& V "r" === V "y")
+     ||| (V "x" === L.succ (V "x'") &&& V "y'" === L.succ (V "y") &&& call "g" [V "x'", V "y'", V "r"])
+    )))
+
+f = Let (def "f" ["u", "r"] $ call "g" [V "u", L.zero, V "r"]) . g
+
+fGoal = f $ fresh ["x", "r"] $ call "f" [V "x", V "r"]

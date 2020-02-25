@@ -7,25 +7,25 @@ import Text.Printf
 
 import Syntax
 import DotPrinter
-import SldTreePrinter
-import GlobalTreePrinter
+import CPD.SldTreePrinter
+import CPD.GlobalTreePrinter
 import Utils
 
-import qualified CPD
-import qualified CpdResidualization as CR
-import qualified GlobalControl as GC
+import qualified CPD.LocalControl as CPD
+import qualified CPD.CpdResidualization as CR
+import qualified CPD.GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
 
-import qualified Unfold.SeqUnfold as SU
-import qualified Unfold.FullUnfold as FU
-import qualified Unfold.RandUnfold as RU
-import qualified Unfold.RecUnfold as RecU
-import qualified Unfold.NonRecUnfold as NU
-import qualified Unfold.Unfold as U
+import qualified SC.Unfold.SeqUnfold as SU
+import qualified SC.Unfold.FullUnfold as FU
+import qualified SC.Unfold.RandUnfold as RU
+import qualified SC.Unfold.RecUnfold as RecU
+import qualified SC.Unfold.NonRecUnfold as NU
+import qualified SC.SC as U
 
-import qualified DTree as DT
-import qualified DTResidualize as DTR
+import qualified SC.DTree as DT
+import qualified SC.DTResidualize as DTR
 
 import qualified LogicInt as LI
 import qualified List as L
