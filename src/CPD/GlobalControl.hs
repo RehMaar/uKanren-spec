@@ -31,9 +31,9 @@
 
 {-# LANGUAGE TupleSections #-}
 
-module GlobalControl where
+module CPD.GlobalControl where
     
-import qualified CPD
+import qualified CPD.LocalControl as CPD
 import Prelude hiding (sequence)
 import Data.Maybe (isJust)
 import Data.List (find, partition, inits, intercalate)
@@ -51,7 +51,6 @@ import qualified Driving as D
 
 import Utils
 import DotPrinter
-import SldTreePrinter
 
 type Descend = CPD.Descend
 

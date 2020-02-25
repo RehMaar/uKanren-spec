@@ -32,7 +32,7 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module CpdResidualization where
+module CPD.CpdResidualization where
 
 import Control.Monad.State
 import Syntax
@@ -40,13 +40,13 @@ import Text.Printf
 import Data.List
 import qualified Data.Set as Set
 import qualified Data.Map.Strict as Map
-import qualified CPD
+import qualified CPD.LocalControl as CPD
 import Debug.Trace
 import Eval
 import Data.Char
 import Data.Maybe
-import GlobalControl
-import SldTreePrinter
+import CPD.GlobalControl
+import CPD.SldTreePrinter
 import DotPrinter
 import Utils
 

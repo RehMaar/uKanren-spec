@@ -28,14 +28,14 @@
 
 -}
 
-module GlobalTreePrinter where
+module CPD.GlobalTreePrinter where
     
 import DotPrinter
 
 import qualified Eval as E
 import Syntax
-import CPD hiding (Leaf)
-import GlobalControl
+import CPD.LocalControl hiding (Leaf)
+import CPD.GlobalControl
 import Text.Printf
 
 instance DotPrinter GlobalTree where
@@ -45,7 +45,10 @@ instance DotPrinter GlobalTree where
 isLeaf (Leaf _ _ _) = True
 isLeaf _ = False
 
+showSubst _ = ""
+showGen _ = ""
+
 instance Dot GlobalTree where
-  dot (Leaf gs _ s)  = printf "L <BR/> %s <BR/> %s" (show s) (dot $ getCurr gs)
-  dot (Node gs gen _ _) = printf "N <BR/> %s <BR/> %s" (dot $ getCurr gs) (show gen)
+  dot (Leaf gs _ s)  = printf "L <BR/> %s <BR/> %s" (showSubst s) (dot $ getCurr gs)
+  dot (Node gs gen _ _) = printf "N <BR/> %s <BR/> %s" (dot $ getCurr gs) (showGen gen)
   dot (Prune gs _)  = printf "P <BR/> %s" (dot $ getCurr gs)

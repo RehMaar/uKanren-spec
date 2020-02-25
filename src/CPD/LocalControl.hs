@@ -37,7 +37,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module CPD where
+module CPD.LocalControl where
 
 import Prelude hiding (lookup)
 import Syntax
@@ -127,7 +127,7 @@ unfold g env = (g, env)
 sldResolutionStep
   :: [DescendGoal] -> E.Gamma -> E.Sigma -> Set [G S] -> Bool -> SldTree
 sldResolutionStep gs env@(p, i, d@(temp : _)) s seen isFirstTime
-  | variantCheck (map getCurr gs) seen
+  | instanceCheck (map getCurr gs) seen
   = Leaf gs s env
   | Just (ls, Descend g ancs, rs) <- selectNext gs
   = let (g', env') = unfold g env in go g' env' ls rs g ancs isFirstTime
