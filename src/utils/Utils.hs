@@ -32,6 +32,7 @@
 module Utils where
     
 import Data.List
+import Data.Monoid (First(..), getFirst)
 
 fst3 :: (a, b, c) -> a
 fst3 (x, _, _) = x
@@ -69,3 +70,5 @@ zipBy f b1 b2 = zipBy' f f b1 b2
   where
     zipBy' :: Eq a => (b -> a) -> (c -> a) -> [b] -> [c] -> [(b, c)]
     zipBy' f g bs cs = filter (\(b, c) -> f b == g c) $ (,) <$> bs <*> cs
+
+findFirst f = getFirst . foldMap (First . f)

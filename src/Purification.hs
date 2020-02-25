@@ -37,7 +37,6 @@ import Data.Maybe
 import qualified Data.Set        as Set
 import qualified Data.Map.Strict as Map
 import Debug.Trace
-import List hiding (c)
 import Text.Printf
 import Utils
 
@@ -58,9 +57,9 @@ type ErasureElem = (Name, Int)
 purification x = trace_pur x $
   --identity x
   --justTakeOutLets x
-  --purification_old x
+  purification_old x
   --purificationWithErasure x
-  conservativePurificationWithErasure x
+  --conservativePurificationWithErasure x
 
 {-------------------------------------------}
 {-------------------------------------------}

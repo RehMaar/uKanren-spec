@@ -42,7 +42,6 @@ import           Data.Maybe
 import qualified Data.Set               as Set
 import           Debug.Trace
 import qualified Eval                   as E
-import           List hiding (a, b, d)
 import           Stream
 import           Syntax
 import           Text.Printf
