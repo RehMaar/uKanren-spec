@@ -38,8 +38,6 @@ import System.IO
 import System.IO.Temp
 import Data.Char
 import Data.List (intercalate)
-import Num
-import Sort
 import Syntax
 import Driving
 import Text.Printf
@@ -98,14 +96,14 @@ topLevel = toOCanren' ocanrenize'
 
 toOCanren' printer filename topLevelName environment prog =
   do
-    withSystemTempFile filename (\ tmp_name tmp ->
+    withSystemTempFile "ocanrenize" (\ tmp_name tmp ->
                                    do
                                      hPutStrLn tmp (printer topLevelName prog)
                                      hClose tmp
                                      printEnvironment filename environment
                                      system $ "cat " ++ tmp_name ++ " >> " ++ filename
                                      --system $ "camlp5o pr_o.cmo " ++ tmp_name ++ " >> " ++ filename
-                                     system $ "ocamlformat " ++ filename ++ " -m 160 -i"
+                                     --system $ "ocamlformat " ++ filename ++ " -m 160 -i"
                                      return ()
                                 )
   where
