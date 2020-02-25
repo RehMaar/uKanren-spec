@@ -34,9 +34,9 @@ dependencies:
 library:
   source-dirs: 
   - src/
-  - src/new_programs/
-  - src/old_programs/
   - src/utils/
+  - test/new_programs/
+  - test/old_programs/
 
 executables:
   uks-exe:
@@ -68,7 +68,8 @@ tests:
   uks-test:
     main:                Test.hs
     source-dirs:         
-    - test/
+    - test/new_programs/
+    - test/old_programs/
     ghc-options:
     - -threaded
     - -rtsopts

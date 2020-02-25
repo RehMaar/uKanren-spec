@@ -3,6 +3,7 @@ module LogicInt where
 import Syntax
 import Bool hiding (oro, ando, noto)
 import List hiding (lit)
+import Num
 
 pair x y = C "pair" [x, y]
 
@@ -40,6 +41,19 @@ lookupoTest3 = lookupo $ fresh ["res", "st", "k"] $
 lookupoTest4 = lookupo $ fresh ["res", "tail"] $
   call "lookupo" [pair (C "x" []) trueo % (V "tail"), C "x" [], V "res"]
 
+-------------------------------------------------------------
+{-
+lookupo2 :: G x -> G x
+lookupo2 =
+  Let (def "lookupo2" ["list", "idx", "result"] $
+        ((idx === zero) &&& (V "h" % V "t" === list) &&& (V "h" === result))
+    ||| (fresh [] (idx === succ idx'))
+  )
+  where
+    idx = V "idx"
+    list = V "list"
+    result = V "result"
+-}
 -------------------------------------------------------------
 
 true = C "ltrue" []
@@ -148,6 +162,7 @@ loginto =
        &&& call "oro" [V "rl", V "rr", result])
   )) . lookupo . noto . ando . oro
 
+logintoEnv ="open GT\nopen OCanren\nopen Std\nopen Nat\nopen LogicExpr"
 
 --
 -- Logic interpreter Not-And basis.
@@ -219,10 +234,14 @@ logExpr3 = neg varX
 logExpr4 = conj (conj (conj (disj varX varY) (disj varX varZ)) (disj (neg varY) varX)) (disj (neg varY) varX)
 subst4 = pair varX trueo % pair varY trueo % pair varZ trueo % nil
 
+logExpr5 = disj (neg varX) varY
+
+logExpr6 = conj (disj (disj varX (conj varY (neg varX))) false) true
+
 --
 -- Test queries
 --
-logintoQuery6 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", trueo, trueo]
+logintoQuery6 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", true, trueo]
 logintoQuery5 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", logExpr3, trueo]
 logintoQuery1 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
 --
@@ -233,3 +252,5 @@ logintoQuery2 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s
 logintoQuery3 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr2, trueo]
 logintoQuery4 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
 logintoQuery7 = loginto $ fresh ["s"] $ call "loginto" [subst4, logExpr4, trueo]
+logintoQuery8 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr5, trueo]
+logintoQuery9 = loginto $ fresh ["s"] $ call "loginto" [V "s", logExpr6, trueo]

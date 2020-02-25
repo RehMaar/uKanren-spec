@@ -1,21 +1,15 @@
 module LogicInterpreter where
 
 import Bool
-import CPD
+import CPD.LocalControl
 import Control.Monad
 import Data.Maybe
 import Data.List
 import DotPrinter
-import qualified Eval as E
-import qualified GlobalControl as GC
-import GlobalTreePrinter
 import List
 import Num
 import Programs
-import Purification
-import SldTreePrinter
 import Syntax
-import Text.Printf
 import Debug.Trace
 import Prelude hiding (succ)
 
