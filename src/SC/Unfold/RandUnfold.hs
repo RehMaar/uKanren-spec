@@ -1,16 +1,16 @@
-module Unfold.RandUnfold where
+module SC.Unfold.RandUnfold where
     
 import Syntax
-import DTree
+import SC.DTree
 import Utils
 
-import qualified CPD
+import qualified CPD.LocalControl as CPD
+import qualified CPD.GlobalControl as GC
 import qualified Eval as E
 import qualified Purification as P
-import qualified GlobalControl as GC
-import qualified Unfold.SeqUnfold as SU
+import qualified SC.Unfold.SeqUnfold as SU
 
-import Unfold.Unfold
+import SC.SC
 
 import Data.Maybe (mapMaybe)
 import Data.List

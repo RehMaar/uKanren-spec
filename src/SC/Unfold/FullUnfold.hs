@@ -1,14 +1,10 @@
-module Unfold.FullUnfold where
+module SC.Unfold.FullUnfold where
 
-import DTree
+import SC.DTree
 import Syntax
 import Utils
 
-import qualified CPD
 import qualified Eval as E
-import qualified GlobalControl as GC
-
-
 import Data.Maybe (mapMaybe)
 import Data.List (group, sort)
 import qualified Data.Set as Set
@@ -16,7 +12,7 @@ import Data.Tuple (swap)
 
 import Text.Printf
 import DotPrinter
-import Unfold.Unfold
+import SC.SC
 
 import Debug.Trace
 

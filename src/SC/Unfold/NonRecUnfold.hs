@@ -1,51 +1,50 @@
-module Unfold.RecUnfold where
+module SC.Unfold.NonRecUnfold where
     
 import Syntax
-import DTree
+import SC.DTree
 
-import qualified CPD
+import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified Purification as P
-import qualified GlobalControl as GC
 
 import Utils
 
+import Data.Function (on)
 import Data.Maybe (mapMaybe)
 import Data.List
-import Data.Function (on)
 import qualified Data.Set as Set
-
 
 import Text.Printf
 import DotPrinter
-import Unfold.Unfold
+import SC.SC
 
 import Debug.Trace
 import Control.Exception (assert)
 
 trace' _ = id
 
-data RecGoal = RecGoal DGoal deriving Show
+data NUGoal = NUGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   lgoal' = CPD.normalize lgoal
-  igoal = assert (length lgoal' == 1) $ RecGoal (head lgoal')
+  igoal = assert (length lgoal' == 1) $ NUGoal (head lgoal')
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
 
-instance UnfoldableGoal RecGoal where
-  getGoal (RecGoal dgoal) = dgoal
-  initGoal goal = RecGoal goal
-  emptyGoal (RecGoal dgoal) = null dgoal
-  mapGoal (RecGoal dgoal) f = RecGoal (f dgoal)
+instance UnfoldableGoal NUGoal where
+  getGoal (NUGoal dgoal) = dgoal
+  initGoal goal = NUGoal goal
+  emptyGoal (NUGoal dgoal) = null dgoal
+  mapGoal (NUGoal dgoal) f = NUGoal (f dgoal)
 
-instance Unfold RecGoal where
+
+instance Unfold NUGoal where
   unfoldStep = unreqUnfoldStep
 
-unreqUnfoldStep :: RecGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, RecGoal)], E.Gamma)
-unreqUnfoldStep (RecGoal dgoal) env subst = let
+unreqUnfoldStep :: NUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, NUGoal)], E.Gamma)
+unreqUnfoldStep (NUGoal dgoal) env subst = let
     (conj, rest) = splitGoal env dgoal
     (newEnv, uConj) = unfold conj env
 
@@ -54,10 +53,10 @@ unreqUnfoldStep (RecGoal dgoal) env subst = let
     us = (\(cs, subst) -> (subst, suGoal subst cs rest)) <$> unConj
   in (us, newEnv)
   where
-    suGoal subst cs rest = RecGoal $ E.substituteConjs subst $ cs ++ rest
+    suGoal subst cs rest = NUGoal $ E.substituteConjs subst $ cs ++ rest
 
 splitGoal :: E.Gamma -> DGoal -> (G S, [G S])
-splitGoal env gs = let (c:cs) = sortBy ((compare `on` (not . isRec env)) <>
+splitGoal env gs = let (c:cs) = sortBy ((compare `on` (isRec env)) <>
                                         compareGoals env) gs
                     in (c, cs)
 
@@ -77,5 +76,4 @@ compareGoals (p, _, _) (Invoke g1 _) (Invoke g2 _)
   = let n1 = length $ normalize $ trd3 $ p g1
         n2 = length $ normalize $ trd3 $ p g2
     in compare n1 n2
-
 compareGoals _ _ _ = EQ

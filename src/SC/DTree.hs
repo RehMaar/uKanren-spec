@@ -1,11 +1,11 @@
-module DTree where
+module SC.DTree where
 
 import Syntax
 import Embedding
 
-import qualified CPD
+import qualified CPD.LocalControl as CPD
+import qualified CPD.GlobalControl as GC
 import qualified Eval as E
-import qualified GlobalControl as GC
 
 import qualified Data.Set as Set
 import Data.Monoid
@@ -32,9 +32,7 @@ dGoal goal ancs = CPD.Descend [goal] ancs
 goalToDNF :: G S -> Disj (Conj (G S))
 goalToDNF = CPD.normalize
 
-
 -- Derivation Tree
--- TODO: `DDescendGoal' seems to be useless, `DGoal' is enough.
 data DTree = Fail   -- Failed derivation.
   | Success E.Sigma -- Success derivation.
   | Or [DTree] E.Sigma DDescendGoal -- Node for a disjunction.
@@ -48,7 +46,6 @@ data DTree = Fail   -- Failed derivation.
 
 
 --
-
 instance DotPrinter DTree where
   labelNode t@(Or ch _ _) = addChildren t ch
   labelNode t@(And ch _ _) = addChildren t ch
@@ -80,6 +77,7 @@ instance Show DTree where
   show (Gen t s) = "{Gen  " ++ show t ++ "\n}"
   show (Leaf g _ _) = "{Leaf " ++ show g ++ "}"
   show (Prune d) = "{Prune " ++ show d ++ "}"
+  show (Debug env subst goal ancs) = "{Debug " ++ show goal ++ "}"
 
 --
 -- Return list of goals of tree's leaves (`Leaf` nodes)
@@ -114,7 +112,6 @@ matchVariants :: DTree -> [(DGoal, DTree)]
 matchVariants t = fmap fromJust <$>
                   filter (isJust . snd)
                   ((,) <*> flip findVariantNode t <$> leaves t)
-
 
 --
 -- DTree to a set of goals of its nodes

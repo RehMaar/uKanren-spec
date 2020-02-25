@@ -1,13 +1,13 @@
-module DTResidualize where
+module SC.DTResidualize where
 
 import Syntax
 import DotPrinter
 import Embedding
 
-import qualified DTree as DT
+import qualified SC.DTree as DT
 import qualified Eval as E
-import qualified CpdResidualization as CR
-import qualified CPD
+import qualified CPD.CpdResidualization as CR
+import qualified CPD.LocalControl as CPD
 
 import Data.List
 import Utils
@@ -19,7 +19,6 @@ import qualified Data.Set as Set
 
 import Debug.Trace
 import Text.Printf
-
 
 --
 -- Marked Derivation Tree
@@ -226,10 +225,11 @@ topLevel t = topLevel' $ cutFailedDerivations $ makeMarkedTree t
       mt = Or f1 f2 goal True
       cs = collectCallNames [] mt
       (defs, body) = res cs [] mt
-      in foldDefs defs $ postEval cs goal body
+      topLevelArgs = getArgsForPostEval cs goal
+      in (foldDefs defs $ postEval topLevelArgs goal body, topLevelArgs)
 
 getArgsForPostEval cs goal = let Call _ args _ = findCall cs goal in args
-postEval cs goal body = E.postEval' (vident <$> getArgsForPostEval cs goal) body
+postEval names goal body = E.postEval' (vident <$> names) body
 
 foldDefs [] g = g
 foldDefs xs g = foldr1 (.) xs g
@@ -327,11 +327,8 @@ mapTwoLists l1 l2
       | otherwise = Just (m:as)
     checkMap' _ _ = Nothing
 
---
-
 -- За один шаг. Предполагаем, что всё строилось слева направо. В процессе прохода собираем список плохих помеченных `Or`
 -- и каждый лист, который вариант плохого `Or`, обрабатывать как Fail.
---
 cutFailedDerivations = fromMaybe Fail . fst . cfd Set.empty 
   where
     cfd :: Set.Set DT.DGoal -- *Плохие* узлы, которые привели только к Fail узлам.

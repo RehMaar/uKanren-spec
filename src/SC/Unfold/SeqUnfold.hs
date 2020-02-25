@@ -1,12 +1,11 @@
-module Unfold.SeqUnfold where
+module SC.Unfold.SeqUnfold where
     
 import Syntax
-import DTree
+import SC.DTree
 
-import qualified CPD
+import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified Purification as P
-import qualified GlobalControl as GC
 
 import Utils
 
@@ -16,7 +15,7 @@ import qualified Data.Set as Set
 
 import Text.Printf
 import DotPrinter
-import Unfold.Unfold
+import SC.SC
 
 import Debug.Trace
 import Control.Exception (assert)
