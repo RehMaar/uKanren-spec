@@ -5,11 +5,14 @@ import System.Exit (ExitCode)
 import Data.Maybe
 import Text.Printf
 
+import PrettyPrint
+
 import Syntax
 import DotPrinter
 import CPD.SldTreePrinter
 import CPD.GlobalTreePrinter
 import Utils
+import Eval as E
 
 import qualified CPD.LocalControl as CPD
 import qualified CPD.CpdResidualization as CR
@@ -256,28 +259,83 @@ prune (DT.And ts _ _) = concat $ prune <$> ts
 prune (DT.Gen t _) = prune t
 prune _ = []
 
-leavesT :: DTree -> [(Int, DDescendGoal)]
-leavesT (Success _) = []
-leavesT Fail        = []
-leavesT (Leaf _ _ _) = []
-leavesT (Or ts _ g) = (1, g) : concat (leavesT <$> ts)
-leavesT (And ts _ g) = (0, g) : concat (leavesT <$> ts)
-leavesT (Gen t _) = leavesT t
+leavesT :: DT.DTree -> [(Int, DT.DDescendGoal)]
+leavesT (DT.Success _) = []
+leavesT DT.Fail        = []
+leavesT (DT.Leaf _ _ _) = []
+leavesT (DT.Or ts _ g) = (1, g) : concat (leavesT <$> ts)
+leavesT (DT.And ts _ g) = (0, g) : concat (leavesT <$> ts)
+leavesT (DT.Gen t _) = leavesT t
 
-debug :: DTree -> [DTree]
-debug (Success _) = []
-debug Fail        = []
-debug (Leaf _ _ _) = []
-debug (Or ts _ g) = concat (debug <$> ts)
-debug (And ts _ g) = concat (debug <$> ts)
-debug (Gen t _) = debug t
-debug dbg@(Debug _ _ _ _) = [dbg]
+debug :: DT.DTree -> [DT.DTree]
+debug (DT.Success _) = []
+debug DT.Fail        = []
+debug (DT.Leaf _ _ _) = []
+debug (DT.Or ts _ g) = concat (debug <$> ts)
+debug (DT.And ts _ g) = concat (debug <$> ts)
+debug (DT.Gen t _) = debug t
+debug dbg@(DT.Debug _ _ _ _) = [dbg]
 
-findA :: DGoal -> DTree ->Maybe E.Sigma
-findA _ (Success _)  = Nothing
-findA _ Fail         = Nothing
-findA _ (Leaf _ _ _) = Nothing
-findA g (Or ts _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
-findA g' (And ts s g)  | CPD.getCurr g == g' = Just s
+findA :: DT.DGoal -> DT.DTree -> Maybe E.Sigma
+findA _ (DT.Success _)  = Nothing
+findA _ DT.Fail         = Nothing
+findA _ (DT.Leaf _ _ _) = Nothing
+findA g (DT.Or ts _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
+findA g' (DT.And ts s g)  | CPD.getCurr g == g' = Just s
                        | otherwise = getFirst $ mconcat $ First <$> (findA g' <$> ts)
-findA g (Gen t _)    = findA g t
+findA g (DT.Gen t _)    = findA g t
+
+prunesAncs :: DT.DTree -> [(DT.DGoal, [DT.DGoal])]
+prunesAncs = prunes' []
+   where
+     prunes' :: [DT.DGoal] -> DT.DTree -> [(DT.DGoal, [DT.DGoal])]
+     prunes' ancs (DT.Prune goal) = [(goal, ancs)]
+     prunes' ancs (DT.Or ts _ g) = concatMap (prunes' ((CPD.getCurr g):ancs)) ts
+     prunes' ancs (DT.And ts _ g) = concatMap (prunes' ((CPD.getCurr g):ancs)) ts
+     prunes' ancs (DT.Gen t _) = prunes' ancs t
+     prunes' _ _ = []
+
+leavesAncs :: DT.DTree -> [(DT.DGoal, [DT.DGoal])]
+leavesAncs = leaves []
+   where
+     leaves :: [DT.DGoal] -> DT.DTree -> [(DT.DGoal, [DT.DGoal])]
+     leaves ancs (DT.Leaf g _ _) = [(CPD.getCurr g, ancs)]
+     leaves ancs (DT.Or ts _ g) = concatMap (leaves ((CPD.getCurr g):ancs)) ts
+     leaves ancs (DT.And ts _ g) = concatMap (leaves ((CPD.getCurr g):ancs)) ts
+     leaves ancs (DT.Gen t _) = leaves ancs t
+     leaves _ _ = []
+
+--
+-- Prints list of goal and it's ancestors
+--
+writeGoalAncs :: String -> [(DT.DGoal, [DT.DGoal])] -> IO ()
+writeGoalAncs name ds = do
+    let str = concat $ intersperse "\n" $ fmap (\(g, ancs) -> show g ++ ": " ++ show ancs) ds
+    writeFile name str
+
+printGoalAncs :: [(DT.DGoal, [DT.DGoal])] -> IO ()
+printGoalAncs ds =
+    putStrLn $ concat $ intersperse "\n" $ fmap (\(g, ancs) -> show g ++ ": " ++ show ancs) ds
+
+--
+-- Check if goal contains invokation of `name` relation.
+--
+containsInvoke :: String -> DT.DGoal -> Bool
+containsInvoke name = any (\x -> getInvokeName x == name) . filter isInvoke
+
+--
+--
+getInvokeName (Invoke s _) = s
+isInvoke (Invoke _ _) = True
+isInvoke _ = False
+--
+--
+
+--
+-- Ancestors of a goal in derivation tree must follow rules:
+-- *
+--
+-- checkOrder :: DT.DGoal -> [DT.DGoal] -> Maybe (DT.DGoal, DT.DGoal)
+checkOrder ancs =
+  filter (not . null . snd) $
+  fst $ foldr (\a (rs, as) -> ((a, filter (a Emb.<|) as) : rs, a : as)) ([], []) ancs

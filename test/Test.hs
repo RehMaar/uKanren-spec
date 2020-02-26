@@ -125,12 +125,27 @@ g(S(x), y) = g(x, S(y));
 !! TODO: хороший пример!
 --}
 
-g = Let (def "g" ["x", "y", "r"] $ (
-     fresh ["x'", "y'"] $(
-         (V "x" === L.zero &&& V "r" === V "y")
-     ||| (V "x" === L.succ (V "x'") &&& V "y'" === L.succ (V "y") &&& call "g" [V "x'", V "y'", V "r"])
-    )))
-
-f = Let (def "f" ["u", "r"] $ call "g" [V "u", L.zero, V "r"]) . g
-
 fGoal = f $ fresh ["x", "r"] $ call "f" [V "x", V "r"]
+  where
+    g = Let (def "g" ["x", "y", "r"] $ (
+         fresh ["x'", "y'"] $(
+             (V "x" === L.zero &&& V "r" === V "y")
+         ||| (V "x" === L.succ (V "x'") &&& V "y'" === L.succ (V "y") &&& call "g" [V "x'", V "y'", V "r"])
+        )))
+    
+    f = Let (def "f" ["u", "r"] $ call "g" [V "u", L.zero, V "r"]) . g
+
+gGoal = f $ fresh ["x"] $ call "f" [V "x", V "x"]
+  where
+    h = Let (def "h" ["x", "y"] $
+      fresh ["z"] $ (
+        (V "x" === L.zero &&& V "y" === L.zero)
+        ||| (V "x" === L.succ (V "z") &&& call "h" [V "z", V "y"])))
+
+    f = Let (def "f" ["x", "y"] $
+          fresh ["z"] $ (
+           (V "x" === L.zero) |||
+           (V "x" === L.succ (V "z") &&& call "f" [V "z", V "y"])
+           ||| (call "f" [V "x", V "z"] &&& call "h" [V "z", V "y"])
+         )) . h
+

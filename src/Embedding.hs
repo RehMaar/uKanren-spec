@@ -7,12 +7,16 @@ import Data.Maybe (isJust)
 
 import qualified Data.Map.Strict as Map
 
+infixl 6 <|
 
 class AlwaysEmbeddable a => Homeo a where
   couple :: a -> a -> Bool
   diving :: a -> a -> Bool
   homeo  :: a -> a -> Bool
   homeo x y = couple x y || diving x y
+
+  (<|) :: a -> a -> Bool
+  (<|) = homeo
 
 instance Homeo (Term a) where
   couple (C n as) (C m bs) | n == m && length as == length bs =

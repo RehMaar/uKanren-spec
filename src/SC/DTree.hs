@@ -4,7 +4,6 @@ import Syntax
 import Embedding
 
 import qualified CPD.LocalControl as CPD
-import qualified CPD.GlobalControl as GC
 import qualified Eval as E
 
 import qualified Data.Set as Set
@@ -13,6 +12,7 @@ import Data.Monoid
 import Data.Maybe (mapMaybe, isJust, fromJust)
 import Text.Printf
 import DotPrinter
+import PrettyPrint
 
 import Debug.Trace
 
@@ -20,6 +20,9 @@ type Conj a = [a]
 type Disj a = [a]
 
 type DGoal = Conj (G S)
+
+instance PrettyPrint DGoal where
+ pretty = prettyList
 
 -- Conjunction of invokes and substitutions
 type DDescendGoal = CPD.Descend DGoal

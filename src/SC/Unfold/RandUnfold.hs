@@ -54,25 +54,25 @@ topLevel seed g = let
 
     derivationStep goal@(RndGoal realGoal rng) ancs env subst seen depth
       | checkLeaf realGoal seen
-      = (Leaf (CPD.Descend realGoal ancs) subst env, seen, head $ thd env)
+      = (Leaf (CPD.Descend realGoal ancs) subst env, seen, head $ trd3 env)
       | otherwise
       =
       let
         descend = CPD.Descend realGoal ancs
         newAncs = Set.insert realGoal ancs
       in case randUnfoldStep goal env subst of
-         ([], _)          -> (Fail, seen, head $ thd env)
+         ([], _)          -> (Fail, seen, head $ trd3 env)
          (uGoals, newEnv) -> let
              newSeen = Set.insert realGoal seen
              (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                  (\(a, t, i) -> (a, t:ts, max i m)) $
                    evalSubTree depth (fixEnv m newEnv) newAncs seen g)
-                 (newSeen, [], head $ thd env) uGoals
+                 (newSeen, [], head $ trd3 env) uGoals
            in (Or (reverse ts) subst descend, seen', maxVarNum)
 
     evalSubTree depth env ancs seen (subst, goal@(RndGoal realGoal rng))
       | null realGoal
-      = (seen, Success subst, head $ thd env)
+      = (seen, Success subst, head $ trd3 env)
       | not (checkLeaf realGoal seen)
       , isGen realGoal ancs
       =
@@ -83,7 +83,7 @@ topLevel seed g = let
           (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                   (\(a, t, i) -> (a, t:ts, max i m)) $
                   evalGenSubTree m depth ancs seen rng g)
-                  (newSeen, [], head $ thd env) absGoals
+                  (newSeen, [], head $ trd3 env) absGoals
         in (seen', And (reverse ts) subst descend, maxVarNum)
       | otherwise
       =

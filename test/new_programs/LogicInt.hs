@@ -63,44 +63,6 @@ neg x = C "neg" [x]
 conj x y = C "conj" [x, y]
 disj x y = C "disj" [x, y]
 
-
-{-
-oro :: G a -> G a
-oro =
-  let result = V "result"
-      a = V "a"
-      b = V "b"
-  in
-  Let (def "oro" ["a", "b", "result"] $
-    (a === trueo &&& result === trueo) |||
-    (b === trueo &&& result === trueo) |||
-    (result === falso)
-  )
-
-ando :: G a -> G a
-ando =
-  let result = V "result"
-      a = V "a"
-      b = V "b"
-  in
-  Let (def "ando" ["a", "b", "result"] $
-    (a === trueo &&& b === trueo &&& result === trueo) |||
-    -- TODO: possible problems
-    (result === falso)
-  )
-
-noto :: G a -> G a
-noto =
-  let result = V "result"
-      a = V "a"
-      b = V "b"
-  in
-  Let (def "noto" ["a", "result"] $
-    (a === trueo &&& result === falso) |||
-    (result === trueo)
-  )
--}
-
 oro :: G a -> G a
 oro =
   let result = V "result"
@@ -162,6 +124,24 @@ loginto =
        &&& call "oro" [V "rl", V "rr", result])
   )) . lookupo . noto . ando . oro
 
+logintoCut :: G a -> G a
+logintoCut =
+  let subst = V "subst"
+      formula = V "formula"
+      result = V "result"
+  in
+  Let (def "loginto" ["subst", "formula", "result"] $
+    fresh ["x", "y", "l", "r", "rl", "rr"] (
+    (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
+    ||| (formula === neg (V "x")
+         &&& call "loginto" [subst, V "x", V "rl"]
+         &&& call "noto" [V "rl", result])
+    ||| (formula === conj (V "l") (V "r")
+         &&& call "loginto" [subst, V "l", V "rl"]
+         &&& call "loginto" [subst, V "r", V "rr"]
+         &&& call "ando" [V "rl", V "rr", result])
+    )) . lookupo . noto . ando . oro
+
 logintoEnv ="open GT\nopen OCanren\nopen Std\nopen Nat\nopen LogicExpr"
 
 --
@@ -177,9 +157,9 @@ logintoNotAnd =
   in
   Let (def "loginto" ["subst", "formula", "result"] $
   fresh ["x", "y", "l", "r", "rl", "rr"] (
-      (formula === true &&& result === true)
-  ||| (formula === false &&& result === false)
-  ||| (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
+--      (formula === true &&& result === true)
+--  ||| (formula === false &&& result === false)
+  {-|||-} (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
   ||| (formula === neg (V "x")
        &&& call "loginto" [subst, V "x", V "rl"]
        &&& call "noto" [V "rl", result])
@@ -187,10 +167,10 @@ logintoNotAnd =
        &&& call "loginto" [subst, V "l", V "rl"]
        &&& call "loginto" [subst, V "r", V "rr"]
        &&& call "ando" [V "rl", V "rr", result])
-  ||| (formula === disj (V "l") (V "r")
-       &&& call "loginto" [subst, V "l", V "rl"]
-       &&& call "loginto" [subst, V "r", V "rr"]
-       &&& call "oroNotAnd" [V "rl", V "rr", result])
+  -- ||| (formula === disj (V "l") (V "r")
+  --     &&& call "loginto" [subst, V "l", V "rl"]
+  --     &&& call "loginto" [subst, V "r", V "rr"]
+  --     &&& call "oroNotAnd" [V "rl", V "rr", result])
   )) . lookupo . oroNotAnd . noto . ando
   where
     oroNotAnd :: G a -> G a
