@@ -1,0 +1,170 @@
+\documentclass[submission,copyright,creativecommons]{eptcs}
+\providecommand{\event}{TEASE-LP 2020} % Name of the event you are submitting to
+\usepackage{underscore}                % Only needed if you use pdflatex.
+
+\newcommand{\miniKanren}{\textsc{miniKanren}\ }
+
+\title{Supercompilation Strategies of Relational Progams}
+\author{Maria Kuklina
+\institute{ITMO Univeristy\\ Saint Petersburg, Russia}
+\email{kuklina.md@gmail.com}
+\and
+Ekaterina Verbitskaia
+\institute{Saint Petersburg State Univeristy\\
+Saint Petersburg, Russia}
+\email{kajigor@gmail.com}
+}
+\def\titlerunning{A Longtitled Paper}
+\def\authorrunning{M. Kuklina, E. Verbitskaia}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% В этой министатье мы показываем, что мы адаптировали суперкомпиляцию
+% (с привкусом CPD) к miniKanren'у, что существуют разные способы
+% выбрать конъюнкт для раскрытия и что они дают вот такие результаты для
+% наших вот таких вот тестов.
+
+In our work we research methods of supercompilation\cite{introSC} in the context of relational program specialization.
+We implemented a supercompiler for \miniKanren and propose different supercompilation strategies.
+
+\end{abstract}
+
+\section{Introduction}
+
+{\it Relational programming} is a pure form of logic programming in which programs are
+written as {\it relations}. In relations ``input'' and ``output'' arguments are indistiguishable,
+therefore relational programs solve problems in general.
+
+Interesting application of relational programming is {\it relational interpreters}.
+Besides computing the output form an input or running a program in an opposite ``direction'',
+relational interpreters are capable to both verify a solution and search for it.\cite{lozov2019}
+
+\miniKanren is a family of domain-specific languages specially designed for relational programming.\cite{friedmanSchemer}
+Relational interpreters implemented in \miniKanren show all their potential, however, in the context of a particular
+task computation performance can be highly insufficient.
+
+Specialization is a technique of automatic program optimization. A {\it specializer} takes a program and a part
+of its input and produces a new program that behave the same way on the rest of its input as the original
+one on all of its input.\cite{jones1993partial} 
+A specializer (in form of {\it conjunctive partial deduction, CPD}) has been implemented and applied to
+relational programs in \miniKanren in \cite{lozov2019}. Despite the fact that CPD gives a huge performance boost
+comparing to original programs, specialized programs still carries some overhead of interperation.
+
+\section{Supercompilation Strategies}
+
+% Суперкомиляция это вот такая вот хреновина.
+Supercompilation is a method of program transformation. Supercompiler tries to symbolically
+execute a program for a given {\it configuration} -- an expression with free variables --
+tracing a computation history with a {\it graph of configurations} and build an equivalent {\it residual} program removing redundant computation.
+
+More formally, supercompilation's steps are following:
+\begin{itemize}
+\item {\bf Driving} is a process of symbolic execution with resulting possibly infinite tree of configurations.
+\item The goal of {\bf folding} is to avoid building infinite tree by turning it into a finite graph, from which
+      the original infinite tree could be recovered. Usually it's done by adding a link to an ancestor if it's a
+      renaming of handled configuration.
+
+\item {\bf Generalization} is another way of avoiding an infinite tree, when no folding operations can be done.
+     The aim of this step is to generate new goals which can be folded in finite time. Generalization step is applied
+     only when a {\bf whisle} decides it's neccessary.
+
+\item {\bf Residualization} is a process of generating an actual program from a graph of configurations.
+\end{itemize}
+
+\subsection{Supercompilation for \miniKanren}
+
+We implemented a supercompiler for \miniKanren using a {\it homeomorphic embedding} as a whisle and CPD-like abstraction algorithm
+for generalization. However, various strategies could be applied for a driving step.
+
+A driving step of \miniKanren supercompiler handles a configuration which takes a form of a conjunction of calls.
+For further computations a supercompiler has to decide which of the conjuncts to unfold.
+
+We implemented several strategies:
+\begin{itemize}
+\item {\bf Full unfold} strategy unfolding all conjuncts simulteniously.
+      However, supercompilation time with full unfold strategy takes signigicant amount of resourcses, so
+      we didn't shows a results of it for some tests.
+\item {\bf First unfold} strategy always unfolds first conjunct.
+\item {\bf Sequential unfold} strategy unfolds conjuncts in order.
+\item {\bf Recursive unfold} strategy firstly unfolds conjuncts which have at least one recursive call.
+\item {\bf Non-recursive unfold} strategy firstly unfolds conjuncts which don't have any recursive call.
+\item {\bf Maximal size unfold} strategy firstly unfold conjuncts with the largest amount of conjunctions (in CNF).
+\item {\bf Maximal size unfold} strategy firstly unfold conjuncts with the least amount of conjunctions (in CNF).
+\end{itemize}
+
+% % Вот такие вот результаты на данных момент.
+\subsection{Results}
+
+We present testing results for the implemented supercompiler with described strategies and comparison with
+original interpreter and CPD specializer.  As a specific implementation of \miniKanren we use {\it OCanren} \cite{ocanren};
+the supercompiler is written in \textsc{Haskell}.
+
+First, we compare the performance of the solvers for path searching problem. We ran the search on a complete graph $K_{10}$,
+searching for path of lengths 9, 11, 13 and 15. The results are presented in \ref{tab:path}.
+
+Second, we comapre the performance of generating of propositional logic formulas. We ran the search for 1000 formulas
+in empty substitution and in substitution with only one free variable. The results are presented in \ref{tab:logic}
+
+\begin{table}[ht]
+
+% #Len 9
+% FstU : 0.014185s
+% #Len 11
+% FstU : 0.019156s
+% #Len 13
+% FstU : 0.021285s
+% #Len 15
+% FstU : 0.026728s
+
+\parbox{.5\textwidth} {
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Path length & 9 & 11 & 13 & 15 \\ \hline
+\hline
+Orignal    & 0.606s & 3.98s & 22.73s & 120.48s \\
+CPD        & 0.366s & 2.27s & 12.55s & 63.12s \\ \hline
+Full       & 0.021s & 0.03s & 0.035s & 0.041s \\
+First      & 0.014s & 0.02s & 0.021s & 0.025s \\
+Sequential & 0.014s & 0.02s & 0.022s & 0.027s \\
+MaxU       & 0.014s & 0.02s & 0.022s & 0.026s \\
+MinU       & 0.014s & 0.02s & 0.022s & 0.027s \\
+RecU       & 0.018s & 0.02s & 0.021s & 0.027s \\
+NrcU       & 0.014s & 0.02s & 0.022s & 0.026s \\
+\hline
+\end{tabular}
+\label{tab:paths}
+\caption{Searching for paths in the $K_{10}$ graph}
+}
+%\end{table}
+%% 
+%\begin{table}[ht]
+\quad
+\quad
+\parbox{.4\textwidth}{
+\begin{tabular}{|p{3cm}|l|l|}
+\hline
+Free variables in substitution & 0 free vars & 1 free var  \\ \hline
+\hline
+Orignal       & 0.19s  & 0.28s \\
+CPD           & 1.89s  & 3.33s \\
+\hline
+First         & 0.216s & 0.15s \\
+Sequential    & 0.150s & 0.28s \\
+Non recursive & 0.050s & 0.07s \\
+Recursive     & 0.045s & 0.45s \\
+Maximal size  & 0.136s & 0.19s \\
+Minimal size  & 0.046s & 0.06s \\
+\hline
+\end{tabular}
+\label{tab:logic}
+\caption{Searching for formulas in a given substitution}
+}
+\end{table}
+
+%\nocite{*}
+\bibliographystyle{eptcs}
+\bibliography{main}
+
+\end{document}
