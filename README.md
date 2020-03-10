@@ -1,6 +1,9 @@
 uKanren-spec
 ------------
 
+**NOTE:** Cleaning up still in progress!
+
+
 ## Общий метод суперкомпиляции
 
 
