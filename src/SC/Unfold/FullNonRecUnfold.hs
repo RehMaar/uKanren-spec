@@ -4,10 +4,8 @@ module SC.Unfold.FullNonRecUnfold where
 import Syntax
 import SC.DTree
 
-import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified Purification as P
-import qualified CPD.GlobalControl as GC
 
 import Utils
 
@@ -32,7 +30,7 @@ data FullNUGoal = FullNUGoal DGoal deriving Show
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = CPD.normalize lgoal
+  lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ FullNUGoal (head lgoal')
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
@@ -42,25 +40,24 @@ instance UnfoldableGoal FullNUGoal where
   initGoal goal = FullNUGoal goal
   emptyGoal (FullNUGoal dgoal) = null dgoal
   mapGoal (FullNUGoal dgoal) f = FullNUGoal (f dgoal)
-
+  unfoldStep = fnrUnfoldStep
 
 instance Unfold FullNUGoal where
-  unfoldStep = fnrUnfoldStep
 
 fnrUnfoldStep :: FullNUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, FullNUGoal)], E.Gamma)
 fnrUnfoldStep (FullNUGoal dgoal) env subst = let
-    (conj, rest) = splitGoal env dgoal
+    (ls, conj, rs) = splitGoal env dgoal
     (newEnv, uConj) = FU.unfoldAll env conj
 
     nConj = conjOfDNFtoDNF (goalToDNF <$> uConj)
     unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, suGoal subst cs rest)) <$> unConj
+    us = (\(cs, subst) -> (subst, suGoal subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
-    suGoal subst cs rest = FullNUGoal $ E.substituteConjs subst $ cs ++ rest
+    suGoal subst cs ls rs = FullNUGoal $ E.substituteConjs subst $ ls ++ cs ++ rs
 
-splitGoal :: E.Gamma -> DGoal -> ([G S], [G S])
+splitGoal :: E.Gamma -> DGoal -> ([G S], [G S], [G S])
 splitGoal env gs =
   case partition (not . NU.isRec env) gs of
-     ([], r) -> let (g, gs) = NU.splitGoal env r in ([g], gs)
-     (n, r) -> (n, r)
+     ([], r) -> let (ls, g, rs) = NU.splitGoal env r in (ls, [g], rs)
+     ((n:ns), r) -> (ns, [n], r)

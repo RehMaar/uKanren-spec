@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module SC.SC where
     
@@ -6,11 +7,10 @@ import SC.DTree
 import Syntax
 import Embedding
 
-import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 -- import qualified Driving as D
 import qualified Purification as P
-import qualified Generalization as D
+import qualified Generalization as G
 
 import Utils
 import DotPrinter
@@ -40,153 +40,24 @@ class Show a => UnfoldableGoal a where
   emptyGoal  :: a -> Bool
   -- Применить функцию к цели в `a'.
   mapGoal    :: a -> (DGoal -> DGoal) -> a
-
-
-class UnfoldableGoal a => Unfold a where
   --
   -- `unfold` цели в `a'.
   --
   unfoldStep :: a -> E.Gamma -> E.Sigma -> ([(E.Sigma, a)], E.Gamma)
 
+type Derivable a =  a -> Set.Set DGoal -> E.Gamma -> E.Sigma -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
 
-  derivationStep
-    :: a                 -- Conjunction of invokes and substs.
-    -> Set.Set DGoal     -- Ancsectors.
-    -> E.Gamma           -- Context.
-    -> E.Sigma           -- Substitution.
-    -> Set.Set DGoal     -- Already seen.
-    -> Int -- depth for debug
-    -> (DTree, Set.Set DGoal, S)
-  derivationStep goal ancs env subst seen depth
-    -- | depth >= 5
-    -- = (Prune (getGoal goal), seen, maxFreshVar env)
-    | checkLeaf (getGoal goal) seen
-    = (Leaf (CPD.Descend (getGoal goal) ancs) subst env, seen, maxFreshVar env)
-    | otherwise
-    =
-    let
-      realGoal = getGoal goal
-      descend = CPD.Descend realGoal ancs
-      newAncs = Set.insert realGoal ancs
-      -- Add `goal` to a seen set (`Or` node in the tree).
-    in case unfoldStep goal env subst of
-       ([], _)          -> (Fail, seen, maxFreshVar env)
-       (uGoals, newEnv) -> let
-           -- Делаем свёртку, чтобы просмотренные вершины из одного обработанного поддерева
-           -- можно было передать в ещё не обработанное.
-           newSeen = Set.insert realGoal seen
-           (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
-               (\(a, t, i) -> (a, t:ts, max i m)) $
-                 evalSubTree depth (fixEnv m newEnv) newAncs seen g)
-               (newSeen, [], maxFreshVar env) uGoals
-         in (Or (reverse ts) subst descend, seen', maxVarNum)
+type SuperComp = G X -> (DTree, G S, [S])
 
-  evalSubTree :: Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, a) -> (Set.Set DGoal, DTree, S)
-  evalSubTree depth env ancs seen (subst, goal)
-    | emptyGoal goal
-    = (seen, Success subst, maxFreshVar env)
-    | not (checkLeaf realGoal seen)
-    , isGen realGoal ancs
-    =
-      let
-        absGoals = abstract ancs realGoal subst env
-     -- in
-     --  trace ("Goal: " ++ pretty realGoal
-     --         ++ "\nAncs: " ++ show ancs ++ "\n"
-     --         ++ show (length absGoals)
-     --         ++ "\nAbs:  " ++ show ((\(_,g,_,_) -> pretty g ++ " <|> ") <$> absGoals) ++ "\n"
-     --         ) $
-     -- let
+data Derive a = Derive { derive :: Derivable a }
 
-        -- Add `realGoal` to a seen set (`And` node in the tree).
-        newSeen = Set.insert realGoal seen
-
-        (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
-                (\(a, t, i) -> (a, t:ts, max i m)) $
-                evalGenSubTree m depth ancs seen g)
-                (newSeen, [], maxFreshVar env) absGoals
-      in (seen', And (reverse ts) subst descend, maxVarNum)
-    | otherwise
-    =
-      let
-        (tree, seen', maxVarNum) = derivationStep goal ancs env subst seen (succ depth)
-      in (seen', tree, maxVarNum)
-    where
-      realGoal = getGoal goal
-      descend  = CPD.Descend realGoal ancs
-
-      evalGenSubTree m depth ancs seen (subst, goal, gen, env') =
-        let
-          env = fixEnv m env'
-          (tree, seen', maxVarNum) = derivationStep ((initGoal :: DGoal -> a) goal) ancs env subst seen (succ depth)
-          subtree  = if null gen then tree else Gen tree gen
-        in (seen', subtree, maxVarNum)
-
-{-
-  derivationStep = derivationStep' False
-
-  derivationStep'
-    :: Bool -> a                 -- Conjunction of invokes and substs.
-    -> Set.Set DGoal     -- Ancsectors.
-    -> E.Gamma           -- Context.
-    -> E.Sigma           -- Substitution.
-    -> Set.Set DGoal     -- Already seen.
-    -> Int -- depth for debug
-    -> (DTree, Set.Set DGoal, S)
-  derivationStep' skip goal ancs env subst seen d
-    | d > 6
-    = (Prune (getGoal goal), seen, 0)
-    -- Empty goal => everything evaluated fine
-    | emptyGoal goal
-    = (Success subst, seen, maxFreshVar env)
-    -- If we already seen the same node, stop evaluate it.
-    | checkLeaf (getGoal goal) seen
-    = (Leaf (CPD.Descend (getGoal goal) ancs) subst env, seen, maxFreshVar env)
-    -- If a node is generalization of one of ancsectors generalize.
-    | not skip
-    , isGen (getGoal goal) ancs
-    = let
-        rGoal = getGoal goal
-        aGoals = abstract ancs rGoal subst env
-      -- in trace ("Goal: " ++ pretty rGoal
-      --         ++ "\nAbs:  " ++ show ((\(_,g,_,_) -> pretty g) <$> aGoals) ++ "\n"
-      --         ++ "Ancs: " ++ show ancs ++ "\n"
-      --         ) $
-      -- let
-        nAncs = Set.insert rGoal ancs
-        nSeen = Set.insert rGoal seen
-        (seen', trees, maxVarNum) =
-          foldl
-            (\(seen, ts, m) (subst, goal, gen, nEnv) ->
-              let (t, seen'', mv) = derivationStep' (isVariant goal rGoal) ((initGoal :: DGoal -> a) goal) nAncs (fixEnv m nEnv) subst seen (succ d)
-                  t' = if null gen then t else Gen t gen
-              in (seen'', t':ts, mv)
-            )
-            (nSeen, [], maxFreshVar env)
-            aGoals
-        tree = And trees subst (CPD.Descend rGoal ancs)
-      in (tree, seen', maxVarNum)
-    | otherwise
-    = case unfoldStep goal env subst of
-        ([], _) -> (Fail, seen, maxFreshVar env)
-        (uGoals, nEnv) -> let
-            rGoal = getGoal goal
-            nAncs = Set.insert rGoal ancs
-            nSeen = Set.insert rGoal seen
-
-            (seen', trees, maxVarNum) =
-              foldl
-                (\(seen, ts, m) (subst, goal) ->
-                  let (t, seen'', mv) = derivationStep' False goal nAncs (fixEnv m nEnv) subst seen (succ d)
-                  in (seen'', t:ts, mv)
-                )
-                (nSeen, [], maxFreshVar nEnv)
-                uGoals
-
-            tree = Or (reverse trees) subst (CPD.Descend rGoal ancs)
-          in (tree, seen', maxVarNum)
--}
-
+supercomp :: UnfoldableGoal a => Derive a -> SuperComp
+supercomp d g = let
+  (lgoal, lgamma, lnames) = goalXtoGoalS g
+  lgoal' = normalize lgoal
+  igoal = assert (length lgoal' == 1) $ initGoal (head lgoal')
+  tree = fst3 $ derive d igoal Set.empty lgamma E.s0 Set.empty 0
+  in (tree, lgoal, lnames)
 
 fixEnv i (f1, f2, d:ds)
   | i > d = (f1, f2, drop (i - d) ds)
@@ -228,7 +99,7 @@ extend = uncurry . E.extend
 --
 
 unifyAll :: E.Sigma -> Disj (Conj (G S)) -> Disj (Conj (G S), E.Sigma)
-unifyAll = mapMaybe . CPD.unifyStuff
+unifyAll = mapMaybe . unifyStuff
 
 --
 -- Conjunction of DNF to DNF
@@ -241,37 +112,32 @@ conjOfDNFtoDNF (x {- Disj (Conj a) -} :xs) = concat $ addConjToDNF x <$> conjOfD
 addConjToDNF :: Disj (Conj a) -> Conj a -> Disj (Conj a)
 addConjToDNF ds c = (c ++) <$> ds
 
+checkLeaf :: DGoal -> Set.Set DGoal -> Bool
 checkLeaf = variantCheck
--- Fair renaming
-{-
-checkLeaf' g = any (\sg -> all' $ uncurry isRenaming <$> zip' g sg)
-  where
-    all' [] = False
-    all' xs = all id xs
-
-    zip' xs ys
-      | length xs == length ys
-      = zip xs ys
-      | otherwise
-      = []
--}
 
 abstract
-  :: Set.Set [G S]                         -- Ancestors of the goal
+  :: Set.Set [G S]               -- Ancestors of the goal
   -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
-  -> [(E.Sigma, [G S], D.Generalizer, E.Gamma)]
+  -> [(E.Sigma, [G S], G.Generalizer, E.Gamma)]
 abstract = abstractChild
 
 abstractChild
-  :: Set.Set [G S]                         -- Ancestors of the goal
+  :: Set.Set [G S]               -- Ancestors of the goal
   -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
-  -> [(E.Sigma, [G S], D.Generalizer, E.Gamma)]
+  -> [(E.Sigma, [G S], G.Generalizer, E.Gamma)]
 abstractChild ancs g subst (p, iota, delt) =
   let (abstracted, delta) = abstract' ancs g delt
   in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
 
+findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
+  where
+    goalOrdering a1 a2
+      | isVariant a1 a2 = EQ
+      | a1 `embed` a2 = GT
+      | otherwise = LT
+
 abstract' ancs g delt
-  | Just anc <- find (`embed` g) $ sortAncs $ Set.toList ancs
+  | Just anc <- findAnc g ancs
   =
    let r = generalize g anc delt
    in
@@ -282,43 +148,13 @@ abstract' ancs g delt
   | otherwise
   = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList (Set.toList ancs)
 
-sortAncs = sortBy goalOrdering
-
-goalOrdering a1 a2
-  | isVariant a1 a2 = EQ
-  | a1 `embed` a2 = GT
-  | otherwise = LT
-
-{-
-abstract'
-  :: Set.Set [G S] -- The goal's ancs
-  -> [G S]         -- The goal
-  -> E.Delta       -- Set of used semantic variables
-  -> ([([G S], D.Generalizer)], E.Delta)
-abstract' ancs goals d =
-  let qCurly = CPD.mcs goals in
-  let result = go (map (, []) qCurly) d in
-  result
-   where
-    go [] d@(x:_) = ([], d)
-    go ((m, gen):gs) d =
-      case whistle ancs m of
-        Nothing ->
-          let (goals, delta) = go gs d in
-          ((m, gen) : goals, delta)
-        Just b ->
-          let (goals, delta) = generalize m b d in
-          let (blah, halb) = go gs delta in
-          (goals ++ blah, halb)
--}
-
 whistle :: Set.Set [G S] -> [G S] -> Maybe [G S]
 whistle ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
 
-generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], D.Generalizer)], E.Delta)
+generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
 generalize m b d =
-  let ((m1, m2), genOrig, delta) = CPD.split d b m in
-  ((map (,genOrig) (CPD.mcs m1)) ++ (map (,[]) (CPD.mcs m2)), delta)
+  let ((m1, m2), genOrig, delta) = G.split d b m in
+  ((map (,genOrig) (G.mcs m1)) ++ (map (,[]) (G.mcs m2)), delta)
 
 toSplit :: [G S] -> Bool
 toSplit = null . foldl1 intersect . map getInvokeArgs . filter isInvoke
@@ -339,20 +175,41 @@ normalize g@(Invoke _ _) = [[g]]
 normalize g@(_ :=: _) = [[g]]
 normalize (Fresh _ goal) = normalize goal
 
+goalToDNF = normalize
+
+unifyStuff :: E.Sigma -> [G S] -> Maybe ([G S], E.Sigma)
+unifyStuff state gs = go gs state [] where
+  go []                    state conjs = Just (reverse conjs, state)
+  go (g@(Invoke _ _) : gs) state conjs = go gs state (g : conjs)
+  go ((t :=: u) : gs)      state conjs = do
+    s <- E.unify  (Just state) t u
+    go gs s conjs
+
 genUnfoldStep :: UnfoldableGoal a =>
-     (E.Gamma -> a -> (G S, DGoal))
+     (E.Gamma -> a -> (DGoal, G S, DGoal))
   -> (DGoal -> a)
   -> a
   -> E.Gamma
   -> E.Sigma
   -> ([(E.Sigma, a)], E.Gamma)
 genUnfoldStep split ctr goal env subst = let
-    (conj, rest) = split env goal
+    (ls, conj, rs) = split env goal
     (newEnv, uConj) = unfold conj env
 
     nConj = goalToDNF uConj
     unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, construct subst cs rest)) <$> unConj
+    us = (\(cs, subst) -> (subst, construct subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
-    construct subst cs rest = ctr $ E.substituteConjs subst $ cs ++ rest
+    construct subst cs ls rs = ctr $ E.substituteConjs subst $ ls ++ cs ++ rs
+
+class UnfoldableGoal a => Unfold a where
+  derivationStep
+    :: a                 -- Conjunction of invokes and substs.
+    -> Set.Set DGoal     -- Ancsectors.
+    -> E.Gamma           -- Context.
+    -> E.Sigma           -- Substitution.
+    -> Set.Set DGoal     -- Already seen.
+    -> Int -- depth for debug
+    -> (DTree, Set.Set DGoal, S)
+  derivationStep = undefined

@@ -72,3 +72,11 @@ zipBy f b1 b2 = zipBy' f f b1 b2
     zipBy' f g bs cs = filter (\(b, c) -> f b == g c) $ (,) <$> bs <*> cs
 
 findFirst f = getFirst . foldMap (First . f)
+
+split :: (a -> Bool) -> [a] -> Maybe ([a], a, [a])
+split p [] = Nothing
+split p (x:xs)
+  | p x
+  = Just ([], x, xs)
+  | Just (l, a, r) <- split p xs
+  = Just (x:l, a, r)

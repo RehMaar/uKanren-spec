@@ -36,7 +36,6 @@ module Eval where
 import Control.Monad
 import Data.List
 import Syntax
-import Stream
 import Debug.Trace
 import Text.Printf
 
@@ -152,19 +151,6 @@ postEval' as goal =
     postEval _ g = g
 
 
--- Evaluation relation
-eval :: Gamma -> Sigma -> G S -> Stream (Sigma, Delta)
-eval     (_, _, d) s (t1 :=:  t2)  = fmap (,d) (maybeToStream $ unify (Just s) t1 t2)
-eval env           s (g1 :\/: g2)  = eval env s g1 `mplus` eval env s g2
-eval env@(p, i, _) s (g1 :/\: g2)  = eval env s g1 >>= (\ (s', d') -> eval (p, i, d') s' g2)
-eval     (p, i, d) s (Invoke f as) =
-  let (_, fs, g) = p f in
-  let i'         = foldl (\ i'' (f', a) -> extend i'' f' a) i $ zip fs as in
-  let (g', env', _) = preEval' (p, i', d) g in
-  eval env' s g'
-eval env s (Let def' g) = eval (update env def') s g
-eval _ _ _ = error "Impossible case in eval"
-
 env0 :: Gamma
 env0 = (\ i -> error $ printf "Empty environment on %s" (show i), emptyIota, [0 ..])
 
@@ -176,8 +162,3 @@ updateDefsInGamma = foldl update
 
 s0 :: Sigma
 s0 = []
-
-run :: G X -> Stream Sigma
-run goal =
-  let (goal', env', _) = preEval' env0 goal in
-  fmap fst $ eval env' s0 goal'

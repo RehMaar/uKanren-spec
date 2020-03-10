@@ -6,8 +6,6 @@ import Embedding
 
 import qualified SC.DTree as DT
 import qualified Eval as E
-import qualified CPD.CpdResidualization as CR
-import qualified CPD.LocalControl as CPD
 
 import Data.List
 import Utils
@@ -19,6 +17,16 @@ import qualified Data.Set as Set
 
 import Debug.Trace
 import Text.Printf
+
+generateFreshName :: String -> Set.Set String -> String
+generateFreshName n names =
+  if n `notElem` names
+  then n
+  else until (`notElem` names) ('_' :) n
+
+residualizeSubst :: E.Sigma -> G X
+residualizeSubst subst =
+  foldl1 (&&&) $ map (\(s, ts) -> toX (V s) === toX ts) $ reverse subst
 
 --
 -- Marked Derivation Tree
@@ -97,7 +105,6 @@ countNodes _ = (1, 0)
 data Call = Call { callName :: Name, callArgs :: [S], callOrigArgs :: [S] }
   deriving Show
 
-
 makeMarkedTree :: DT.DTree -> MarkedTree
 makeMarkedTree x = makeMarkedTree' x (DT.leaves x) x
   where
@@ -108,12 +115,12 @@ makeMarkedTree x = makeMarkedTree' x (DT.leaves x) x
     makeMarkedTree' _ _ DT.Fail                  = Fail
     makeMarkedTree' _ _ (DT.Success s)           = Success s
     makeMarkedTree' root leaves (DT.Gen t s)     = Gen (makeMarkedTree' root leaves t) s
-    makeMarkedTree' root leaves (DT.Leaf df s g) = Leaf (CPD.getCurr df) s
-    makeMarkedTree' root leaves (DT.Or ts s dg@(CPD.Descend g _))  = let
+    makeMarkedTree' root leaves (DT.Leaf goal _ s _) = Leaf goal s
+    makeMarkedTree' root leaves (DT.Or ts s g a)  = let
         isVar = any (`isVariant` g) leaves
         ts'   = makeMarkedTree' root leaves <$> ts
       in Or ts' s g isVar
-    makeMarkedTree' root leaves (DT.And ts s dg@(CPD.Descend g _))  = let
+    makeMarkedTree' root leaves (DT.And ts s g a)  = let
         isVar = any (`isVariant` g) leaves
         ts'   = makeMarkedTree' root leaves <$> ts
       in And ts' s g isVar
@@ -152,7 +159,7 @@ genCall = genCall' []
 genCall' cs goal = let
     nameSet = Set.fromList $ ((\(_, Call name _ _) -> name) <$> cs)
     callName = genCallName goal
-    name = nameToOCamlName $ CR.generateFreshName callName  nameSet
+    name = nameToOCamlName $ generateFreshName callName  nameSet
     args = argsToS $ genArgs goal
     orig = argsToS $ getArgs goal
   in Call name args orig
@@ -279,12 +286,12 @@ res = f
 
     f _ s  (Success subst)
       | null (subst \\ s) = ([], Invoke "success" [])
-      | otherwise         = ([], CR.residualizeSubst (subst \\ s))
+      | otherwise         = ([], residualizeSubst (subst \\ s))
 
     f _ _ Fail = ([], Invoke "failure" [])
 
 applySubst [] = id
-applySubst diff = (CR.residualizeSubst diff :/\:)
+applySubst diff = (residualizeSubst diff :/\:)
 
 getGenTree (Gen t _) = t
 

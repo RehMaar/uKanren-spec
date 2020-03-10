@@ -30,20 +30,20 @@ instance UnfoldableGoal FUGoal where
   initGoal = FUGoal
   emptyGoal (FUGoal dgoal) = null dgoal
   mapGoal (FUGoal dgoal) f = FUGoal (f dgoal)
+  unfoldStep = fullUnfoldStep
+    -- where
 
+fullUnfoldStep :: FUGoal  -> E.Gamma -> E.Sigma -> ([(E.Sigma, FUGoal)], E.Gamma)
+fullUnfoldStep (FUGoal goal) env subst = let
+    (newEnv, unfoldedGoal) = unfoldAll env goal
+    n = (goalToDNF <$> unfoldedGoal)
+    -- Goal :: [DNF of each body] :: [Body DNF [[Conj]]]
+    normalizedGoal = conjOfDNFtoDNF n
+    -- Goal :: [Unified DNF] :: [Body DNF [[Conj] and Substs]]
+    unifiedGoal = (\(conj, subst) -> (subst, FUGoal $ E.substituteConjs subst conj)) <$> unifyAll subst normalizedGoal
+  in (unifiedGoal, newEnv)
 
 instance Unfold FUGoal where
-  unfoldStep = fullUnfoldStep
-    where
-      fullUnfoldStep :: FUGoal  -> E.Gamma -> E.Sigma -> ([(E.Sigma, FUGoal)], E.Gamma)
-      fullUnfoldStep (FUGoal goal) env subst = let
-          (newEnv, unfoldedGoal) = unfoldAll env goal
-          n = (goalToDNF <$> unfoldedGoal)
-          -- Goal :: [DNF of each body] :: [Body DNF [[Conj]]]
-          normalizedGoal = conjOfDNFtoDNF n
-          -- Goal :: [Unified DNF] :: [Body DNF [[Conj] and Substs]]
-          unifiedGoal = (\(conj, subst) -> (subst, FUGoal $ E.substituteConjs subst conj)) <$> unifyAll subst normalizedGoal
-        in (unifiedGoal, newEnv)
 
 -- Return value is Conj (G S), but now (G S) is a body of corresponding Invoke.
 unfoldAll :: E.Gamma -> Conj (G S) -> (E.Gamma, Conj (G S))

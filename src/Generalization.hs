@@ -12,6 +12,10 @@ import           Embedding
 import qualified Eval                   as E
 import           Syntax
 import           Text.Printf            (printf)
+import           Utils
+import           Debug.Trace
+import           Control.Applicative ((<|>))
+import           Data.Maybe (listToMaybe)
 
 map1in4 :: (a -> b) -> (a, c, d, e) -> (b, c, d, e)
 map1in4 f (x, y, z, t) = (f x, y, z, t)
@@ -82,3 +86,68 @@ refine msg@(g, s1, s2, d) =
       let (similar, rest) = partition (p (head xs)) xs in 
       assert (similar /= []) $ groupBy p rest (similar : acc)
     group x y = snd x == snd y
+
+mcs :: (Eq a, Show a) => [G a] -> [[G a]]
+mcs []  = []
+mcs [g] = [[g]]
+mcs (g : gs) =
+  let (con, non, _) = foldl
+        (\(con, non, vs) x -> if null (vs `intersect` vars x)
+          then (con, x : non, vs)
+          else (x : con, non, nub $ vars x ++ vs)
+        )
+        ([g], [], vars g)
+        gs
+  in  reverse con : mcs (reverse non)
+  where
+    -- vars :: (Eq a, Show a) => G a -> [Term a]
+    vars (Invoke _ args) = nub $ concatMap getVars args
+      where
+        getVars (V v)    = [V v]
+        getVars (C _ ts) = concatMap getVars ts
+    vars _ = []
+
+msgExists gs hs | length gs == length hs =
+  all
+      (\x -> case x of
+        (Invoke f _, Invoke g _) -> f == g
+        _                        -> False
+      )
+    $ zip gs hs
+msgExists _ _ = False
+
+-- works for ordered subconjunctions
+complementSubconjs :: (Instance a (Term a), Eq a, Ord a, Show a) => [G a] -> [G a] -> [G a]
+complementSubconjs xs ys =
+  go xs ys
+   where
+    go [] xs = xs
+    go (x:xs) (y:ys) | x == y         = go xs ys
+    go (x:xs) (y:ys) | isRenaming x y = go xs ys
+    go (x:xs) (y:ys) | isInst x y     = go xs ys
+    -- go (x:xs) (y:ys) | isInst y x     = go xs ys
+    go xs (y:ys)                  = y : go xs ys
+    go xs ys = error (printf "complementing %s by %s" (show xs) (show ys))
+
+
+minimallyGeneral :: (Show a, Ord a) => [([G a], Generalizer)] -> ([G a], Generalizer)
+minimallyGeneral xs =
+    maybe (error "Empty list of best matching conjunctions") id $
+    find (\x -> all (not . isStrictInst (fst x) . fst) xs) xs <|>
+    listToMaybe (reverse xs)
+
+bmc :: E.Delta -> [G S] -> [[G S]] -> ([([G S], Generalizer)],  E.Delta)
+bmc d q [] = ([], d)
+bmc d q (q':qCurly) | msgExists q q' =
+  let (generalized, _, gen, delta) = generalizeGoals d q q' in
+  let (gss, delta') = bmc delta q qCurly in
+  ((generalized, gen) : gss, delta')
+bmc d q (q':qCurly) = trace "why msg does not exist?!" $ bmc d q qCurly
+
+split :: E.Delta -> [G S] -> [G S] -> (([G S], [G S]), Generalizer, E.Delta)
+split d q q' = -- q <= q'
+  let n = length q
+      qCurly = filter (\q'' -> and $ zipWith embed q q'') $ subconjs q' n
+      (bestMC, delta) = bmc d q qCurly
+      (b, gen) = minimallyGeneral bestMC
+  in ((b, if length q' > n then complementSubconjs b q' else []), gen, delta)

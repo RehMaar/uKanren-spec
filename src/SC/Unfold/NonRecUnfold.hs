@@ -3,14 +3,13 @@ module SC.Unfold.NonRecUnfold where
 import Syntax
 import SC.DTree
 
-import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified Purification as P
 
 import Utils
 
 import Data.Function (on)
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromJust)
 import Data.List
 import qualified Data.Set as Set
 
@@ -28,7 +27,7 @@ data NUGoal = NUGoal DGoal deriving Show
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = CPD.normalize lgoal
+  lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ NUGoal (head lgoal')
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
@@ -38,27 +37,27 @@ instance UnfoldableGoal NUGoal where
   initGoal goal = NUGoal goal
   emptyGoal (NUGoal dgoal) = null dgoal
   mapGoal (NUGoal dgoal) f = NUGoal (f dgoal)
+  unfoldStep = unreqUnfoldStep
 
 
 instance Unfold NUGoal where
-  unfoldStep = unreqUnfoldStep
 
 unreqUnfoldStep :: NUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, NUGoal)], E.Gamma)
 unreqUnfoldStep (NUGoal dgoal) env subst = let
-    (conj, rest) = splitGoal env dgoal
+    (ls, conj, rs) = splitGoal env dgoal
     (newEnv, uConj) = unfold conj env
 
     nConj = goalToDNF uConj
     unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, suGoal subst cs rest)) <$> unConj
+    us = (\(cs, subst) -> (subst, suGoal subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
-    suGoal subst cs rest = NUGoal $ E.substituteConjs subst $ cs ++ rest
+    suGoal subst cs ls rs = NUGoal $ E.substituteConjs subst $ ls ++ cs ++ rs
 
-splitGoal :: E.Gamma -> DGoal -> (G S, [G S])
-splitGoal env gs = let (c:cs) = sortBy ((compare `on` (isRec env)) <>
+splitGoal :: E.Gamma -> DGoal -> ([G S], G S, [G S])
+splitGoal env gs = let c = head $ sortBy ((compare `on` (isRec env)) <>
                                         compareGoals env) gs
-                    in (c, cs)
+                    in fromJust $ split (c ==) gs
 
 isRec :: E.Gamma -> G S -> Bool
 isRec (p, _, _) goal@(Invoke call _) =

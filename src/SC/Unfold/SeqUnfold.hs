@@ -3,7 +3,6 @@ module SC.Unfold.SeqUnfold where
 import Syntax
 import SC.DTree
 
-import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified Purification as P
 
@@ -27,18 +26,10 @@ data SUGoal = SUGoal DGoal Int deriving Show
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = CPD.normalize lgoal
+  lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ SUGoal (head lgoal') 0
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
-
--- topLevel :: G X -> (DTree, G S, [S])
-topLevelDebug g = let
-  (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = CPD.normalize lgoal
-  igoal = assert (length lgoal' == 1) $ SUGoal (head lgoal') 0
-  (tree, seen, _) =  derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
-  in (tree, Set.toList seen)
 
 instance UnfoldableGoal SUGoal where
   getGoal (SUGoal dgoal _) = dgoal
@@ -49,9 +40,10 @@ instance UnfoldableGoal SUGoal where
 
   mapGoal (SUGoal dgoal idx) f = SUGoal (f dgoal) idx
 
+  unfoldStep = seqUnfoldStep
+
 
 instance Unfold SUGoal where
-  unfoldStep = seqUnfoldStep
 
 
 seqUnfoldStep :: SUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, SUGoal)], E.Gamma)

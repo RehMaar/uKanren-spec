@@ -3,13 +3,12 @@ module SC.Unfold.MaxUnfold where
 import Syntax
 import SC.DTree
 
-import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified Purification as P
 
 import Utils
 
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromJust)
 import Data.List
 import Data.Function (on)
 import qualified Data.Set as Set
@@ -29,7 +28,7 @@ data MaxGoal = MaxGoal DGoal deriving Show
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = CPD.normalize lgoal
+  lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ MaxGoal (head lgoal')
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
@@ -39,14 +38,15 @@ instance UnfoldableGoal MaxGoal where
   initGoal goal = MaxGoal goal
   emptyGoal (MaxGoal dgoal) = null dgoal
   mapGoal (MaxGoal dgoal) f = MaxGoal (f dgoal)
+  unfoldStep = genUnfoldStep splitGoal MaxGoal
 
 
 instance Unfold MaxGoal where
-  unfoldStep = genUnfoldStep splitGoal MaxGoal
 
-splitGoal :: E.Gamma -> MaxGoal -> (G S, DGoal)
-splitGoal env (MaxGoal gs) = let (c:cs) = sortBy (compareGoals env) gs
-                    in (c, cs)
+splitGoal :: E.Gamma -> MaxGoal -> (DGoal, G S, DGoal)
+splitGoal env (MaxGoal gs) =
+  let c = head $ sortBy (compareGoals env) gs
+  in fromJust $ split (c ==) gs
 
 compareGoals :: E.Gamma -> G a -> G a -> Ordering
 compareGoals (p, _, _) (Invoke g1 _) (Invoke g2 _)
