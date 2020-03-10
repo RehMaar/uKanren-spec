@@ -15,17 +15,20 @@ open RecuMaxLen
 open CpdMaxLen
 open MaxLen
 
-let x1 = ocanren([1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13])
+let x1 = ocanren([1;1;1;1;1;1;1;1;1;1])
+let x2 = ocanren([1; 2; 3; 4; 5; 6; 7; 8; 9; 10])
+let x3 = ocanren([1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 1; 2; 3; 4; 5])
+let x4 = ocanren([1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15])
 
-let result1 = run qr (fun q r -> sequMaxLen x1 q r) (fun c d -> (c, d))
-let result2 = run qr (fun q r -> fuluMaxLen x1 q r) (fun c d -> (c, d))
-let result3 = run qr (fun q r -> maxuMaxLen x1 q r) (fun c d -> (c, d))
-let result4 = run qr (fun q r -> minuMaxLen x1 q r) (fun c d -> (c, d))
-let result5 = run qr (fun q r -> ranuMaxLen x1 q r) (fun c d -> (c, d))
-let result6 = run qr (fun q r -> recuMaxLen x1 q r) (fun c d -> (c, d))
-let result7 = run qr (fun q r -> nrcuMaxLen x1 q r) (fun c d -> (c, d))
-let result8 = run qr (fun q r -> cpdMaxLenOld x1 q r) (fun c d -> (c, d))
-let result9 = run qr (fun q r -> maxLen x1 q r) (fun c d -> (c, d))
+let result1 x = run qr (fun q r -> sequMaxLen x q r) (fun c d -> (c, d))
+let result2 x = run qr (fun q r -> fuluMaxLen x q r) (fun c d -> (c, d))
+let result3 x = run qr (fun q r -> maxuMaxLen x q r) (fun c d -> (c, d))
+let result4 x = run qr (fun q r -> minuMaxLen x q r) (fun c d -> (c, d))
+let result5 x = run qr (fun q r -> ranuMaxLen x q r) (fun c d -> (c, d))
+let result6 x = run qr (fun q r -> recuMaxLen x q r) (fun c d -> (c, d))
+let result7 x = run qr (fun q r -> nrcuMaxLen x q r) (fun c d -> (c, d))
+let result8 x = run qr (fun q r -> cpdMaxLenOld x q r) (fun c d -> (c, d))
+let result9 x = run qr (fun q r -> maxLen x q r) (fun c d -> (c, d))
 
 let runTest name result = 
   Printf.printf "%s:%!" name;
@@ -33,23 +36,35 @@ let runTest name result =
   let x = Stream.take result in
   let t2 = Sys.time() in
   Printf.printf " %fs\n%!" (t2 -. t1);
-  L.iter (fun (c, d) -> Printf.printf "A:  (%s, %s)\n%!"
+(*  L.iter (fun (c, d) -> Printf.printf "A:  (%s, %s)\n%!"
             (show(Nat.logic) @@ c#reify  (Nat.reify))
             (show(Nat.logic) @@ d#reify  (Nat.reify))
          )
-         @@  Stream.take result
+         @@  Stream.take result;*)
+  ()
 
-let t =
-  runTest "SU   " result1;
-  runTest "FU   " result2;
-  runTest "MaxU " result3;
-  runTest "MinU " result4;
-  runTest "RandU" result5;
-  runTest "RecU " result6;
-  runTest "NRecU" result7;
-  runTest "CPD  " result8;
-  runTest "Orig " result9
+let run x =
+  runTest "Orig " (result9 x);
+  runTest "CPD  " (result8 x);
+  (*runTest "SU   " (result1 x);*)
+  (*runTest "FU   " (result2 x);*)
+  (*runTest "MaxU " (result3 x);*)
+  (*runTest "MinU " (result4 x);*)
+  (*runTest "RandU" (result5 x);*)
+  (*runTest "RecU " (result6 x);*)
+  (*runTest "NRecU" (result7 x);*)
+  Printf.printf "%!"
 
+let _ =
+  Printf.printf "|[1..1]| = 10\n%!";
+  run x1;
+  Printf.printf "|[1..10]| = 10\n%!";
+  run x2;
+  Printf.printf "|[1..10, 1..5]| = 15\n%!";
+  run x3;
+  Printf.printf "|[1..15]|\n%!";
+  run x4;
+  Printf.printf ""
 (*
 let _ =
    L.iter (fun c -> Printf.printf "%s\n" @@ show(List.logic) (show(Nat.logic)) @@ c#reify (List.reify Nat.reify)) @@ x

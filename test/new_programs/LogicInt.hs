@@ -223,14 +223,16 @@ logExpr6 = conj (disj (disj varX (conj varY (neg varX))) false) true
 --
 logintoQuery6 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", true, trueo]
 logintoQuery5 = loginto $ fresh ["s", "x", "y"] $ call "loginto" [V "s", logExpr3, trueo]
-logintoQuery1 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
+logintoQueryId = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
 --
 -- loginto st (x \/ y) /\ (\neg x \/ y) trueo -- найти подстановку, в которой выполняется формула
 --
 -- Это только x = true, y == true
 logintoQuery2 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr1, trueo]
 logintoQuery3 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr2, trueo]
-logintoQuery4 = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
+logintoQueryTrue = loginto $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
 logintoQuery7 = loginto $ fresh ["s"] $ call "loginto" [subst4, logExpr4, trueo]
 logintoQuery8 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s", logExpr5, trueo]
 logintoQuery9 = loginto $ fresh ["s"] $ call "loginto" [V "s", logExpr6, trueo]
+
+logintoQuery4Debug = logintoCut $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]

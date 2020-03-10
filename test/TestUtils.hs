@@ -9,14 +9,9 @@ import PrettyPrint
 
 import Syntax
 import DotPrinter
-import CPD.SldTreePrinter
-import CPD.GlobalTreePrinter
 import Utils
 import Eval as E
 
-import qualified CPD.LocalControl as CPD
-import qualified CPD.CpdResidualization as CR
-import qualified CPD.GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
 import qualified Embedding as Emb
@@ -29,6 +24,7 @@ import qualified SC.Unfold.RecUnfold as RecU
 import qualified SC.Unfold.MaxUnfold as MaxU
 import qualified SC.Unfold.MinUnfold as MinU
 import qualified SC.SC as U
+import qualified SC.SCInst as SCI
 
 import qualified SC.DTree as DT
 import qualified SC.DTResidualize as DTR
@@ -36,6 +32,7 @@ import qualified SC.DTResidualize as DTR
 import qualified LogicInt as LI
 import qualified List as L
 
+import qualified Data.Set as Set
 import Data.Monoid
 import Data.List
 
@@ -115,11 +112,7 @@ ocanrenWithoutSpec filename prg = do
   let p@(g, n, d)  = P.justTakeOutLets (prg, vident <$> reverse ns)
   OC.topLevel fname "topLevel" Nothing p
 
-
-ocanrenSU = ocanren SU.topLevel
-ocanrenFU = ocanren FU.topLevel
-ocanrenRU seed = ocanren (RU.topLevel seed)
-
+{-
 spec goal = let
     (tree, logicGoal, _) = NU.topLevel goal
     (f, names) = DTR.topLevel tree
@@ -137,14 +130,10 @@ specCPD goal =
     fresh' a g = fresh a g
 
 ocanrenDoubleSpec goal = ocanrenWithoutSpec "a" $ spec $ spec goal
+-}
 
-ocanrenCPD filename goal = do
-  let (t, lg, n) = GC.topLevel goal
-  let f = CR.residualizationTopLevel t
-  let p = P.purification (f, vident <$> reverse n)
-  let name = printf "%s.ml" filename
-  OC.topLevel name "topLevelCPD" Nothing p
 
+{-
 ocanrenPrint goal = do
   let p = pur goal
   putStrLn $ OC.ocanrenize' "topLevel" p
@@ -154,25 +143,27 @@ ocanrenPrint goal = do
         (f, names) = DTR.topLevel tree
         (goal', names', defs) = P.purification (f, vident <$> names)
       in (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+-}
 
 --
 -- DTree test utils
 --
 findGoal :: DT.DGoal -> DT.DTree -> Maybe DT.DTree
-findGoal g t@(DT.Or ts _ g')
-  | Emb.isVariant g (CPD.getCurr g') = Just t
+findGoal g t@(DT.Or ts _ g' _)
+  | Emb.isVariant g g' = Just t
   | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
-findGoal g t@(DT.And ts _ g')
-  | Emb.isVariant g (CPD.getCurr g')  = Just t
+findGoal g t@(DT.And ts _ g' _)
+  | Emb.isVariant g g'  = Just t
   | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
 findGoal g (DT.Gen t _) = findGoal g t
-findGoal g t@(DT.Leaf g' _ _)
-  | Emb.isVariant g (CPD.getCurr g') = Just t
+findGoal g t@(DT.Leaf g' _ _ _)
+  | Emb.isVariant g g' = Just t
 findGoal _ _ = Nothing
 
 --
 -- Rand Unfold
 --
+{-
 findBest whatToDo goal num step =
     checkTrees whatToDo $ (\seed -> (seed,) $ fst3 $ RU.topLevel seed goal) <$> [1, succ step .. num ]
   where
@@ -184,6 +175,7 @@ findBest whatToDo goal num step =
 
 findBestByNodes = findBest False
 findBestByLeafs = findBest True
+-}
 
 --
 -- Test methods
@@ -222,14 +214,18 @@ statMethod goal name topLevel = do
   putStrLn $ unwords (intersperse "|" $ show <$> xs) ++ "|"
 
 
-statMethods goal = do
-  statMethod goal "RU  " (RU.topLevel 17)
-  statMethod goal "NU  " NU.topLevel
-  statMethod goal "MinU" MinU.topLevel
-  statMethod goal "MaxU" MaxU.topLevel
-  statMethod goal "SU  " SU.topLevel
-  statMethod goal "RecU" RecU.topLevel
-  statMethod goal "FU  " FU.topLevel
+statMethods runner goal = do
+{-  statMethod goal "RU  " (RU.topLevel 17)
+  statMethod goal "NU  " (runner "NU")
+  statMethod goal "MinU" (runner "MnU")-}
+  statMethod goal "MaxU" (runner "MxU")
+  statMethod goal "SU  " (runner "SU")
+{-  statMethod goal "RecU" (runner "RU")
+  statMethod goal "FstU" (runner "FstU")
+  statMethod goal "FU  " (runner "FU")-}
+
+statMethods1 = statMethods SCI.run1
+statMethods2 = statMethods SCI.run2
 
 statRandIO goal = do
   (t, g, ns) <- RU.topLevelIO goal
@@ -254,34 +250,34 @@ statMMethods goal = do
 ----------
 prune :: DT.DTree -> [DT.DGoal]
 prune (DT.Prune g) = [g]
-prune (DT.Or ts _ _) = concat $ prune <$> ts
-prune (DT.And ts _ _) = concat $ prune <$> ts
+prune (DT.Or ts _ _ _) = concat $ prune <$> ts
+prune (DT.And ts _ _ _) = concat $ prune <$> ts
 prune (DT.Gen t _) = prune t
 prune _ = []
 
-leavesT :: DT.DTree -> [(Int, DT.DDescendGoal)]
+leavesT :: DT.DTree -> [(Int, DT.DGoal)]
 leavesT (DT.Success _) = []
 leavesT DT.Fail        = []
-leavesT (DT.Leaf _ _ _) = []
-leavesT (DT.Or ts _ g) = (1, g) : concat (leavesT <$> ts)
-leavesT (DT.And ts _ g) = (0, g) : concat (leavesT <$> ts)
+leavesT (DT.Leaf _ _ _ _) = []
+leavesT (DT.Or ts _ g _) = (1, g) : concat (leavesT <$> ts)
+leavesT (DT.And ts _ g _) = (0, g) : concat (leavesT <$> ts)
 leavesT (DT.Gen t _) = leavesT t
 
 debug :: DT.DTree -> [DT.DTree]
 debug (DT.Success _) = []
 debug DT.Fail        = []
-debug (DT.Leaf _ _ _) = []
-debug (DT.Or ts _ g) = concat (debug <$> ts)
-debug (DT.And ts _ g) = concat (debug <$> ts)
+debug (DT.Leaf _ _ _ _) = []
+debug (DT.Or ts _ g _) = concat (debug <$> ts)
+debug (DT.And ts _ g _) = concat (debug <$> ts)
 debug (DT.Gen t _) = debug t
 debug dbg@(DT.Debug _ _ _ _) = [dbg]
 
 findA :: DT.DGoal -> DT.DTree -> Maybe E.Sigma
 findA _ (DT.Success _)  = Nothing
 findA _ DT.Fail         = Nothing
-findA _ (DT.Leaf _ _ _) = Nothing
-findA g (DT.Or ts _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
-findA g' (DT.And ts s g)  | CPD.getCurr g == g' = Just s
+findA _ (DT.Leaf _ _ _ _) = Nothing
+findA g (DT.Or ts _ _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
+findA g' (DT.And ts s g _)  | g == g' = Just s
                        | otherwise = getFirst $ mconcat $ First <$> (findA g' <$> ts)
 findA g (DT.Gen t _)    = findA g t
 
@@ -290,20 +286,17 @@ prunesAncs = prunes' []
    where
      prunes' :: [DT.DGoal] -> DT.DTree -> [(DT.DGoal, [DT.DGoal])]
      prunes' ancs (DT.Prune goal) = [(goal, ancs)]
-     prunes' ancs (DT.Or ts _ g) = concatMap (prunes' ((CPD.getCurr g):ancs)) ts
-     prunes' ancs (DT.And ts _ g) = concatMap (prunes' ((CPD.getCurr g):ancs)) ts
+     prunes' ancs (DT.Or ts _ g _) = concatMap (prunes' (g:ancs)) ts
+     prunes' ancs (DT.And ts _ g _) = concatMap (prunes' (g:ancs)) ts
      prunes' ancs (DT.Gen t _) = prunes' ancs t
      prunes' _ _ = []
 
 leavesAncs :: DT.DTree -> [(DT.DGoal, [DT.DGoal])]
-leavesAncs = leaves []
-   where
-     leaves :: [DT.DGoal] -> DT.DTree -> [(DT.DGoal, [DT.DGoal])]
-     leaves ancs (DT.Leaf g _ _) = [(CPD.getCurr g, ancs)]
-     leaves ancs (DT.Or ts _ g) = concatMap (leaves ((CPD.getCurr g):ancs)) ts
-     leaves ancs (DT.And ts _ g) = concatMap (leaves ((CPD.getCurr g):ancs)) ts
-     leaves ancs (DT.Gen t _) = leaves ancs t
-     leaves _ _ = []
+leavesAncs (DT.Leaf g a _ _) = [(g, Set.toList a)]
+leavesAncs (DT.Or ts _ g _) = concatMap leavesAncs ts
+leavesAncs (DT.And ts _ g _) = concatMap leavesAncs ts
+leavesAncs (DT.Gen t _) = leavesAncs t
+leavesAncs _ = []
 
 --
 -- Prints list of goal and it's ancestors
@@ -339,3 +332,33 @@ isInvoke _ = False
 checkOrder ancs =
   filter (not . null . snd) $
   fst $ foldr (\a (rs, as) -> ((a, filter (a Emb.<|) as) : rs, a : as)) ([], []) ancs
+
+cutExcept :: [DT.DGoal] -> DT.DTree -> Maybe DT.DTree
+cutExcept cs t@(DT.Prune goal)
+ | goal `elem` cs = Just t
+cutExcept cs t@(DT.Leaf goal _ _ _)
+ | goal `elem` cs = Just t
+cutExcept cs (DT.Gen t _) = cutExcept cs t
+cutExcept cs (DT.And ts a b c) =
+    (\x -> DT.And x a b c) <$> (weird_sequence $ cutExcept cs <$> ts)
+cutExcept cs (DT.Or ts a b c) =
+    (\x -> DT.Or x a b c) <$> (weird_sequence $ cutExcept cs <$> ts)
+cutExcept cs _ = Nothing
+
+--
+--
+--
+cutNotPruned :: DT.DTree -> Maybe DT.DTree
+cutNotPruned t@(DT.Prune _) = Just t
+cutNotPruned (DT.Gen t _) = cutNotPruned t
+cutNotPruned (DT.And ts a b c) =
+    (\x -> DT.And x a b c) <$> (weird_sequence $ cutNotPruned <$> ts)
+cutNotPruned (DT.Or ts a b c) =
+    (\x -> DT.Or x a b c) <$> (weird_sequence $ cutNotPruned <$> ts)
+cutNotPruned _ = Nothing
+
+-- TODO: find better way
+weird_sequence :: [Maybe a] -> Maybe [a]
+weird_sequence ts = 
+ let a = fromJust <$> filter isJust ts
+ in if null a then Nothing else Just a

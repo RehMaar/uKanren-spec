@@ -1,7 +1,6 @@
 module LogicInterpreter where
 
 import Bool
-import CPD.LocalControl
 import Control.Monad
 import Data.Maybe
 import Data.List

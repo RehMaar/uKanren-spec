@@ -7,13 +7,8 @@ import Text.Printf
 
 import Syntax
 import DotPrinter
-import CPD.SldTreePrinter
-import CPD.GlobalTreePrinter
 import Utils
 
-import qualified CPD.LocalControl as CPD
-import qualified CPD.CpdResidualization as CR
-import qualified CPD.GlobalControl as GC
 import qualified Purification as P
 import qualified OCanrenize as OC
 

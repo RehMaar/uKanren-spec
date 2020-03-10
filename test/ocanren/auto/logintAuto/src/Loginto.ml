@@ -12,6 +12,7 @@ open NrcuLogint
 open RanuLogint
 open RecuLogint
 open SequLogint
+open FstuLogint
 
 open Rand1Loginto
 
@@ -163,7 +164,7 @@ let runTimeTestOn2 x fn msg id =
 
 
 let runTests x msg query = 
-  Printf.printf "Formula: %s\n\n%!" msg;
+  Printf.printf "#Formula: %s\n\n%!" msg;
   runTestOn x (fun q -> loginto q query !!true) ("Orig (%fs) >> %s\n%!");
   runTestOn x (fun q -> cpdLogint  q query) "CPD  (%fs) >> %s\n%!";
   runTestOn x (fun q -> nrcuLogint q query) "NU   (%fs) >> %s\n%!";
@@ -175,7 +176,7 @@ let runTests x msg query =
   Printf.printf "%!"
 
 let runTimeTests x msg query = 
-  Printf.printf "Formula: %s\n%!" msg;
+  Printf.printf "#Formula: %s\n%!" msg;
   runTimeTestOn x (fun q -> loginto q query !!true) ("Orig: %fs\n%!");
   runTimeTestOn x (fun q -> cpdLogint q query)      ("CPD : %fs\n%!");
   runTimeTestOn x (fun q -> nrcuLogint q query)     ("NU  : %fs\n%!");
@@ -187,76 +188,88 @@ let runTimeTests x msg query =
   Printf.printf "%!"
 
 let runGenTests x msg =
-  Printf.printf "Formula: %s\n%!" msg;
+  Printf.printf "#Formula: %s\n%!" msg;
   runGenTestOn x (fun r -> loginto (nil ()) r !!true) ("Orig (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> cpdLogint (nil ()) r) ("CPD (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> nrcuLogint (nil ()) r) ("NU (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> sequLogint (nil ()) r) ("SU   (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> maxuLogint (nil ()) r) ("MaxU (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> minuLogint (nil ()) r) ("MinU (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> recuLogint (nil ()) r) ("RecU (%fs) >> %s\n%!");
-  runGenTestOn x (fun r -> ranuLogint (nil ()) r) ("RU   (%fs) >> %s\n%!")
+  runGenTestOn x (fun r -> cpdLogint  (nil ()) r)     ("CPD (%fs) >> %s\n%!");
+  runGenTestOn x (fun r -> nrcuLogint (nil ()) r)     ("NU (%fs) >> %s\n%!");
+  runGenTestOn x (fun r -> sequLogint (nil ()) r)     ("SU   (%fs) >> %s\n%!");
+  runGenTestOn x (fun r -> maxuLogint (nil ()) r)     ("MaxU (%fs) >> %s\n%!");
+  runGenTestOn x (fun r -> minuLogint (nil ()) r)     ("MinU (%fs) >> %s\n%!");
+  runGenTestOn x (fun r -> recuLogint (nil ()) r)     ("RecU (%fs) >> %s\n%!");
+  runGenTestOn x (fun r -> ranuLogint (nil ()) r)     ("RU   (%fs) >> %s\n%!")
 
 let runGenTimeTests x msg =
-  Printf.printf "Formula: %s\n%!" msg;
-  runTimeTestOn x (fun r -> loginto (nil ()) r !!true) ("Orig: %fs\n%!");
-  runTimeTestOn x (fun r -> cpdLogint (nil ()) r) ("CPD : %fs\n%!");
-  runTimeTestOn x (fun r -> nrcuLogint (nil ()) r) ("NU : %fs\n%!");
-  runTimeTestOn x (fun r -> sequLogint (nil ()) r) ("SU  : %fs\n%!");
-  runTimeTestOn x (fun r -> maxuLogint (nil ()) r) ("MaxU: %fs\n%!");
-  runTimeTestOn x (fun r -> minuLogint (nil ()) r) ("MinU: %fs\n%!");
-  runTimeTestOn x (fun r -> recuLogint (nil ()) r) ("RecU: %fs\n%!");
-  runTimeTestOn x (fun r -> ranuLogint (nil ()) r) ("RU  : %fs\n%!")
+  Printf.printf "#Formula: %s\n%!" msg;
+  runTimeTestOn x (fun r -> loginto (nil ()) r !!true) ("%fs\n%!");
+  runTimeTestOn x (fun r -> fstuLogint (nil ()) r    ) ("%fs\n%!");
+(*
+  runTimeTestOn x (fun r -> cpdLogint  (nil ()) r    ) ("%fs\n%!");
+  runTimeTestOn x (fun r -> nrcuLogint (nil ()) r    ) ("%fs\n%!");
+  runTimeTestOn x (fun r -> sequLogint (nil ()) r    ) ("%fs\n%!");
+  runTimeTestOn x (fun r -> maxuLogint (nil ()) r    ) ("%fs\n%!");
+  runTimeTestOn x (fun r -> minuLogint (nil ()) r    ) ("%fs\n%!");
+*)
+  runTimeTestOn x (fun r -> recuLogint (nil ()) r    ) ("%fs\n%!");
+(*
+  runTimeTestOn x (fun r -> ranuLogint (nil ()) r    ) ("%fs\n%!");
+*)
+  ()
 
 let fn1 a b = b
 
 let runGenTimeTests2 x msg =
   Printf.printf "#Test time of formulas generation: %s\n%!" msg;
-  runTimeTestOn2 x (fun q r -> loginto      (!< q) r !!true) ("Orig: %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> cpdLogint    (!< q) r) ("CPD : %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> nrcuLogint   (!< q) r) ("NU  : %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> sequLogint   (!< q) r) ("SU  : %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> maxuLogint (!< q) r)   ("MaxU: %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> minuLogint (!< q) r)   ("MinU: %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> recuLogint (!< q) r)   ("RecU: %fs\n%!") fn1;
-  runTimeTestOn2 x (fun q r -> ranuLogint (!< q) r)   ("RU  : %fs\n%!") fn1;
+  runTimeTestOn2 x (fun q r -> loginto    (!< q) r !!true) ("%fs\n%!") fn1;
+  runTimeTestOn2 x (fun q r -> fstuLogint (!< q) r       ) ("%fs\n%!") fn1;
+(*
+  runTimeTestOn2 x (fun q r -> cpdLogint  (!< q) r       ) ("%fs\n%!") fn1;
+  runTimeTestOn2 x (fun q r -> nrcuLogint (!< q) r       ) ("%fs\n%!") fn1;
+  runTimeTestOn2 x (fun q r -> sequLogint (!< q) r       ) ("%fs\n%!") fn1;
+  runTimeTestOn2 x (fun q r -> maxuLogint (!< q) r       ) ("%fs\n%!") fn1;
+  runTimeTestOn2 x (fun q r -> minuLogint (!< q) r       ) ("%fs\n%!") fn1;
+*)
+  runTimeTestOn2 x (fun q r -> recuLogint (!< q) r       ) ("%fs\n%!") fn1;
+(*
+  runTimeTestOn2 x (fun q r -> ranuLogint (!< q) r       ) ("%fs\n%!") fn1;*)
   Printf.printf "%!"
 
 let runGenTests2 x msg =
   Printf.printf "#Test formula generation: %s\n%!" msg;
-  runGenTestOn2 x (fun q r -> loginto      (!< q) r !!true) ("Orig (%fs) >> %s\n%!") fn1;
-  runGenTestOn2 x (fun q r -> cpdLogint    (!< q) r) ("CPD (%fs) >> %s\n%!") fn1;
-  runGenTestOn2 x (fun q r -> nrcuLogint   (!< q) r) ("NU (%fs) >> %s\n%!") fn1;
-  runGenTestOn2 x (fun q r -> sequLogint   (!< q) r) ("SU   (%fs) >> %s\n%!") fn1;
+  runGenTestOn2 x (fun q r -> loginto    (!< q) r !!true) ("Orig (%fs) >> %s\n%!") fn1;
+  runGenTestOn2 x (fun q r -> cpdLogint  (!< q) r) ("CPD (%fs) >> %s\n%!") fn1;
+  runGenTestOn2 x (fun q r -> nrcuLogint (!< q) r) ("NU (%fs) >> %s\n%!") fn1;
+  runGenTestOn2 x (fun q r -> sequLogint (!< q) r) ("SU   (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> maxuLogint (!< q) r)   ("MaxU (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> minuLogint (!< q) r)   ("MinU (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> recuLogint (!< q) r)   ("RecU (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> ranuLogint (!< q) r)   ("RU   (%fs) >> %s\n%!") fn1;
   Printf.printf "%!"
 
+(*
 let _ = runGenTests 10 "in empty subst 10 formulas"
-let _ = runGenTimeTests 10 "in empty subst 10 formulas"
-let _ = runGenTimeTests 100 "in empty subst 100 formulas"
+*)
+(*let _ = runGenTimeTests 10 "in empty subst 10 formulas"*)
+(*let _ = runGenTimeTests 100 "in empty subst 100 formulas"*)
 let _ = runGenTimeTests 1000 "in empty subst 1000 formulas"
 
+(*
 let _ = runGenTests2 10 "in 1 subst 10 formulas"
-let _ = runGenTimeTests2 10 "in 1 subst 10 formulas"
-let _ = runGenTimeTests2 100 "in 1 subst 100 formulas"
+*)
+(*let _ = runGenTimeTests2 10 "in 1 subst 10 formulas"*)
+(*let _ = runGenTimeTests2 100 "in 1 subst 100 formulas"*)
 let _ = runGenTimeTests2 1000 "in 1 subst 1000 formulas"
 
+(*
 let xVar = var (x ())
 let yVar = var (y ())
 let zVar = var (z ())
 
-let aVar = var (a ())
-let bVar = var (b ())
+
 
 let h1 = conj (disj xVar yVar) (disj (neg xVar) (neg yVar))
 let h4 = conj (disj xVar yVar) (disj yVar (neg zVar))
-let h5 = conj (disj aVar xVar) (conj (disj aVar (neg yVar)) (conj (disj bVar (neg yVar)) (conj (disj bVar (neg zVar)) (disj xVar yVar))))
 let h3 = disj (conj xVar yVar) (conj (neg xVar) (neg yVar))
 
-let h2 = conj (conj (conj (disj xVar yVar) (disj xVar zVar)) (disj (neg yVar) zVar)) (disj (neg yVar) xVar)
 let _ =
    let c = 1 in
    Printf.printf "#Test formula generation: generate %d formulas %!" c;
@@ -269,7 +282,9 @@ let _ =
    runTests c "(x /\ y)\/(!x /\ !y)" h3;
    runTests c "(x \/ y)(y \/ z)" h4;
    runTests c "(a \/ x)(a \/ !y)(b \/ !y)(b \/ !z)(x \/ y)" h5
+*)
 
+(*
 let _ =
    let c = 1 in
    Printf.printf "#Test time of formula generation: generate %d formulas %!" c;
@@ -281,7 +296,17 @@ let _ =
    runTimeTests c "(x \/ y)(!x \/ !y)" h1;
    runTimeTests c "(x /\ y)\/(!x /\ !y)" h3;
    runTimeTests c "(x \/ y)(y \/ z)" h4;
+   Printf.printf "%!"
+*)
+(*
    runTimeTests c "(a \/ x)(a \/ !y)(b \/ !y)(b \/ !z)(x \/ y)" h5
+
+let aVar = var (a ())
+let bVar = var (b ())
+
+let h5 = conj (disj aVar xVar) (conj (disj aVar (neg yVar)) (conj (disj bVar (neg yVar)) (conj (disj bVar (neg zVar)) (disj xVar yVar))))
+let h2 = conj (conj (conj (disj xVar yVar) (disj xVar zVar)) (disj (neg yVar) zVar)) (disj (neg yVar) xVar)
 
 let complex_test = 
    runTests 1 "(x \/ y)(x \/ z)(!y \/ z)(!y \/ x)" h2
+*)

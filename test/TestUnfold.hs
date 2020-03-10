@@ -1,7 +1,6 @@
 module TestUnfold where
 
 import Syntax
-import qualified CPD.LocalControl as CPD
 import qualified Eval as E
 import qualified SC.Unfold.SeqUnfold as SU
 import qualified SC.Unfold.FullUnfold as FU
@@ -12,6 +11,7 @@ import qualified SC.Unfold.MaxUnfold as MaxU
 import qualified SC.Unfold.MinUnfold as MinU
 
 import qualified SC.SC as U
+import qualified SC.SCInst as SCI
 import qualified SC.DTResidualize as DTR
 import SC.DTree
 import Utils
@@ -20,6 +20,7 @@ import qualified LogicInt as LI
 
 import qualified Num as N
 import qualified Path
+import qualified Unify
 
 -- import System.Directory
 
@@ -88,31 +89,39 @@ pathPrefix = "test/ocanren/auto/"
 
 toTestPath fpath (n:name) = pathPrefix ++ fromMaybe "" fpath ++ toUpper n : name ++ ".ml"
 
-testMethod :: (G X -> (DTree, G S, [S])) -> IO ()
-testMethod method = undefined
-
-type UnfoldMethod = (G X -> (DTree, G S, [S]))
-
-data TestMethod = TM { tmName :: String, tmFun :: UnfoldMethod}
+data TestMethod = TM { tmName :: String, tmFun :: U.SuperComp}
 
 data TestQuery = TQ { tqName :: String, tqQuery :: G X, env :: Maybe String, tmDir :: Maybe String}
 
-methods =
+methods runner =
   [
-    TM "sequ" SU.topLevel,
-    -- TM "fulu" FU.topLevel,
-    TM "ranu" (RU.topLevel 17),
-    TM "nrcu" NU.topLevel,
-    TM "recu" RecU.topLevel,
-    TM "minu" MinU.topLevel,
-    TM "maxu" MaxU.topLevel
+    --TM "ranu" (RU.topLevel 17),
+    TM "fulu" (runner "FU"),
+    TM "sequ" (runner "SU"),
+    TM "nrcu" (runner "NU"),
+    TM "recu" (runner "RU"),
+    TM "minu" (runner "MnU"),
+    TM "maxu" (runner "MxU"),
+    TM "fstu" (runner "FstU")
   ]
 
-logintTQ = TQ "Logint" LI.logintoQuery4 (Just LI.logintoEnv) (Just "logintAuto/src/")
-maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
-isPathTQ = TQ "IsPath" Path.query1 (Just Path.env) (Just "pathAuto/src/")
+methods1 = methods SCI.run1
+methods2 = methods SCI.run2
 
-testMethodsOnTest query = mapM_ (testMethodOnTest query) methods
+dappTQ = TQ "Dapp" testDA Nothing (Just "dappAuto/src/")
+logintTQ = TQ "Logint" LI.logintoQueryTrue (Just LI.logintoEnv) (Just "logintAuto/src/")
+maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
+isPathTQ = TQ "IsPath" Path.query1 Nothing (Just "pathAuto/src/")
+unifyTQ  = TQ "Unify" Unify.query (Just env) (Just "unifyAuto/src/")
+  where
+    env = "open OCanren\nopen GT\nopen Std\nopen Nat\nopen UnifyTerm\n"
+
+testMethodsOnTest1 query = mapM_ (testMethodOnTest query) methods1
+testMethodsOnTest2 query = mapM_ (testMethodOnTest query) methods2
 
 testMethodOnTest (TQ qname query env path) (TM fname fun) = do
+   putStrLn $ "Query: " ++ qname ++ " Method: " ++ fname
    TestUtils.ocanrenUltraGen env fun (fname ++ qname) (toTestPath path $ fname ++ qname) query
+
+testMethodOnTestQuick (TQ qname query env _) (TM fname fun) = do
+   TestUtils.ocanrenUltraGen env fun (fname ++ qname) (fname ++ qname ++ ".ml") query
