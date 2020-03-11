@@ -35,6 +35,7 @@ data DTree = Fail   -- Failed derivation.
   | Debug E.Gamma E.Sigma DGoal (Set.Set DGoal) -- Debug node
 
 
+{-
 --
 instance DotPrinter DTree where
   labelNode t@(Or ch _ _ _) = addChildren t ch
@@ -53,6 +54,7 @@ instance Dot DTree where
   dot (Or ts s d _)     = printf "Or <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
   dot (Leaf goal _ s _) = printf "Leaf <BR/> Goal: %s <BR/> Subst: %s" (dot goal)  (dotSigma s)
   dot (Prune g)       = printf "Prune <BR/> Goal: %s" (dot g)
+-}
 
 --
 

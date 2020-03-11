@@ -36,19 +36,21 @@ derive' = derivationStep'
       abstractSame _ _ = False
 
       derivationStep' goal ancs env subst seen d
-        | d > 6
-        = (Prune (getGoal goal), seen, 0)
         -- Empty goal => everything evaluated fine
         | emptyGoal goal
         = (Success subst, seen, maxFreshVar env)
         -- If we already seen the same node, stop evaluate it.
         | checkLeaf (getGoal goal) seen
         = (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
+        -- | d > 4
+        -- = (Prune (getGoal goal), seen, 0)
         -- If a node is generalization of one of ancsectors generalize.
-        | isGen (getGoal goal) ancs
-        , aGoals <- abstract ancs (getGoal goal) subst env
+        | isGen (getGoal goal) seen
+        , aGoals <- abstract seen (getGoal goal) subst env
         , not $ abstractSame aGoals (getGoal goal)
-        = let
+        =
+          --trace ("\nAbstract: " ++ show (getGoal goal)) $
+          let
             rGoal = getGoal goal
             --aGoals = abstract ancs rGoal subst env
           -- in trace ("Goal: " ++ pretty rGoal

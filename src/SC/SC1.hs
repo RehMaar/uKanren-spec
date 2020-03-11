@@ -40,19 +40,19 @@ derive' :: UnfoldableGoal a =>
   -> Int -- depth for debug
   -> (DTree, Set.Set DGoal, S)
 derive' goal ancs env subst seen depth
-    | depth > 5
-    = (Prune (getGoal goal), seen, maxFreshVar env)
+    -- | depth > 11
+    -- = (Prune (getGoal goal), seen, maxFreshVar env)
     | checkLeaf (getGoal goal) seen
-    = trace (">Leaf: " ++ pretty(getGoal goal)) $ (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
+    = {-trace (">Leaf: " ++ pretty(getGoal goal)) $-} (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
     | otherwise
-    = trace (">Unfold: " ++ pretty (getGoal goal)) $
+    = {-trace (">Unfold: " ++ pretty (getGoal goal)) $-}
     let
       realGoal = getGoal goal
       newAncs = Set.insert realGoal ancs
     in case unfoldStep goal env subst of
        ([], _)          -> (Fail, seen, maxFreshVar env)
        (uGoals, newEnv) ->
-         trace (">>Got " ++ show (length uGoals) ++ "subgoals") $
+         {-trace (">>Got " ++ show (length uGoals) ++ " subgoals") $-}
          let
            newSeen = Set.insert realGoal seen
            (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
@@ -64,7 +64,7 @@ derive' goal ancs env subst seen depth
     evalSubTree' :: UnfoldableGoal a => Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, a) -> (Set.Set DGoal, DTree, S)
     evalSubTree' depth env ancs seen (subst, goal :: a)
      | emptyGoal goal
-     = trace ">Success" $ (seen, Success subst, maxFreshVar env)
+     = {-trace ">Success" $-} (seen, Success subst, maxFreshVar env)
      | not (checkLeaf realGoal seen)
      , isGen realGoal ancs
      =

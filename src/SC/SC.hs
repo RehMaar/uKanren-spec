@@ -129,6 +129,10 @@ abstractChild ancs g subst (p, iota, delt) =
   let (abstracted, delta) = abstract' ancs g delt
   in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
 
+abstractDebug ancs g subst delt =
+  let (abstracted, delta) = abstract' ancs g delt
+  in  map (\(g, gen) -> (subst, g, gen)) abstracted
+
 findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
   where
     goalOrdering a1 a2
