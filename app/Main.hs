@@ -9,42 +9,44 @@ import qualified Purification as P
 import qualified OCanrenize as OC
 
 import TestUtils as TU
-
+import DotPrinter
 import Utils
+
+import System.Exit (ExitCode)
 
 -- Programs
 import qualified LogicInt as LI
 import qualified Path
 import qualified Unify
 import qualified Programs as P
+import qualified Bool as B
 
--- Full Unfold
+-- | Full Unfold
+--   Working version
+--   Not working: SCI.scomp1FU
 specializer = SCI.scomp2FU
 
 -- Run a supercompiler to get a residual program.
 runSC
   :: SC.SuperComp  -- | Supercompiler to run.
-  -> String     -- | Name of toplevel method.
-  -> FilePath   -- | Path to save a resulting program.
-  -> G X        -- | Goal to specialize>
+  -> String        -- | Name of toplevel method.
+  -> FilePath      -- | Path to save a resulting program.
+  -> G X           -- | Goal to specialize>
   -> IO ()
 runSC = TU.ocanrenGen
 
--- Make a list of pruned goals and it's ancestors
-prunedAncestors :: DT.DTree -> [(DT.DGoal, [DT.DGoal])]
-prunedAncestors = TU.prunesAncs
+-- Print a tree
+printToPdf
+  :: DotPrinter a
+  => String      -- | Filename
+  -> a           -- | An entity to print
+  -> IO ExitCode
+printToPdf = TU.printToPdf
 
--- Write a list like above
-writeGoalAncs :: String -> [(DT.DGoal, [DT.DGoal])] -> IO ()
-writeGoalAncs = TU.writeGoalAncs
+-- Logic interpreter query
+logintQuery = LI.loginto $ fresh ["subst", "formula"] $ call "loginto" [V "subst", V "formula", B.trueo]
 
--- Examples
-
--- Double Appendo Query
-dappQuery = P.doubleAppendo $ fresh ["a", "b", "c", "d"] $ call "doubleAppendo" [V "a", V "b", V "c", V "d"]
-
--- Get a tree
-dappTree = fst3 $ specializer dappQuery
+logintTree = fst3 $ specializer logintQuery
 
 main :: IO ()
-main = runSC specializer "dapp" "dapp.ml" dappQuery
+main = runSC specializer "logintTopLevel" "loginto.ml" logintQuery
