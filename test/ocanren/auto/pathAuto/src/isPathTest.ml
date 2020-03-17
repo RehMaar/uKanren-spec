@@ -94,6 +94,7 @@ let test x =
   testOn "NrcU" x (run q (fun q -> nrcuIsPath q g) id);
   Printf.printf "%!"
 
+(*
 let runTest = 
   Printf.printf "Test 100.\n%!";
   test 100;
@@ -101,15 +102,14 @@ let runTest =
   test 500;
   Printf.printf "Test 1000.\n%!";
   test 1000;
-  ()
+  ()*)
 
-(*
 let _ = 
-   testLen 100 (ocanren(7));
+(*
    Printf.printf "#Len 5\n%!";
    testLen 1 (ocanren(5));
    Printf.printf "#Len 7\n%!";
-   testLen 1 (ocanren(7));
+   testLen 1 (ocanren(7));*)
    Printf.printf "#Len 9\n%!";
    testLen 1 (ocanren(9));
    Printf.printf "#Len 11\n%!";
@@ -119,4 +119,3 @@ let _ =
    Printf.printf "#Len 15\n%!";
    testLen 1 (ocanren(15));
    ()
-*)

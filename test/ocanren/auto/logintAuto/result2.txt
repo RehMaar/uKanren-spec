@@ -1,0 +1,206 @@
+#Formula: in empty subst 10 formulas
+Orig: 0.001145s
+CPD : 0.015216s
+NU  : 0.003164s
+RcU : 0.000283s
+SU  : 0.000558s
+FU  : 0.000263s
+MnU : 0.000105s
+MxU : 0.000256s
+#Formula: in empty subst 100 formulas
+Orig: 0.018429s
+CPD : 0.212334s
+NU  : 0.003906s
+RcU : 0.013717s
+SU  : 0.014374s
+FU  : 0.012255s
+MnU : 0.003796s
+MxU : 0.014138s
+#Formula: in empty subst 1000 formulas
+Orig: 0.276950s
+CPD : 3.029408s
+NU  : 0.068691s
+RcU : 0.197994s
+SU  : 0.162607s
+FU  : 0.339823s
+MnU : 0.079482s
+MxU : 0.225997s
+#Test time of formulas generation: in 1 subst 10 formulas
+Orig: 0.000132s
+CPD : 0.004880s
+NU  : 0.000088s
+RcU : 0.000239s
+SU  : 0.000126s
+FU  : 0.000160s
+MnU : 0.000081s
+MxU : 0.000246s
+#Test time of formulas generation: in 1 subst 100 formulas
+Orig: 0.008377s
+CPD : 0.144570s
+NU  : 0.001356s
+RcU : 0.007004s
+SU  : 0.007288s
+FU  : 0.004069s
+MnU : 0.001020s
+MxU : 0.004360s
+#Test time of formulas generation: in 1 subst 1000 formulas
+Orig: 0.290853s
+CPD : 1.712187s
+NU  : 0.047173s
+RcU : 0.121482s
+SU  : 0.129144s
+FU  : 0.091621s
+MnU : 0.041831s
+MxU : 0.102628s
+#Test formula generation: generate 1 formulas #Formula: true
+
+Orig (0.000004s) >> Var (10, [])
+CPD  (0.000003s) >> Var (10, [])
+NU   (0.000003s) >> Var (10, [])
+RcU  (0.000006s) >> Var (10, [])
+SU   (0.000006s) >> Var (10, [])
+FU   (0.000004s) >> Var (10, [])
+MnU  (0.000003s) >> Var (10, [])
+MxU  (0.000005s) >> Var (10, [])
+#Formula: x
+
+Orig (0.000012s) >> Value (Cons ((X, true), Var (17, [])))
+CPD  (0.000009s) >> Value (Cons ((X, true), Var (16, [])))
+NU   (0.000008s) >> Value (Cons ((X, true), Var (17, [])))
+RcU  (0.000009s) >> Value (Cons ((X, true), Var (28, [])))
+SU   (0.000027s) >> Value (Cons ((X, true), Var (28, [])))
+FU   (0.001108s) >> Value (Cons ((X, true), Var (19, [])))
+MnU  (0.000007s) >> Value (Cons ((X, true), Var (17, [])))
+MxU  (0.000010s) >> Value (Cons ((X, true), Var (28, [])))
+#Formula: !x
+
+Orig (0.000023s) >> Value (Cons ((X, false), Var (23, [])))
+CPD  (0.000014s) >> Value (Cons ((X, false), Var (21, [])))
+NU   (0.000013s) >> Value (Cons ((X, false), Var (21, [])))
+RcU  (0.000016s) >> Value (Cons ((X, false), Var (28, [])))
+SU   (0.000013s) >> Value (Cons ((X, false), Var (28, [])))
+FU   (0.000013s) >> Value (Cons ((X, false), Var (25, [])))
+MnU  (0.000007s) >> Value (Cons ((X, false), Var (21, [])))
+MxU  (0.000014s) >> Value (Cons ((X, false), Var (28, [])))
+#Formula: !x \/ y
+
+Orig (0.000062s) >> Value (Cons ((X, true), Value (Cons ((Y, true), Var (59, [])))))
+CPD  (0.000046s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (50, [])))))
+NU   (0.000062s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Var (92, [])))))
+RcU  (0.000051s) >> Value (Cons ((X, true), Value (Cons ((Y, true), Var (70, [])))))
+SU   (0.000084s) >> Value (Cons ((X, true), Value (Cons ((Y, true), Var (70, [])))))
+FU   (0.000082s) >> Value (Cons ((X, true), Value (Cons ((Y, true), Var (61, [])))))
+MnU  (0.000058s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Var (92, [])))))
+MxU  (0.000052s) >> Value (Cons ((X, true), Value (Cons ((Y, true), Var (70, [])))))
+#Formula: !x /\ y
+
+Orig (0.000103s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (77, [])))))
+CPD  (0.000045s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (48, [])))))
+NU   (0.000036s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (45, [])))))
+RcU  (0.000069s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (64, [])))))
+SU   (0.000043s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (64, [])))))
+FU   (0.000050s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (46, [])))))
+MnU  (0.000032s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (45, [])))))
+MxU  (0.000045s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (64, [])))))
+#Formula: (x \/ y)(!x \/ !y)
+
+Orig (0.000448s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (302, [])))))
+CPD  (0.000179s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Value (Cons ((X, false), Var (191, [])))))))
+NU   (0.000296s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Y, false), Value (Cons ((X, true), Var (320, [])))))))))
+RcU  (0.000180s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (199, [])))))
+SU   (0.000191s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (199, [])))))
+FU   (0.000374s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Y, false), Var (262, [])))))))
+MnU  (0.000284s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Y, false), Value (Cons ((X, true), Var (320, [])))))))))
+MxU  (0.000184s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Var (199, [])))))
+#Formula: (x /\ y)\/(!x /\ !y)
+
+Orig (0.000283s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (185, [])))))
+CPD  (0.000403s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((X, true), Var (199, [])))))))
+NU   (0.000236s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (344, [])))))
+RcU  (0.000254s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (196, [])))))
+SU   (0.000190s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (196, [])))))
+FU   (0.000406s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (307, [])))))
+MnU  (0.000329s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (344, [])))))
+MxU  (0.000201s) >> Value (Cons ((X, false), Value (Cons ((Y, false), Var (196, [])))))
+#Formula: (x \/ y)(y \/ z)
+
+Orig (0.000383s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Value (Cons ((Z, true), Var (314, [])))))))
+CPD  (0.000147s) >> Value (Cons ((Y, true), Value (Cons ((X, true), Value (Cons ((Z, true), Var (112, [])))))))
+NU   (0.000157s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Z, false), Value (Cons ((Y, false), Var (278, [])))))))))
+RcU  (0.000192s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Value (Cons ((Z, true), Var (205, [])))))))
+SU   (0.000140s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Value (Cons ((Z, true), Var (205, [])))))))
+FU   (0.000469s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Z, false), Value (Cons ((Y, false), Var (235, [])))))))))
+MnU  (0.000286s) >> Value (Cons ((Y, true), Value (Cons ((X, false), Value (Cons ((Z, false), Value (Cons ((Y, false), Var (278, [])))))))))
+MxU  (0.000319s) >> Value (Cons ((X, false), Value (Cons ((Y, true), Value (Cons ((Z, true), Var (205, [])))))))
+#Test time of formula generation: generate 1 formulas #Formula: true
+Orig: 0.000007s
+CPD : 0.000005s
+NU  : 0.000004s
+RcU : 0.000006s
+SU  : 0.000006s
+FU  : 0.000004s
+MnU : 0.000003s
+MxU : 0.000008s
+#Formula: x
+Orig: 0.000012s
+CPD : 0.000008s
+NU  : 0.000007s
+RcU : 0.000008s
+SU  : 0.000010s
+FU  : 0.000007s
+MnU : 0.000008s
+MxU : 0.000009s
+#Formula: !x
+Orig: 0.000102s
+CPD : 0.000013s
+NU  : 0.000011s
+RcU : 0.000013s
+SU  : 0.000011s
+FU  : 0.000013s
+MnU : 0.000010s
+MxU : 0.000011s
+#Formula: !x \/ y
+Orig: 0.000067s
+CPD : 0.000061s
+NU  : 0.000064s
+RcU : 0.000046s
+SU  : 0.000048s
+FU  : 0.000170s
+MnU : 0.000064s
+MxU : 0.000050s
+#Formula: !x /\ y
+Orig: 0.000109s
+CPD : 0.000039s
+NU  : 0.000035s
+RcU : 0.000071s
+SU  : 0.000046s
+FU  : 0.000054s
+MnU : 0.000175s
+MxU : 0.000062s
+#Formula: (x \/ y)(!x \/ !y)
+Orig: 0.000684s
+CPD : 0.000276s
+NU  : 0.000525s
+RcU : 0.000229s
+SU  : 0.000227s
+FU  : 0.000518s
+MnU : 0.000316s
+MxU : 0.000309s
+#Formula: (x /\ y)\/(!x /\ !y)
+Orig: 0.000248s
+CPD : 0.000361s
+NU  : 0.000314s
+RcU : 0.000167s
+SU  : 0.000326s
+FU  : 0.000502s
+MnU : 0.000281s
+MxU : 0.000445s
+#Formula: (x \/ y)(y \/ z)
+Orig: 0.000498s
+CPD : 0.000177s
+NU  : 0.000198s
+RcU : 0.000212s
+SU  : 0.000216s
+FU  : 0.000446s
+MnU : 0.000266s
+MxU : 0.000232s

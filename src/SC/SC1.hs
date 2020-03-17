@@ -40,10 +40,10 @@ derive' :: UnfoldableGoal a =>
   -> Int -- depth for debug
   -> (DTree, Set.Set DGoal, S)
 derive' goal ancs env subst seen depth
-    -- | depth > 11
-    -- = (Prune (getGoal goal), seen, maxFreshVar env)
     | checkLeaf (getGoal goal) seen
     = {-trace (">Leaf: " ++ pretty(getGoal goal)) $-} (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
+    | depth > 7
+    = (Prune (getGoal goal), seen, maxFreshVar env)
     | otherwise
     = {-trace (">Unfold: " ++ pretty (getGoal goal)) $-}
     let

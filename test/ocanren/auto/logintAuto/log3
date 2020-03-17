@@ -1,0 +1,18 @@
+#Formula: in empty subst 1000 formulas
+Orig: 0.232023s
+CPD : 3.214515s
+NU  : 0.137791s
+RcU : 0.303027s
+SU  : 0.233462s
+FU  : 0.156485s
+MnU : 0.069494s
+MxU : 0.168143s
+#Test time of formulas generation: in 1 subst 1000 formulas
+Orig: 0.104976s
+CPD : 1.908333s
+NU  : 0.048271s
+RcU : 0.121857s
+SU  : 0.113133s
+FU  : 0.184616s
+MnU : 0.057090s
+MxU : 0.131968s

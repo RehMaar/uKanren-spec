@@ -98,7 +98,7 @@ ocanrenUltraGen env specMethod topLevelName filename goal = do
 ocanrenId specMethod filename goal = do
   let p = pur goal
   let name = filename ++ ".ml"
-  OC.topLevel name "topLevelSU" Nothing p
+  OC.topLevel name "topLevel" Nothing p
   where
     pur goal = let
         (tree, logicGoal, _) = specMethod goal
@@ -215,14 +215,14 @@ statMethod goal name topLevel = do
 
 
 statMethods runner goal = do
-{-  statMethod goal "RU  " (RU.topLevel 17)
+  -- statMethod goal "RU  " (RU.topLevel 17)
   statMethod goal "NU  " (runner "NU")
-  statMethod goal "MinU" (runner "MnU")-}
+  statMethod goal "MinU" (runner "MnU")
   statMethod goal "MaxU" (runner "MxU")
   statMethod goal "SU  " (runner "SU")
-{-  statMethod goal "RecU" (runner "RU")
+  statMethod goal "RecU" (runner "RU")
   statMethod goal "FstU" (runner "FstU")
-  statMethod goal "FU  " (runner "FU")-}
+  statMethod goal "FU  " (runner "FU")
 
 statMethods1 = statMethods SCI.run1
 statMethods2 = statMethods SCI.run2

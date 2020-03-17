@@ -13,6 +13,7 @@ open RanuLogint
 open RecuLogint
 open SequLogint
 open FstuLogint
+open FuluLogint
 
 open Rand1Loginto
 
@@ -123,46 +124,63 @@ let cpdLogint x0 x1  =
 let id i = i
 
 
-let runTestOn x fn msg =
+let runTestOn x fn msg nm =
   let result = run q fn (fun i -> i) in
   let tx = Sys.time() in
   let answ = RStream.take ~n:x result in
   let t2 = Sys.time() in
-  L.iter (fun s -> Printf.printf msg (t2 -. tx) @@ show(answer) (s#reify (Std.List.reify (Std.Pair.reify reify reify)))) answ;
+  L.iter (fun s -> Printf.printf msg nm (t2 -. tx) @@ show(answer) (s#reify (Std.List.reify (Std.Pair.reify reify reify)))) answ;
   Printf.printf "%!"
 
 
-let runGenTestOn x fn msg =
+let runGenTestOn x fn msg nm =
   let result = run q fn (fun i -> i) in
   let tx = Sys.time() in
   let answ = RStream.take ~n:x result in
   let t2 = Sys.time() in
-  L.iter (fun s -> Printf.printf msg (t2 -. tx) @@ show(f) (s#reify reify_f)) answ;
+  L.iter (fun s -> Printf.printf msg nm (t2 -. tx) @@ show(f) (s#reify reify_f)) answ;
   Printf.printf "%!"
 
-let runTimeTestOn x fn msg =
+let runTimeTestOn x fn msg nm =
   let result = run q fn (fun i -> i) in
   let tx = Sys.time() in
   let answ = RStream.take ~n:x result in
   let t2 = Sys.time() in
-  Printf.printf msg (t2 -. tx)
+  Printf.printf msg nm (t2 -. tx)
 
-let runGenTestOn2 x fn msg id =
-  let result = run qr fn id in
+let fn1 a b = b
+
+let runGenTestOn2 x fn msg nm =
+  let result = run qr fn fn1 in
   let tx = Sys.time() in
   let answ = RStream.take ~n:x result in
   let t2 = Sys.time() in
-  L.iter (fun s -> Printf.printf msg (t2 -. tx) @@ show(f) (s#reify reify_f)) answ;
+  L.iter (fun s -> Printf.printf msg nm (t2 -. tx) @@ show(f) (s#reify reify_f)) answ;
   Printf.printf "%!"
 
-let runTimeTestOn2 x fn msg id =
-  let result = run qr fn id in
+let runTimeTestOn2 x fn msg nm =
+  let result = run qr fn fn1 in
   let tx = Sys.time() in
   let answ = RStream.take ~n:x result in
   let t2 = Sys.time() in
-  Printf.printf msg (t2 -. tx)
+  Printf.printf msg nm (t2 -. tx)
 
+let run runner x query format = 
+  runner x (query (fun a b -> loginto a b !!true)) format "Orig";
+  runner x (query cpdLogint)                       format "CPD ";
+  runner x (query nrcuLogint)                      format "NU  ";
+  runner x (query recuLogint)                      format "RcU ";
+  runner x (query sequLogint)                      format "SU  ";
+  runner x (query fuluLogint)                      format "FU  ";
+  runner x (query minuLogint)                      format "MnU ";
+  runner x (query maxuLogint)                      format "MxU ";
+  ()
 
+let runTests x msg query =
+  Printf.printf "#Formula: %s\n\n%!" msg;
+  run runTestOn x (fun fn -> fun q -> fn q query) "%s (%fs) >> %s\n%!"
+
+(*
 let runTests x msg query = 
   Printf.printf "#Formula: %s\n\n%!" msg;
   runTestOn x (fun q -> loginto q query !!true) ("Orig (%fs) >> %s\n%!");
@@ -174,9 +192,13 @@ let runTests x msg query =
   runTestOn x (fun q -> recuLogint q query) "RecU (%fs) >> %s\n%!";
   runTestOn x (fun q -> maxuLogint q query) "MaxU (%fs) >> %s\n%!";
   Printf.printf "%!"
+*)
 
 let runTimeTests x msg query = 
   Printf.printf "#Formula: %s\n%!" msg;
+  run runTimeTestOn x (fun fn q -> fn q query) "%s: %fs\n%!"
+
+(*
   runTimeTestOn x (fun q -> loginto q query !!true) ("Orig: %fs\n%!");
   runTimeTestOn x (fun q -> cpdLogint q query)      ("CPD : %fs\n%!");
   runTimeTestOn x (fun q -> nrcuLogint q query)     ("NU  : %fs\n%!");
@@ -186,9 +208,12 @@ let runTimeTests x msg query =
   runTimeTestOn x (fun q -> maxuLogint q query)     ("MaxU: %fs\n%!");
   runTimeTestOn x (fun q -> minuLogint q query)     ("MinU: %fs\n%!");
   Printf.printf "%!"
+*)
 
 let runGenTests x msg =
   Printf.printf "#Formula: %s\n%!" msg;
+  run runGenTestOn x (fun fn r -> fn (nil ()) r) "%s (%fs) >> %s\n%!"
+(*
   runGenTestOn x (fun r -> loginto (nil ()) r !!true) ("Orig (%fs) >> %s\n%!");
   runGenTestOn x (fun r -> cpdLogint  (nil ()) r)     ("CPD (%fs) >> %s\n%!");
   runGenTestOn x (fun r -> nrcuLogint (nil ()) r)     ("NU (%fs) >> %s\n%!");
@@ -197,44 +222,46 @@ let runGenTests x msg =
   runGenTestOn x (fun r -> minuLogint (nil ()) r)     ("MinU (%fs) >> %s\n%!");
   runGenTestOn x (fun r -> recuLogint (nil ()) r)     ("RecU (%fs) >> %s\n%!");
   runGenTestOn x (fun r -> ranuLogint (nil ()) r)     ("RU   (%fs) >> %s\n%!")
+*)
 
 let runGenTimeTests x msg =
   Printf.printf "#Formula: %s\n%!" msg;
+  run runTimeTestOn x (fun fn r -> fn (nil ()) r) "%s: %fs\n%!"
+(*
   runTimeTestOn x (fun r -> loginto (nil ()) r !!true) ("%fs\n%!");
   runTimeTestOn x (fun r -> fstuLogint (nil ()) r    ) ("%fs\n%!");
-(*
   runTimeTestOn x (fun r -> cpdLogint  (nil ()) r    ) ("%fs\n%!");
   runTimeTestOn x (fun r -> nrcuLogint (nil ()) r    ) ("%fs\n%!");
   runTimeTestOn x (fun r -> sequLogint (nil ()) r    ) ("%fs\n%!");
   runTimeTestOn x (fun r -> maxuLogint (nil ()) r    ) ("%fs\n%!");
   runTimeTestOn x (fun r -> minuLogint (nil ()) r    ) ("%fs\n%!");
-*)
   runTimeTestOn x (fun r -> recuLogint (nil ()) r    ) ("%fs\n%!");
-(*
   runTimeTestOn x (fun r -> ranuLogint (nil ()) r    ) ("%fs\n%!");
-*)
   ()
+*)
 
-let fn1 a b = b
 
 let runGenTimeTests2 x msg =
   Printf.printf "#Test time of formulas generation: %s\n%!" msg;
+  run runTimeTestOn2 x (fun fn q r -> fn (!< q) r) "%s: %fs\n%!"
+
+(*
   runTimeTestOn2 x (fun q r -> loginto    (!< q) r !!true) ("%fs\n%!") fn1;
   runTimeTestOn2 x (fun q r -> fstuLogint (!< q) r       ) ("%fs\n%!") fn1;
-(*
   runTimeTestOn2 x (fun q r -> cpdLogint  (!< q) r       ) ("%fs\n%!") fn1;
   runTimeTestOn2 x (fun q r -> nrcuLogint (!< q) r       ) ("%fs\n%!") fn1;
   runTimeTestOn2 x (fun q r -> sequLogint (!< q) r       ) ("%fs\n%!") fn1;
   runTimeTestOn2 x (fun q r -> maxuLogint (!< q) r       ) ("%fs\n%!") fn1;
   runTimeTestOn2 x (fun q r -> minuLogint (!< q) r       ) ("%fs\n%!") fn1;
-*)
   runTimeTestOn2 x (fun q r -> recuLogint (!< q) r       ) ("%fs\n%!") fn1;
-(*
-  runTimeTestOn2 x (fun q r -> ranuLogint (!< q) r       ) ("%fs\n%!") fn1;*)
+  runTimeTestOn2 x (fun q r -> ranuLogint (!< q) r       ) ("%fs\n%!") fn1;
   Printf.printf "%!"
+*)
 
 let runGenTests2 x msg =
   Printf.printf "#Test formula generation: %s\n%!" msg;
+  run runGenTestOn2 x (fun fn q r -> fn (!< q) r) "%s (%fs) >> %s\n%!"
+(*
   runGenTestOn2 x (fun q r -> loginto    (!< q) r !!true) ("Orig (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> cpdLogint  (!< q) r) ("CPD (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> nrcuLogint (!< q) r) ("NU (%fs) >> %s\n%!") fn1;
@@ -244,27 +271,26 @@ let runGenTests2 x msg =
   runGenTestOn2 x (fun q r -> recuLogint (!< q) r)   ("RecU (%fs) >> %s\n%!") fn1;
   runGenTestOn2 x (fun q r -> ranuLogint (!< q) r)   ("RU   (%fs) >> %s\n%!") fn1;
   Printf.printf "%!"
+*)
 
 (*
 let _ = runGenTests 10 "in empty subst 10 formulas"
 *)
-(*let _ = runGenTimeTests 10 "in empty subst 10 formulas"*)
-(*let _ = runGenTimeTests 100 "in empty subst 100 formulas"*)
+(*let _ = runGenTimeTests 10 "in empty subst 10 formulas"
+let _ = runGenTimeTests 100 "in empty subst 100 formulas"*)
 let _ = runGenTimeTests 1000 "in empty subst 1000 formulas"
 
 (*
 let _ = runGenTests2 10 "in 1 subst 10 formulas"
 *)
-(*let _ = runGenTimeTests2 10 "in 1 subst 10 formulas"*)
-(*let _ = runGenTimeTests2 100 "in 1 subst 100 formulas"*)
+(*let _ = runGenTimeTests2 10 "in 1 subst 10 formulas"
+let _ = runGenTimeTests2 100 "in 1 subst 100 formulas"*)
 let _ = runGenTimeTests2 1000 "in 1 subst 1000 formulas"
 
 (*
 let xVar = var (x ())
 let yVar = var (y ())
 let zVar = var (z ())
-
-
 
 let h1 = conj (disj xVar yVar) (disj (neg xVar) (neg yVar))
 let h4 = conj (disj xVar yVar) (disj yVar (neg zVar))
@@ -280,11 +306,8 @@ let _ =
    runTests c "!x /\ y" (conj (neg (var (x ()))) (var (y ())));
    runTests c "(x \/ y)(!x \/ !y)" h1;
    runTests c "(x /\ y)\/(!x /\ !y)" h3;
-   runTests c "(x \/ y)(y \/ z)" h4;
-   runTests c "(a \/ x)(a \/ !y)(b \/ !y)(b \/ !z)(x \/ y)" h5
-*)
+   runTests c "(x \/ y)(y \/ z)" h4
 
-(*
 let _ =
    let c = 1 in
    Printf.printf "#Test time of formula generation: generate %d formulas %!" c;

@@ -16,6 +16,11 @@ default-extensions:
 - FunctionalDependencies
 - FlexibleContexts
 - TupleSections
+- AllowAmbiguousTypes
+- FlexibleContexts   
+- InstanceSigs       
+- ScopedTypeVariables
+- TypeApplications   
 
 dependencies:
 - base >= 4.7 && < 5
@@ -41,19 +46,6 @@ library:
 executables:
   uks-exe:
     main:                Main.hs
-    source-dirs:         
-    - app
-    - test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - uKanren-spec
-
-executables:
-  uks-test-exe:
-    main:                TestMain.hs
     source-dirs:         
     - app
     - test

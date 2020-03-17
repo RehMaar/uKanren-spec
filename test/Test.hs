@@ -20,7 +20,9 @@ import qualified SC.Unfold.RandUnfold as RU
 import qualified SC.Unfold.NonRecUnfold as NU
 import qualified SC.Unfold.RecUnfold as RecU
 import qualified SC.SC as U
+import qualified SC.SCInst as SCI
 
+import SC.DTreeDotPrinter
 import qualified SC.DTree as DT
 import qualified SC.DTResidualize as DTR
 

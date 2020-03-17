@@ -46,13 +46,13 @@ let runTest name result =
 let run x =
   runTest "Orig " (result9 x);
   runTest "CPD  " (result8 x);
-  (*runTest "SU   " (result1 x);*)
-  (*runTest "FU   " (result2 x);*)
-  (*runTest "MaxU " (result3 x);*)
-  (*runTest "MinU " (result4 x);*)
-  (*runTest "RandU" (result5 x);*)
-  (*runTest "RecU " (result6 x);*)
-  (*runTest "NRecU" (result7 x);*)
+  runTest "SU   " (result1 x);
+  runTest "FU   " (result2 x);
+  runTest "MaxU " (result3 x);
+  runTest "MinU " (result4 x);
+  runTest "RandU" (result5 x);
+  runTest "RecU " (result6 x);
+  runTest "NRecU" (result7 x);
   Printf.printf "%!"
 
 let _ =

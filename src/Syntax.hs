@@ -142,14 +142,8 @@ subst_in_goal v t g@(Fresh n g')        = if v == n then g else Fresh n $ subst_
 subst_in_goal v t   (Invoke n ts)       = Invoke n $ map (subst_in_term v t) ts
 subst_in_goal v t   (Let (n, a, g1) g2) = Let (n, a, if elem v a then g1 else subst_in_goal v t g1) $ subst_in_goal v t g2
 
-instance PrettyPrint Int where
-    pretty = show
-
-instance PrettyPrint String where
-    pretty = show
-
-instance PrettyPrint a => PrettyPrint (Term a) where
-  pretty (V v) = printf "v.%s" (pretty v)
+instance Show a => PrettyPrint (Term a) where
+  pretty (V v) = printf "v.%s" (show v)
   pretty (C name ts) =
     case name of
       "nil" -> "[]"
@@ -164,13 +158,13 @@ instance PrettyPrint a => PrettyPrint (Term a) where
              [] -> name
              _  -> printf "C %s [%s]" name (intercalate ", " $ map pretty ts)
 
-instance PrettyPrint a => PrettyPrint (G a) where
+instance Show a => PrettyPrint (G a) where
   pretty (t1 :=:  t2)               = printf "%s = %s" (pretty t1) (pretty t2)
   pretty (g1 :/\: g2)               = printf "(%s /\\ %s)" (pretty g1) (pretty g2)
   pretty (g1 :\/: g2)               = printf "(%s \\/ %s)" (pretty g1) (pretty g2)
   pretty (Fresh name g)             =
     let (names, goal) = freshVars [name] g in
-    printf "fresh %s (%s)" (unwords (pretty <$> reverse names)) (pretty goal)
+    printf "fresh %s (%s)" (unwords (show <$> reverse names)) (pretty goal)
   pretty (Invoke name ts)           = printf "%s %s" name (unwords $ map (\x -> if ' ' `elem` x then printf "(%s)" x else x) $ map pretty ts)
   pretty (Let (name, args, body) g) = printf "let %s %s = %s in %s" name (unwords args) (pretty body) (pretty g)
 

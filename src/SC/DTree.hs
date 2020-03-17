@@ -8,6 +8,7 @@ import qualified Eval as E
 import qualified Data.Set as Set
 import Data.Monoid
 import Data.Maybe (mapMaybe, isJust, fromJust)
+import Data.List (intercalate)
 import Text.Printf
 import DotPrinter
 import PrettyPrint
@@ -20,7 +21,7 @@ type Disj a = [a]
 type DGoal = Conj (G S)
 
 instance PrettyPrint DGoal where
- pretty = prettyList
+    pretty = prettyList
 
 -- Derivation Tree
 data DTree = Fail   -- Failed derivation.

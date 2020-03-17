@@ -9,7 +9,7 @@ import qualified Eval as E
 
 import Data.List
 import Utils
-import Data.Maybe (isJust, fromMaybe, mapMaybe)
+import Data.Maybe (isJust, fromMaybe, mapMaybe, fromJust)
 import Data.Char
 import Control.Arrow (first, second)
 
@@ -52,13 +52,6 @@ instance Show MarkedTree where
   show (Gen t s)             = "{Gen  " ++ show t ++ "\n}"
   show (Leaf g _)          = "{Leaf " ++ show g ++ "}"
 
-
-instance DotPrinter MarkedTree where
-  labelNode t@(Or ch _ _ _) = addChildren t ch
-  labelNode t@(And ch _ _ _) = addChildren t ch
-  labelNode t@(Gen ch _) = addChild t ch
-  labelNode t = addLeaf t
-
 --
 -- Change to downscale the tree.
 --
@@ -75,6 +68,12 @@ instance Dot MarkedTree where
 
 showF True = "T"
 showF _ = ""
+
+instance DotPrinter MarkedTree where
+  labelNode t@(Or ch _ _ _) = addChildren t ch
+  labelNode t@(And ch _ _ _) = addChildren t ch
+  labelNode t@(Gen ch _) = addChild t ch
+  labelNode t = addLeaf t
 
 -- (Leaf, Fail, Success)
 countLeafs :: MarkedTree -> (Int, Int, Int)
@@ -384,6 +383,8 @@ nameToOCamlName name@(n:ns)
           | otherwise = show $ fromEnum c
         firstCorrect c = isAlpha c || c == '_'
         restCorrect c  = isAlphaNum c || c == '_' || c == '\''
+
+simplifyPurified (n1, n2, n3) = (n1, n2, fromJust $ simplify n3)
 
 --
 -- Some optimizations, which Purification doesn't do.

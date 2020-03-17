@@ -18,26 +18,44 @@ import qualified SC.Unfold.MaxUnfold as MaxU
 import qualified SC.Unfold.MinUnfold as MinU
 import qualified SC.Unfold.FirstUnfold as FstU
 
+
+scomp1SU  = supercomp (derive1 :: Derive SU.SUGoal)
+scomp1FU  = supercomp (derive1 :: Derive FU.FUGoal)
+scomp1NU  = supercomp (derive1 :: Derive NU.NUGoal)
+scomp1RcU = supercomp (derive1 :: Derive RecU.RecGoal)
+scomp1MxU = supercomp (derive1 :: Derive MaxU.MaxGoal)
+scomp1MnU = supercomp (derive1 :: Derive MinU.MinGoal)
+scomp1FsU = supercomp (derive1 :: Derive FstU.FstGoal)
+
 scConfs1 :: [(String, SuperComp)]
 scConfs1 =
-  [ ("SU",  supercomp (derive1 :: Derive SU.SUGoal))
-  , ("FU",  supercomp (derive1 :: Derive FU.FUGoal))
-  , ("NU",  supercomp (derive1 :: Derive NU.NUGoal))
-  , ("RU",  supercomp (derive1 :: Derive RecU.RecGoal))
-  , ("MxU", supercomp (derive1 :: Derive MaxU.MaxGoal))
-  , ("MnU", supercomp (derive1 :: Derive MinU.MinGoal))
-  , ("FstU", supercomp (derive1 :: Derive FstU.FstGoal))
+  [ ("SU",   scomp1SU )
+  , ("FU",   scomp1FU )
+  , ("NU",   scomp1NU )
+  , ("RU",   scomp1RcU)
+  , ("MxU",  scomp1MxU)
+  , ("MnU",  scomp1MnU)
+  , ("FstU", scomp1FsU)
   ]
+
+
+scomp2SU  = supercomp (derive2 :: Derive SU.SUGoal)
+scomp2FU  = supercomp (derive2 :: Derive FU.FUGoal)
+scomp2NU  = supercomp (derive2 :: Derive NU.NUGoal)
+scomp2RcU = supercomp (derive2 :: Derive RecU.RecGoal)
+scomp2MxU = supercomp (derive2 :: Derive MaxU.MaxGoal)
+scomp2MnU = supercomp (derive2 :: Derive MinU.MinGoal)
+scomp2FsU = supercomp (derive2 :: Derive FstU.FstGoal)
 
 scConfs2 :: [(String, SuperComp)]
 scConfs2 =
-  [ ("SU",  supercomp (derive2 :: Derive SU.SUGoal))
-  , ("FU",  supercomp (derive2 :: Derive FU.FUGoal))
-  , ("NU",  supercomp (derive2 :: Derive NU.NUGoal))
-  , ("RU",  supercomp (derive2 :: Derive RecU.RecGoal))
-  , ("MxU", supercomp (derive2 :: Derive MaxU.MaxGoal))
-  , ("MnU", supercomp (derive2 :: Derive MinU.MinGoal))
-  , ("FstU", supercomp (derive2 :: Derive FstU.FstGoal))
+  [ ("SU",   scomp2SU )
+  , ("FU",   scomp2FU )
+  , ("NU",   scomp2NU )
+  , ("RU",   scomp2RcU)
+  , ("MxU",  scomp2MxU)
+  , ("MnU",  scomp2MnU)
+  , ("FstU", scomp2FsU)
   ]
 
 run1 :: String -> SuperComp

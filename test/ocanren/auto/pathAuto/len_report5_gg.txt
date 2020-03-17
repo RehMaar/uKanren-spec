@@ -1,0 +1,342 @@
+#Len 5
+Orig: 0.052671s
+Orig Answers: 5
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+g: [S (S (O)); O; S (O); S (S (S (O))); O]
+g: [S (S (S (O))); O; S (O); S (S (O)); O]
+CPD : 0.002799s
+CPD  Answers: 5
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O)))]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+FU  : 0.002693s
+FU   Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+SU  : 0.001952s
+SU   Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+MaxU: 0.001602s
+MaxU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+MinU: 0.002152s
+MinU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+RecU: 0.001586s
+RecU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+NrcU: 0.001902s
+NrcU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O]
+#Len 7
+Orig: 0.173022s
+Orig Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O)))]
+CPD : 0.007266s
+CPD  Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O]
+FU  : 0.005969s
+FU   Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+SU  : 0.002734s
+SU   Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+MaxU: 0.002348s
+MaxU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+MinU: 0.002111s
+MinU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+RecU: 0.002047s
+RecU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+NrcU: 0.002312s
+NrcU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+#Len 9
+Orig: 0.761240s
+Orig Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O)))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+CPD : 0.011786s
+CPD  Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O)))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (S (O)))]
+FU  : 0.006249s
+FU   Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+SU  : 0.004430s
+SU   Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+MaxU: 0.004200s
+MaxU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+MinU: 0.005259s
+MinU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+RecU: 0.004324s
+RecU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+NrcU: 0.005214s
+NrcU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+#Len 11
+Orig: 3.882390s
+Orig Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O)]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+CPD : 0.026515s
+CPD  Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O)]
+FU  : 0.005609s
+FU   Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+SU  : 0.003876s
+SU   Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+MaxU: 0.003805s
+MaxU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+MinU: 0.003846s
+MinU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+RecU: 0.003798s
+RecU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+NrcU: 0.003680s
+NrcU Answers: 5
+g: [S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+#Len 13
+Orig: 20.744088s
+Orig Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+CPD : 0.025454s
+CPD  Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O]
+FU  : 0.005982s
+FU   Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+SU  : 0.003907s
+SU   Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+MaxU: 0.004007s
+MaxU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+MinU: 0.003957s
+MinU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+RecU: 0.003907s
+RecU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+NrcU: 0.004006s
+NrcU Answers: 5
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+#Len 15
+Orig: 100.298686s
+Orig Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O)))]
+g: [S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O)]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+CPD : 0.096168s
+CPD  Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+FU  : 0.013149s
+FU   Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+SU  : 0.008657s
+SU   Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+MaxU: 0.007930s
+MaxU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+MinU: 0.009299s
+MinU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+RecU: 0.007678s
+RecU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
+NrcU: 0.007967s
+NrcU Answers: 5
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (S (O))); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (O))]
+g: [O; S (O); S (S (O)); O; S (O); S (S (O)); O; S (O); S (S (S (O))); O; S (O); S (S (O)); O; S (O); S (S (O))]
