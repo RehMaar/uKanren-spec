@@ -121,7 +121,7 @@ countLeafs :: DTree -> (Int, Int, Int)
 countLeafs (Or ts _ _ _) = foldl (\(n1, m1, h1) (n2, m2, h2) -> (n1 + n2, m1 + m2, h1 + h2)) (0, 0, 0) (countLeafs <$> ts)
 countLeafs (And ts _ _ _) = foldl (\(n1, m1, h1) (n2, m2, h2) -> (n1 + n2, m1 + m2, h1 + h2)) (0, 0, 0) (countLeafs <$> ts)
 countLeafs (Gen t _) = countLeafs t
-countLeafs (Leaf _ _ _ _) = (1, 0, 0)
+countLeafs Leaf{} = (1, 0, 0)
 countLeafs (Success _) = (0, 1, 0)
 countLeafs Fail = (0, 0, 1)
 countLeafs _ = (0, 0, 0)
@@ -129,7 +129,7 @@ countLeafs _ = (0, 0, 0)
 countDepth :: DTree -> Int
 countDepth (Or ts _ _ _) = 1 + foldl max 0 (countDepth <$> ts)
 countDepth (And ts _ _ _) = 1 + foldl max 0 (countDepth <$> ts)
-countDepth (Gen t _) = 1 + countDepth t
+countDepth (Gen t _) = countDepth t
 countDepth _ = 1
 
 countNodes :: DTree -> Int
@@ -137,6 +137,13 @@ countNodes (Or ts _ _ _) = 1 + sum (countNodes <$> ts)
 countNodes (And ts _ _ _) = 1 + sum (countNodes <$> ts)
 countNodes (Gen t _) = 1 + countNodes t
 countNodes _ = 1
+
+countPrunes :: DTree -> Int
+countPrunes (Or ts _ _ _) = sum (countPrunes <$> ts)
+countPrunes (And ts _ _ _) = sum (countPrunes <$> ts)
+countPrunes (Gen t _) = countPrunes t
+countPrunes (Prune _) = 1
+countPrunes _ = 0
 
 -- Utils
 

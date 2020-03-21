@@ -23,7 +23,7 @@ import Control.Exception (assert)
 
 trace' _ = id
 
-data MaxGoal = MaxGoal DGoal deriving Show
+newtype MaxGoal = MaxGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
@@ -35,7 +35,7 @@ topLevel g = let
 
 instance UnfoldableGoal MaxGoal where
   getGoal (MaxGoal dgoal) = dgoal
-  initGoal goal = MaxGoal goal
+  initGoal      = MaxGoal
   emptyGoal (MaxGoal dgoal) = null dgoal
   mapGoal (MaxGoal dgoal) f = MaxGoal (f dgoal)
   unfoldStep = genUnfoldStep splitGoal MaxGoal
@@ -45,7 +45,7 @@ instance Unfold MaxGoal where
 
 splitGoal :: E.Gamma -> MaxGoal -> (DGoal, G S, DGoal)
 splitGoal env (MaxGoal gs) =
-  let c = head $ sortBy (compareGoals env) gs
+  let c = minimumBy (compareGoals env) gs
   in fromJust $ split (c ==) gs
 
 compareGoals :: E.Gamma -> G a -> G a -> Ordering

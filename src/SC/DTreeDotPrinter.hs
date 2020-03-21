@@ -19,7 +19,7 @@ dotSigma _ = ""
 
 instance Dot DTree where
   dot Fail = "Fail"
-  dot (Success s)     = "Success <BR/> " ++ (dotSigma s)
+  dot (Success s)     = "Success <BR/> " ++ dotSigma s
   dot (Gen _ s)       = printf "Gen <BR/> Generalizer: %s" (dotSigma s)
   -- dot (And _ s d _)     = printf "And <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
   dot (And _ s d a)     = printf "And <BR/> Subst: %s <BR/> Goal: %s <BR/> Anc: %s" (dotSigma s) (dot d) (show $ dot <$> findAnc d a)

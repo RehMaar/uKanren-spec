@@ -1,4 +1,4 @@
-module SC.SC2 (derive2) where
+module SC.SC3 (derive3) where
 
 import SC.DTree
 import Syntax
@@ -29,10 +29,10 @@ import SC.SC
 {-
 Supercompiler's properties:
 * Allow generalization after generalization.
-* Allow generalization on already seen node, not only on ancestors.
+* Allow generalization on ancestors.
 -}
-derive2 :: UnfoldableGoal a => Derive a
-derive2 = Derive derive'
+derive3 :: UnfoldableGoal a => Derive a
+derive3 = Derive derive'
 
 derive' :: UnfoldableGoal a => Derivable a
 derive' = derivationStep'
@@ -47,16 +47,20 @@ derive' = derivationStep'
         -- If we already seen the same node, stop evaluate it.
         | checkLeaf (getGoal goal) seen
         = (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
-        -- | d > 4
-        -- = (Prune (getGoal goal), seen, 0)
-        -- If a node is generalization of one of ancestors generalize.
-        | isGen (getGoal goal) seen
-        , aGoals <- abstract seen (getGoal goal) subst env
+        -- If a node is generalization of one of ancsectors generalize.
+        | isGen (getGoal goal) ancs
+        , aGoals <- abstract ancs (getGoal goal) subst env
         , not $ abstractSame aGoals (getGoal goal)
         =
-          --trace ("\nAbstract: " ++ show (getGoal goal)) $
+          -- trace ("\nAbstract: " ++ show (getGoal goal)) $
           let
             rGoal = getGoal goal
+            --aGoals = abstract ancs rGoal subst env
+          -- in trace ("Goal: " ++ pretty rGoal
+          --         ++ "\nAbs:  " ++ show ((\(_,g,_,_) -> pretty g) <$> aGoals) ++ "\n"
+          --         ++ "Ancs: " ++ show ancs ++ "\n"
+          --         ) $
+          -- let
             nAncs = Set.insert rGoal ancs
             nSeen = Set.insert rGoal seen
             (seen', trees, maxVarNum) =

@@ -23,7 +23,7 @@ import Control.Exception (assert)
 
 trace' _ = id
 
-data RecGoal = RecGoal DGoal deriving Show
+newtype RecGoal = RecGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
@@ -35,7 +35,7 @@ topLevel g = let
 
 instance UnfoldableGoal RecGoal where
   getGoal (RecGoal dgoal)   = dgoal
-  initGoal goal             = RecGoal goal
+  initGoal                  = RecGoal     
   emptyGoal (RecGoal dgoal) = null dgoal
   mapGoal (RecGoal dgoal) f = RecGoal (f dgoal)
   unfoldStep = genUnfoldStep splitGoal RecGoal
@@ -57,9 +57,9 @@ unreqUnfoldStep (RecGoal dgoal) env subst = let
 -}
 
 splitGoal :: E.Gamma -> RecGoal -> ([G S], G S, [G S])
-splitGoal env (RecGoal gs) = let c = head $ sortBy ((compare `on` (not . isRec env)) <>
-                                        compareGoals env) gs
-                    in fromJust $ split (c ==) gs
+splitGoal env (RecGoal gs) =
+  let c = minimumBy ((compare `on` (not . isRec env)) <> compareGoals env) gs
+  in fromJust $ split (c ==) gs
 
 isRec :: E.Gamma -> G S -> Bool
 isRec (p, _, _) goal@(Invoke call _) =

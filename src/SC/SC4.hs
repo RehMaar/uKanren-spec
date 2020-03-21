@@ -1,11 +1,10 @@
-module SC.SC2 (derive2) where
+module SC.SC4 (derive4) where
 
 import SC.DTree
 import Syntax
 import Embedding
 
 import qualified Eval as E
--- import qualified Driving as D
 import qualified Purification as P
 import qualified Generalization as D
 
@@ -30,9 +29,10 @@ import SC.SC
 Supercompiler's properties:
 * Allow generalization after generalization.
 * Allow generalization on already seen node, not only on ancestors.
+* Upward generalization.
 -}
-derive2 :: UnfoldableGoal a => Derive a
-derive2 = Derive derive'
+derive4 :: UnfoldableGoal a => Derive a
+derive4 = Derive derive'
 
 derive' :: UnfoldableGoal a => Derivable a
 derive' = derivationStep'
@@ -53,9 +53,7 @@ derive' = derivationStep'
         | isGen (getGoal goal) seen
         , aGoals <- abstract seen (getGoal goal) subst env
         , not $ abstractSame aGoals (getGoal goal)
-        =
-          --trace ("\nAbstract: " ++ show (getGoal goal)) $
-          let
+        = let
             rGoal = getGoal goal
             nAncs = Set.insert rGoal ancs
             nSeen = Set.insert rGoal seen

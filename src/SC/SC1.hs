@@ -28,6 +28,11 @@ import PrettyPrint
 
 import SC.SC
 
+{-
+Supercompiler's properties:
+* Forbid generalization after generalization.
+* Allow generalization on ancestors.
+-}
 derive1 :: UnfoldableGoal a => Derive a
 derive1 = Derive derive'
 
@@ -42,7 +47,7 @@ derive' :: UnfoldableGoal a =>
 derive' goal ancs env subst seen depth
     | checkLeaf (getGoal goal) seen
     = {-trace (">Leaf: " ++ pretty(getGoal goal)) $-} (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
-    | depth > 7
+    | depth > 8
     = (Prune (getGoal goal), seen, maxFreshVar env)
     | otherwise
     = {-trace (">Unfold: " ++ pretty (getGoal goal)) $-}
@@ -57,7 +62,7 @@ derive' goal ancs env subst seen depth
            newSeen = Set.insert realGoal seen
            (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                (\(a, t, i) -> (a, t:ts, max i m)) $
-                 evalSubTree' depth (fixEnv m newEnv) newAncs seen g)
+                 evalSubTree' (succ depth) (fixEnv m newEnv) newAncs seen g)
                (newSeen, [], maxFreshVar env) uGoals
          in (Or (reverse ts) subst realGoal ancs, seen', maxVarNum)
    where
@@ -68,21 +73,21 @@ derive' goal ancs env subst seen depth
      | not (checkLeaf realGoal seen)
      , isGen realGoal ancs
      =
-      trace (">Abstract: " ++ pretty realGoal ++ "; anc: " ++ show (findAnc realGoal ancs)) $
+      -- trace (">Abstract: " ++ pretty realGoal {-++ "; anc: " ++ show (findAnc realGoal ancs)-}) $
       let
         absGoals = abstract ancs realGoal subst env
         -- Add `realGoal` to a seen set (`And` node in the tree).
         newSeen = Set.insert realGoal seen
-      in trace (">>Got " ++ show (length absGoals) ++ " subgoals") $ let
+      in {-trace (">>Got " ++ show (length absGoals) ++ " subgoals") $-} let
         (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                 (\(a, t, i) -> (a, t:ts, max i m)) $
-                 evalGenSubTree m depth ancs seen g)
+                 evalGenSubTree m (succ depth) ancs seen g)
                  (newSeen, [], maxFreshVar env) absGoals
           in (seen', And (reverse ts) subst realGoal ancs, maxVarNum)
         | otherwise
         =
           let
-            (tree, seen', maxVarNum) = derive' goal ancs env subst seen (succ depth)
+            (tree, seen', maxVarNum) = derive' goal ancs env subst seen depth
           in (seen', tree, maxVarNum)
         where
           realGoal = getGoal goal
@@ -91,6 +96,6 @@ derive' goal ancs env subst seen depth
             let
               env = fixEnv m env'
               igoal :: a = initGoal goal
-              (tree, seen', maxVarNum) = derive' igoal ancs env subst seen (succ depth)
+              (tree, seen', maxVarNum) = derive' igoal ancs env subst seen depth
               subtree  = if null gen then tree else Gen tree gen
             in (seen', subtree, maxVarNum)

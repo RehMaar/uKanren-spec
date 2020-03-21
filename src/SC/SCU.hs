@@ -82,3 +82,8 @@ zipperToDTree zipper = foldl' parentToDTree (nodeToDTree (fst zipper)) (parents 
     parentToDTree :: DTree -> DTreeParent -> DTree
     parentToDTree tree (DTreeGenParent gen) = Gen tree gen
     parentToDTree tree (DTreeMNodeParent mnode lz) = let children = zipperList (tree, lz) in mnodeToNode mnode children
+
+-- f :: Zipper -> Zipper
+-- f z = case stepZipper z of
+--         Nothing -> z
+--         Just z' -> f z'

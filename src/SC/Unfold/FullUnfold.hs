@@ -16,7 +16,7 @@ import SC.SC
 
 import Debug.Trace
 
-newtype FUGoal = FUGoal DGoal deriving Show
+newtype FUGoal = FUGoal DGoal deriving (Show, Eq, Ord)
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let

@@ -1,5 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 
 module SC.SC where
     
@@ -49,14 +48,14 @@ type Derivable a =  a -> Set.Set DGoal -> E.Gamma -> E.Sigma -> Set.Set DGoal ->
 
 type SuperComp = G X -> (DTree, G S, [S])
 
-data Derive a = Derive { derive :: Derivable a }
+newtype Derive a = Derive { derive :: Derivable a }
 
 supercomp :: UnfoldableGoal a => Derive a -> SuperComp
 supercomp d g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ initGoal (head lgoal')
-  tree = fst3 $ derive d igoal Set.empty lgamma E.s0 Set.empty 0
+  tree = fst3 $ derive d igoal Set.empty lgamma E.s0 Set.empty 1
   in (tree, lgoal, lnames)
 
 fixEnv i (f1, f2, d:ds)
@@ -106,7 +105,7 @@ unifyAll = mapMaybe . unifyStuff
 --
 conjOfDNFtoDNF :: Ord a => Conj (Disj (Conj a)) -> Disj (Conj a)
 conjOfDNFtoDNF [] = []
-conjOfDNFtoDNF (x:[]) = x
+conjOfDNFtoDNF [x] = x
 conjOfDNFtoDNF (x {- Disj (Conj a) -} :xs) = concat $ addConjToDNF x <$> conjOfDNFtoDNF xs {- Disj (Conj a) -}
 
 addConjToDNF :: Disj (Conj a) -> Conj a -> Disj (Conj a)
@@ -135,10 +134,13 @@ abstractDebug ancs g subst delt =
 
 findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
   where
+    goalOrdering a1 a2 = compare (length a2) (length a1)
+    {-
     goalOrdering a1 a2
       | isVariant a1 a2 = EQ
       | a1 `embed` a2 = GT
       | otherwise = LT
+    -}
 
 abstract' ancs g delt
   | Just anc <- findAnc g ancs
@@ -156,9 +158,26 @@ whistle :: Set.Set [G S] -> [G S] -> Maybe [G S]
 whistle ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
 
 generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
-generalize m b d =
+generalize = generalizeCpd
+
+generalizeCpd :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
+generalizeCpd m b d =
   let ((m1, m2), genOrig, delta) = G.split d b m in
-  ((map (,genOrig) (G.mcs m1)) ++ (map (,[]) (G.mcs m2)), delta)
+  (map (,genOrig) (G.mcs m1) ++ map (,[]) (G.mcs m2), delta)
+
+--generalizeCpd' :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
+generalizeCpd' m b d =
+  let ((m1, m2), genOrig, delta) = G.split d b m in
+  -- ((map (,genOrig) (G.mcs m1)) ++ (map (,[]) (G.mcs m2)), delta)
+  (m1, m2, genOrig)
+
+{-
+  TODO: describe generalization, add SPLIT step
+-}
+generalizeSimple :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
+generalizeSimple goal anc delt = 
+  let (g, _, gen, delt') = G.generalizeGoals delt goal anc
+  in ([(g, gen)], delt')
 
 toSplit :: [G S] -> Bool
 toSplit = null . foldl1 intersect . map getInvokeArgs . filter isInvoke

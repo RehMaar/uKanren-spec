@@ -23,7 +23,7 @@ import Control.Exception (assert)
 
 trace' _ = id
 
-data MinGoal = MinGoal DGoal deriving Show
+newtype MinGoal = MinGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
@@ -35,7 +35,7 @@ topLevel g = let
 
 instance UnfoldableGoal MinGoal where
   getGoal (MinGoal dgoal) = dgoal
-  initGoal goal = MinGoal goal
+  initGoal = MinGoal
   emptyGoal (MinGoal dgoal) = null dgoal
   mapGoal (MinGoal dgoal) f = MinGoal (f dgoal)
   unfoldStep = genUnfoldStep splitGoal MinGoal
@@ -49,7 +49,7 @@ instance Unfold MinGoal where
 
 splitGoal :: E.Gamma -> MinGoal -> (DGoal, G S, DGoal)
 splitGoal env (MinGoal gs) =
-  let c = head $ sortBy (compareGoals env) gs
+  let c = minimumBy (compareGoals env) gs
   in fromJust $ split (c ==) gs
 
 compareGoals :: E.Gamma -> G a -> G a -> Ordering

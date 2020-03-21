@@ -22,7 +22,7 @@ import Control.Exception (assert)
 
 trace' _ = id
 
-data NUGoal = NUGoal DGoal deriving Show
+newtype NUGoal = NUGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
@@ -34,7 +34,7 @@ topLevel g = let
 
 instance UnfoldableGoal NUGoal where
   getGoal (NUGoal dgoal) = dgoal
-  initGoal goal = NUGoal goal
+  initGoal = NUGoal
   emptyGoal (NUGoal dgoal) = null dgoal
   mapGoal (NUGoal dgoal) f = NUGoal (f dgoal)
   unfoldStep = unreqUnfoldStep
@@ -55,9 +55,9 @@ unreqUnfoldStep (NUGoal dgoal) env subst = let
     suGoal subst cs ls rs = NUGoal $ E.substituteConjs subst $ ls ++ cs ++ rs
 
 splitGoal :: E.Gamma -> DGoal -> ([G S], G S, [G S])
-splitGoal env gs = let c = head $ sortBy ((compare `on` (isRec env)) <>
-                                        compareGoals env) gs
-                    in fromJust $ split (c ==) gs
+splitGoal env gs =
+   let c = minimumBy ((compare `on` isRec env) <> compareGoals env) gs
+   in fromJust $ split (c ==) gs
 
 isRec :: E.Gamma -> G S -> Bool
 isRec (p, _, _) goal@(Invoke call _) =

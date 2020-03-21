@@ -22,7 +22,7 @@ import Control.Exception (assert)
 
 trace' _ = id
 
-data FstGoal = FstGoal DGoal deriving Show
+newtype FstGoal = FstGoal DGoal deriving Show
 
 topLevel :: G X -> (DTree, G S, [S])
 topLevel g = let
@@ -34,7 +34,7 @@ topLevel g = let
 
 instance UnfoldableGoal FstGoal where
   getGoal (FstGoal dgoal) = dgoal
-  initGoal goal = FstGoal goal
+  initGoal      = FstGoal     
   emptyGoal (FstGoal dgoal) = null dgoal
   mapGoal (FstGoal dgoal) f = FstGoal (f dgoal)
   unfoldStep = unreqUnfoldStep

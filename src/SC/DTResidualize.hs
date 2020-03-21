@@ -9,7 +9,7 @@ import qualified Eval as E
 
 import Data.List
 import Utils
-import Data.Maybe (isJust, fromMaybe, mapMaybe, fromJust)
+import Data.Maybe (isJust, fromMaybe, mapMaybe, fromJust, catMaybes)
 import Data.Char
 import Control.Arrow (first, second)
 
@@ -60,7 +60,7 @@ dotSigma = E.dotSigma
 
 instance Dot MarkedTree where
   dot Fail = "Fail"
-  dot (Success s)   = "Success <BR/> " ++ (dotSigma s)
+  dot (Success s)   = "Success <BR/> " ++ dotSigma s
   dot (Gen _ s)     = "Gen <BR/> Generalizer: " ++ dotSigma s
   dot (And _ s d f) = printf "And %s <BR/> Subst: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dot d)
   dot (Or ts s d f) = printf "Or %s <BR/> Subst: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dot d)
@@ -156,7 +156,7 @@ genCall :: [G S] -> Call
 genCall = genCall' []
 
 genCall' cs goal = let
-    nameSet = Set.fromList $ ((\(_, Call name _ _) -> name) <$> cs)
+    nameSet = Set.fromList ((\(_, Call name _ _) -> name) <$> cs)
     callName = genCallName goal
     name = nameToOCamlName $ generateFreshName callName  nameSet
     args = argsToS $ genArgs goal
@@ -235,7 +235,7 @@ topLevel t = topLevel' $ cutFailedDerivations $ makeMarkedTree t
       in (foldDefs defs $ postEval topLevelArgs goal body, topLevelArgs)
 
 getArgsForPostEval cs goal = let Call _ args _ = findCall cs goal in args
-postEval names goal body = E.postEval' (vident <$> names) body
+postEval names goal = E.postEval' (vident <$> names)
 
 foldDefs [] g = g
 foldDefs xs g = foldr1 (.) xs g
@@ -355,12 +355,12 @@ cutFailedDerivations = fromMaybe Fail . fst . cfd Set.empty
 
     cfdCommon1 ctr gs ts f1 g = let
         (mts, gs') = foldl foldCfd ([], gs) ts
-        ts' = mapMaybe id (reverse mts)
+        ts' = catMaybes (reverse mts)
       in if null ts' then (Nothing, Set.insert g gs') else (Just $ ctr ts' f1 g True, gs')
 
     cfdCommon2 ctr gs ts f1 f2 f3 = let
         (mts, gs') = foldl foldCfd ([], gs) ts
-        ts' = mapMaybe id (reverse mts)
+        ts' = catMaybes (reverse mts)
       in if null ts' then (Nothing, gs') else (Just $ ctr ts' f1 f2 f3, gs')
 
     foldCfd (ts, gs) t = first (:ts) (cfd gs t)
@@ -400,16 +400,16 @@ simplify (t1 :\/: t2) = let
     t2' = simplify t2
   in case (t1', t2') of
      (Just t1'', Just t2'') -> Just $ t1'' :\/: t2''
-     (_, Just t2'') -> Just $ t2''
-     (Just t1'', _) -> Just $ t1''
+     (_, Just t2'') -> Just t2''
+     (Just t1'', _) -> Just t1''
      _              -> Nothing
 simplify (t1 :/\: t2) = let
     t1' = simplify t1
     t2' = simplify t2
   in case (t1', t2') of
      (Just t1'', Just t2'') -> Just $ t1'' :/\: t2''
-     (_, Just t2'') -> Just $ t2''
-     (Just t1'', _) -> Just $ t1''
+     (_, Just t2'') -> Just t2''
+     (Just t1'', _) -> Just t1''
      _              -> Nothing
 simplify (Fresh name t)
  | Just t' <- simplify t

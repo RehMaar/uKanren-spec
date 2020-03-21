@@ -101,7 +101,7 @@ topLevel seed g = let
 --
 -- Implementation of the Random Unfolding rule using global randomizer.
 --
-data RndGoalIO = RndGoalIO DGoal deriving Show
+newtype RndGoalIO = RndGoalIO DGoal deriving Show
 
 
 topLevelIO :: G X -> IO (DTree, G S, [S])
