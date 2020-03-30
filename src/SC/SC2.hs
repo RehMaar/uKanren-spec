@@ -37,9 +37,6 @@ derive2 = Derive derive'
 derive' :: UnfoldableGoal a => Derivable a
 derive' = derivationStep'
     where
-      abstractSame [(_, aGoal, _, _)] goal = isVariant aGoal goal
-      abstractSame _ _ = False
-
       derivationStep' goal ancs env subst seen d
         -- Empty goal => everything evaluated fine
         | emptyGoal goal
@@ -50,7 +47,7 @@ derive' = derivationStep'
         -- | d > 4
         -- = (Prune (getGoal goal), seen, 0)
         -- If a node is generalization of one of ancestors generalize.
-        | isGen (getGoal goal) seen
+        | trace ("Goal: " ++ show (getGoal goal) ++ "\nSeen: " ++ show seen ++ "\n" ++ show (isGen (getGoal goal) seen)) $ isGen (getGoal goal) seen
         , aGoals <- abstract seen (getGoal goal) subst env
         , not $ abstractSame aGoals (getGoal goal)
         =

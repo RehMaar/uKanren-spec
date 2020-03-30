@@ -1,4 +1,9 @@
-{- Attemp to implement upward abstraction. -}
+{- Attemp to implement upward abstraction.
+
+Upward abstraction occurs when a child term "t" is more general
+than some of its parents (parent "p": p `embed` t).
+-}
+
 module SC.SCU where
 
 import Syntax
@@ -149,6 +154,13 @@ goRightOrUp _ = Nothing
 farthest :: (a -> Maybe a) -> a -> a
 farthest f a = maybe a (farthest f) (f a)
 
+stepUntil :: (a -> Maybe a) -> (a -> Bool) -> a -> Maybe a
+stepUntil step p zipper
+  | p zipper
+  = Just zipper
+  | otherwise
+  = step zipper >>= stepUntil step p
+
 data Context = Context
              { ctxEnv :: E.Gamma
              }
@@ -186,7 +198,19 @@ parentGoals (p:ps)
   | DTreeMNodeParent nm _ <- p
   = getGoal (dtmGoal nm) : parentGoals ps
 
+isZipperAnOurParent parent zipper@(DTreeMultiNode mn _, _) = parent == getGoal (dtmGoal mn)
+isZipperAnOurParent _ _ = False
+
 stepZipper :: UnfoldableGoal a => DTreeZipper a -> Context -> Maybe (DTreeZipper a, Context)
+-- There's an option that we may want to do upward abstraction.
+--
+{-stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
+  | needUpwardGen (Set.fromList $ parentGoals parents) ctx mn
+  , Just anc <- findAncUpward (getGoal $ dtmGoal mn) (Set.fromList $ parentGoals parents)
+  =
+    trace ("Upward: " ++ show (getGoal $ dtmGoal mn) ++ "\nAnc: " ++ show anc) $
+    let (Just (_, parents')) = stepUntil goUp (isZipperAnOurParent anc) zipper
+    in Just ((DTreeMultiNode mn{dtmMnodeType = OrCon} [], parents'), ctx)-}
 -- Empty <children> for MultiNode means that we need to fill it which possible children
 stepZipper (DTreeMultiNode mn [], parents) ctx = let
   realGoal = getGoal $ dtmGoal mn
@@ -207,6 +231,12 @@ stepZipper zipper@(DTreeMultiNode _ children, _) ctx
   = Just (childZipper, ctx)
   | otherwise
   = (,ctx) <$> goUp zipper
+
+needUpwardGen :: UnfoldableGoal a => Set.Set DGoal -> Context -> DTreeMulti a -> Bool
+needUpwardGen parents ctx@(Context env) (DTreeMulti AndCon subst goal _) =
+   let abs = abstract parents (getGoal goal) subst env
+   in abstractSame abs (getGoal goal)
+needUpwardGen _ _ _ = False
 
 generateChildren :: forall a. UnfoldableGoal a =>
      [DGoal]       -- | Parents
@@ -235,7 +265,13 @@ goalToTree parents env subst goal
   | checkLeaf (getGoal goal) parentsSet
   = Leaf goal parentsSet subst env
   | isGen (getGoal goal) parentsSet
+  -- Need to check it until we completly add upward abstraction
+  , abs <- abstract parentsSet (getGoal goal) subst env
+  , not $ abstractSame abs (getGoal goal)
   = And [] subst goal parentsSet
+{-  | isUpwardGen (getGoal goal) parentsSet
+  = And [] subst goal parentsSet
+-}
   | otherwise
   = Or [] subst goal parentsSet
   where parentsSet = Set.fromList parents

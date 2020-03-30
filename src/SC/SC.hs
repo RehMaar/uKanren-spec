@@ -80,6 +80,8 @@ goalXtoGoalS g = let
 
 isGen goal ancs = any (`embed` goal) ancs && not (Set.null ancs)
 
+isUpwardGen goal ancs = any (\anc -> embed goal anc && G.msgExists anc goal) ancs && not (Set.null ancs)
+
 --
 
 unfold :: G S -> E.Gamma -> (E.Gamma, G S)
@@ -114,6 +116,9 @@ addConjToDNF ds c = (c ++) <$> ds
 checkLeaf :: DGoal -> Set.Set DGoal -> Bool
 checkLeaf = variantCheck
 
+abstractSame [(_, aGoal, _, _)] goal = isVariant aGoal goal
+abstractSame _ _ = False
+
 abstract
   :: Set.Set [G S]               -- Ancestors of the goal
   -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
@@ -140,6 +145,10 @@ abstractDebug ancs g subst delt =
   let (abstracted, delta) = abstract' ancs g delt
   in  map (\(g, gen) -> (subst, g, gen)) abstracted
 
+findAncUpward g = find (embed g) . sortBy goalOrdering . Set.toList
+  where
+    goalOrdering a1 a2 = compare (length a2) (length a1)
+
 findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
   where
     goalOrdering a1 a2 = compare (length a2) (length a1)
@@ -149,6 +158,8 @@ findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
       | a1 `embed` a2 = GT
       | otherwise = LT
     -}
+
+findRenaming goal = find (isVariant goal)
 
 abstract' ancs g delt
   | Just anc <- findAnc g ancs
@@ -164,6 +175,8 @@ abstract' ancs g delt
 
 whistle :: Set.Set [G S] -> [G S] -> Maybe [G S]
 whistle ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
+
+whistleP anc goal = homeo anc goal  && not (isVariant anc goal)
 
 generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
 generalize = generalizeCpd
