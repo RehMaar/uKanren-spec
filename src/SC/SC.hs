@@ -128,6 +128,14 @@ abstractChild ancs g subst (p, iota, delt) =
   let (abstracted, delta) = abstract' ancs g delt
   in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
 
+abstractFixed
+  :: Set.Set [G S]               -- Ancestors of the goal
+  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
+  -> ([(E.Sigma, [G S], G.Generalizer)], E.Gamma)
+abstractFixed ancs g subst (p, iota, delt) =
+  let (abstracted, delta) = abstract' ancs g delt
+  in  (map (\(g, gen) -> (subst, g, gen)) abstracted, (p, iota, delta))
+
 abstractDebug ancs g subst delt =
   let (abstracted, delta) = abstract' ancs g delt
   in  map (\(g, gen) -> (subst, g, gen)) abstracted
@@ -224,7 +232,7 @@ genUnfoldStep split ctr goal env subst = let
     us = (\(cs, subst) -> (subst, construct subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
-    construct subst cs ls rs = ctr $ E.substituteConjs subst $ ls ++ cs ++ rs
+    construct subst cs ls rs = ctr $ E.substitute subst $ ls ++ cs ++ rs
 
 class UnfoldableGoal a => Unfold a where
   derivationStep
