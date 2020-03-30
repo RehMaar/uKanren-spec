@@ -29,55 +29,107 @@
   Changed by Maria Kuklina.
 -}
 
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TupleSections     #-}
 
 module Eval where
 
-import Control.Monad
-import Data.List
-import Syntax
-import Debug.Trace
-import Text.Printf
+import           Control.Monad
+import           Data.List
+import           Syntax
+import           Text.Printf
+
+import qualified Data.Map.Strict as Map
+
+class Substitution s where
+  sEmpty  :: s
+  sLookup :: S -> s -> Maybe Ts
+  sInsert :: S -> Ts -> s -> s
+
+instance Substitution Sigma where
+  sEmpty = []
+  sLookup a s = lookup a s
+  sInsert a b s = (a, b) : s
+
+type MapSigma = Map.Map S Ts
+
+instance Substitution MapSigma where
+  sEmpty  = Map.empty
+  sLookup = Map.lookup
+  sInsert = Map.insert
 
 -- States
 type Iota  = ([X], X -> Ts)
-
-showIota :: Iota -> String
-showIota (dom, f) = intercalate ", " $ map (\ x -> printf "%s -> %s" x (show $ f x)) dom
-
 type Sigma = [(S, Ts)]
 type Delta = [S]
 type P     = Name -> Def
 type Gamma = (P, Iota, Delta)
 
-unifyG :: (S -> Ts -> Maybe Sigma -> Maybe Sigma)
-          -> Maybe Sigma -> Ts -> Ts -> Maybe Sigma
+unifyG :: Substitution subst => (S -> Ts -> subst -> Bool)
+          -> Maybe subst -> Ts -> Ts -> Maybe subst
 unifyG _ Nothing _ _ = Nothing
 unifyG f st@(Just subst) u v =
   unify' (walk u subst) (walk v subst)  where
     unify' (V u') (V v') | u' == v' = Just subst
-    unify' (V u') t = f u' t $ Just $ (u', v) : subst
-    unify' t (V v') = f v' t $ Just $ (v', u) : subst
+    unify' (V u') (V v') = Just $ sInsert (min u' v') (V $ max u' v') subst
+    unify' (V u') t = 
+      if f u' t subst 
+      then Nothing 
+      else return $ sInsert u' v subst
+    unify' t (V v') = 
+      if f v' t subst 
+      then Nothing 
+      else return $ sInsert v' u subst
     unify' (C a as) (C b bs) | a == b && length as == length bs =
       foldl (\ st' (u', v') -> unifyG f st' u' v') st $ zip as bs
     unify' _ _ = Nothing
 
-    walk x@(V v') s = maybe x (\t -> walk t s) (lookup v' s)
-    walk u' _ = u'
+walk :: Substitution subst => Ts -> subst -> Ts
+walk x@(V v') s =
+  case sLookup v' s of
+    Nothing -> x
+    Just t  -> walk t s
+walk u' _ = u'
 
 -- Unification
-unify :: Maybe Sigma -> Ts -> Ts -> Maybe Sigma
-unify = unifyG occursCheck where
-  occursCheck u' t s = if elem u' $ fv t then Nothing else s
+unify :: Substitution subst => Maybe subst -> Ts -> Ts -> Maybe subst
+unify =
+    unifyG occursCheck
+  where
+    occursCheck :: Substitution subst => S -> Ts -> subst -> Bool
+    occursCheck u' t s = 
+      let t' = walk t s in
+      case t' of
+        V v' | v' == u' -> True 
+        V _ -> False 
+        C _ as -> any (\x -> occursCheck u' x s) as
 
-unifyNoOccursCheck :: Maybe Sigma -> Ts -> Ts -> Maybe Sigma
-unifyNoOccursCheck = unifyG (\_ _ -> id)
+    -- occursCheck u' t s = if elem u' $ fv t then Nothing else s
+
+unifySubsts :: Sigma -> Sigma -> Maybe Sigma
+unifySubsts one two =
+    -- trace ("one: " ++ show one ++ "\ntwo: " ++ show two) $
+    let maximumVar = max (findUpper one) (findUpper two) in
+    let one' = manifactureTerm maximumVar one in
+    let two' = manifactureTerm maximumVar two in
+    unify (Just s0) one' two'
+  where
+    findUpper []  = 0
+    findUpper lst = maximum $ map fst lst
+    supplement upper lst = lst --  [(x, y) | x <- [0..upper], let y = maybe (V x) id (lookup x lst)]
+    manifactureTerm upper subst = C "ManifacturedTerm" $ map snd $ supplement upper subst
+
+unifyNoOccursCheck :: Substitution subst => Maybe subst -> Ts -> Ts -> Maybe subst
+unifyNoOccursCheck = unifyG (\_ _ -> const False)
 
 ---- Interpreting syntactic variables
 infix 9 <@>
 (<@>) :: Iota -> Tx -> Ts
 i <@> (V x) = app i x
 i <@> (C c ts) = C c $ map (i<@>) ts
+
+showInt :: Iota -> String
+showInt (dom, f) = intercalate ", " $ map (\ x -> printf "%s -> %s" x (show $ f x)) dom
 
 ---- Extending variable interpretation
 extend :: Iota -> X -> Ts -> Iota
@@ -89,21 +141,26 @@ emptyIota = ([], error . printf "Empty interpretation on %s" . show)
 app :: Iota -> X -> Ts
 app (_, i) = i
 
----- Applying substitution
-substitute :: Sigma -> Ts -> Ts
-substitute s t@(V x) =
-  case lookup x s of
-    Just tx | tx /= t -> substitute s tx
-    _ -> t
-substitute s (C m ts) = C m $ map (substitute s) ts
+-- Applying substitution
+class Subst a where
+  substitute :: Sigma -> a -> a
 
-substituteGoal :: Sigma -> G S -> G S
-substituteGoal s (Invoke name as) = Invoke name (map (substitute s) as)
-substituteGoal _ g = error $ printf "We have only planned to substitute into calls, and you are trying to substitute into:\n%s" (show g)
+instance Subst (Term S) where
+  substitute s t@(V x) =
+    case lookup x s of
+      Just tx | tx /= t -> substitute s tx
+      _                 -> t
+  substitute s (C m ts) = C m $ map (substitute s) ts
+
+instance Subst (G S) where
+  substitute s (Invoke name as) = Invoke name (map (substitute s) as)
+  substitute _ g = error $ printf "We have only planned to substitute into calls, and you are trying to substitute into:\n%s" (show g)
+
+instance Subst [G S] where
+  substitute = map . substitute
 
 substituteConjs :: Sigma -> [G S] -> [G S]
-substituteConjs s = map $ substituteGoal s
-
+substituteConjs = substitute
 
 ---- Composing substitutions
 o :: Sigma -> Sigma -> Sigma
@@ -122,21 +179,23 @@ showSigma' :: Sigma -> String
 showSigma' s = printf " [ %s ] " (intercalate ", " (map (\(x,y) -> printf "%s -> %s" (show $ V x) (show y)) s))
 
 -- Pre-evaluation
-preEval' :: Gamma -> G X -> (G S, Gamma, [S])
-preEval' = preEval []
+preEval' = preEval
+
+preEval :: Gamma -> G X -> (G S, Gamma, [S])
+preEval = go []
  where
-  preEval vars g@(_, i, _) (t1 :=: t2)    = (i <@> t1 :=: i <@> t2, g, vars)
-  preEval vars g           (g1 :/\: g2)   = let (g1', g' , vars' ) = preEval vars  g  g1 in
-                                            let (g2', g'', vars'') = preEval vars' g' g2 in
-                                            (g1' :/\: g2', g'', vars'')
-  preEval vars g           (g1 :\/: g2)   = let (g1', g' , vars')  = preEval vars  g  g1 in
-                                            let (g2', g'', vars'') = preEval vars' g' g2 in
-                                            (g1' :\/: g2', g'', vars'')
-  preEval vars   (p, i, y : d') (Fresh x g') =
-    preEval (y : vars) (p, extend i x (V y), d') g'
-  preEval vars g@(_, i, _) (Invoke f fs)  = (Invoke f (map (i <@>) fs), g, vars)
-  preEval vars e           (Let    def' g) = let (g', e', vars') = preEval vars e g in
-                                             (Let def' g', e', vars')
+  go vars g@(_, i, _) (t1 :=: t2)  = (i <@> t1 :=: i <@> t2, g, vars)
+  go vars g           (g1 :/\: g2) = let (g1', g' , vars' ) = go vars  g  g1 in
+                                     let (g2', g'', vars'') = go vars' g' g2 in
+                                     (g1' :/\: g2', g'', vars'')
+  go vars g           (g1 :\/: g2) = let (g1', g' , vars')  = go vars  g  g1 in
+                                     let (g2', g'', vars'') = go vars' g' g2 in
+                                     (g1' :\/: g2', g'', vars'')
+  go vars   (p, i, y : d') (Fresh x g') =
+    go (y : vars) (p, extend i x (V y), d') g'
+  go vars g@(_, i, _) (Invoke f fs)  = (Invoke f (map (i <@>) fs), g, vars)
+  go vars e           (Let    def g) = let (g', e', vars') = go vars e g in
+                                       (Let def g', e', vars')
 
 postEval' :: [X] -> G X -> G X
 postEval' as goal =
@@ -150,7 +209,6 @@ postEval' as goal =
     postEval vars (g1 :\/: g2) = postEval vars g1 :\/: postEval vars g2
     postEval _ g = g
 
-
 env0 :: Gamma
 env0 = (\ i -> error $ printf "Empty environment on %s" (show i), emptyIota, [0 ..])
 
@@ -158,7 +216,7 @@ update :: Gamma -> Def -> Gamma
 update (p, i, d) def'@(name, _, _) = (\ name' -> if name == name' then def' else p name', i, d)
 
 updateDefsInGamma :: Gamma -> [Def] -> Gamma
-updateDefsInGamma = foldl update
+updateDefsInGamma = foldl' update
 
 s0 :: Sigma
 s0 = []

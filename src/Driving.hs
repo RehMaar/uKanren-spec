@@ -55,7 +55,7 @@ refine msg@(g, s1, s2, d) =
       sim1 = map (map fst) similar1
       sim2 = map (map fst) similar2
       toSwap = concatMap (\(x:xs) -> map (\y -> (y, V x)) xs) (sim1 `intersect` sim2)
-      newGoal = E.substituteConjs toSwap g
+      newGoal = E.substitute toSwap g
       s2' = filter (\(x,_) -> notElem x (map fst toSwap)) s2
       s1' = filter (\(x,_) -> notElem x (map fst toSwap)) s1
   in (newGoal, s1', s2', d)

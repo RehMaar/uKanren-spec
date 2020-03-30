@@ -47,7 +47,7 @@ topLevel seed g = let
       where
         rndGoal subst ls cs rs rng = let
             goal = ls ++ cs ++ rs
-            dgoal = E.substituteConjs subst goal
+            dgoal = E.substitute subst goal
           in RndGoal dgoal rng
 
     derivationStep goal@(RndGoal realGoal rng) ancs env subst seen depth
@@ -128,7 +128,7 @@ topLevelIO g = do
       where
         rndGoal subst ls cs rs = let
             goal = ls ++ cs ++ rs
-            dgoal = E.substituteConjs subst goal
+            dgoal = E.substitute subst goal
           in RndGoalIO dgoal
 
 

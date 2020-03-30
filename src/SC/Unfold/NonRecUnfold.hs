@@ -52,7 +52,7 @@ unreqUnfoldStep (NUGoal dgoal) env subst = let
     us = (\(cs, subst) -> (subst, suGoal subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
-    suGoal subst cs ls rs = NUGoal $ E.substituteConjs subst $ ls ++ cs ++ rs
+    suGoal subst cs ls rs = NUGoal $ E.substitute subst $ ls ++ cs ++ rs
 
 splitGoal :: E.Gamma -> DGoal -> ([G S], G S, [G S])
 splitGoal env gs =

@@ -57,7 +57,7 @@ seqUnfoldStep (SUGoal dgoal idx) env subst = let
   in (us, newEnv)
   where
     suGoal subst immut cs mut newIdx = let
-        goal = E.substituteConjs subst $ immut ++ cs ++ mut
+        goal = E.substitute subst $ immut ++ cs ++ mut
       in SUGoal goal newIdx
 
 splitGoal _ [g] = (0, ([], g, []))
