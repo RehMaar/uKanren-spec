@@ -9,6 +9,7 @@ import qualified Eval as E
 import qualified Data.Set as Set
 import Data.Foldable (foldl')
 
+import PrettyPrint
 import Debug.Trace
 
 toDTree :: UnfoldableGoal a => DTree' a -> DTree
@@ -190,7 +191,7 @@ stepZipper :: UnfoldableGoal a => DTreeZipper a -> Context -> Maybe (DTreeZipper
 stepZipper (DTreeMultiNode mn [], parents) ctx = let
   realGoal = getGoal $ dtmGoal mn
   -- First of all, need to generate nearest children of the node-in-focus
-  (ctx', children) = generateChildren (realGoal : parentGoals parents) ctx mn
+  (ctx', children) = generateChildren (parentGoals parents) ctx mn
   -- And then focus on the most left one.
   newZipper = goFirstChild (DTreeMultiNode mn children, parents)
   in (, ctx') <$> newZipper
@@ -218,11 +219,14 @@ generateChildren ps ctx@(Context env) (DTreeMulti OrCon subst goal _) =
      ([], _)        -> (ctx, [Fail])
      -- uGoal :: [(E.Sigma, UnfoldableGoal a)]
      (uGoals, nEnv) ->
-       let trees = uncurry (goalToTree ps nEnv) <$> uGoals
+       let trees = uncurry (goalToTree (getGoal goal : ps) nEnv) <$> uGoals
        in (ctx{ctxEnv = nEnv}, trees)
 generateChildren ps ctx@(Context env) (DTreeMulti AndCon subst goal _) =
   -- aGoals ::[(E.Sigma, [G S], G.Generalizer)]
   let (aGoals, nEnv) = abstractFixed (Set.fromList ps) (getGoal goal) subst env
+  in
+  trace ("Goal: " ++ pretty (getGoal goal) ++ " is abstracted by " ++ show (findAnc (getGoal goal) (Set.fromList ps)) ++ "\nResult: " ++ show aGoals ++ "\n" ) $
+  let
       trees = (\(subst, nGoal, gen) -> Gen (goalToTree ps nEnv subst $ (initGoal nGoal :: a)) gen) <$> aGoals
   in (ctx{ctxEnv = nEnv}, trees)
 
