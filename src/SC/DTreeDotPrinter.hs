@@ -1,5 +1,6 @@
 module SC.DTreeDotPrinter where
 
+import qualified Eval as E
 import Syntax
 import DotPrinter
 import SC.DTree
@@ -20,7 +21,7 @@ dotSigma _ = ""
 instance Dot DTree where
   dot Fail = "Fail"
   dot (Success s)     = "Success <BR/> " ++ dotSigma s
-  dot (Gen _ s)       = printf "Gen <BR/> Generalizer: %s" (dotSigma s)
+  dot (Gen _ s)       = printf "Gen <BR/> Generalizer: %s" (E.dotSigma s)
   -- dot (And _ s d _)     = printf "And <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
   dot (And _ s d a)     = printf "And <BR/> Subst: %s <BR/> Goal: %s <BR/> Anc: %s" (dotSigma s) (dot d) (show $ dot <$> findAnc d a)
   dot (Or ts s d _)     = printf "Or <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)

@@ -24,42 +24,20 @@ instance PrettyPrint DGoal where
     pretty = prettyList
 
 -- Derivation Tree
-data DTree = Fail   -- Failed derivation.
+data DTree' a = Fail   -- Failed derivation.
   | Success E.Sigma -- Success derivation.
-  | Or [DTree] E.Sigma DGoal (Set.Set DGoal) -- Node for a disjunction.
-  | And [DTree] E.Sigma DGoal (Set.Set DGoal)  -- Node for a conjunction.
-  | Leaf DGoal (Set.Set DGoal) E.Sigma E.Gamma -- Variant leaf
-  | Gen DTree E.Sigma -- Generalizer
-  -- Not in use now
-  | Node DTree DGoal (Set.Set DGoal) E.Sigma -- Auxiliary node.
-  | Prune DGoal -- Debug node
+  | Or [DTree' a] E.Sigma a (Set.Set DGoal) -- Node for a disjunction.
+  | And [DTree' a] E.Sigma a  (Set.Set DGoal)  -- Node for a conjunction.
+  | Leaf a (Set.Set DGoal) E.Sigma E.Gamma -- Variant leaf
+  | Gen (DTree' a) E.Sigma -- Generalizer
+  | Prune a -- Debug node
   | Debug E.Gamma E.Sigma DGoal (Set.Set DGoal) -- Debug node
 
-
-{-
---
-instance DotPrinter DTree where
-  labelNode t@(Or ch _ _ _) = addChildren t ch
-  labelNode t@(And ch _ _ _) = addChildren t ch
-  labelNode t@(Gen ch _) = addChild t ch
-  labelNode t = addLeaf t
-
-dotSigma _ = ""
--- dotSigma = E.dotSigma
-
-instance Dot DTree where
-  dot Fail = "Fail"
-  dot (Success s)     = "Success <BR/> " ++ (dotSigma s)
-  dot (Gen _ s)       = printf "Gen <BR/> Generalizer: %s" (dotSigma s)
-  dot (And _ s d _)     = printf "And <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
-  dot (Or ts s d _)     = printf "Or <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
-  dot (Leaf goal _ s _) = printf "Leaf <BR/> Goal: %s <BR/> Subst: %s" (dot goal)  (dotSigma s)
-  dot (Prune g)       = printf "Prune <BR/> Goal: %s" (dot g)
--}
+type DTree = DTree' DGoal
 
 --
 
-instance Show DTree where
+instance Show a => Show (DTree' a) where
   show Fail = "Fail"
   show (Success s) = "{Success}"
   show (Or ts _ goal _) = "{Or \n [" ++ concatMap show ts ++ "]\n}"
