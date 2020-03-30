@@ -224,9 +224,6 @@ generateChildren ps ctx@(Context env) (DTreeMulti OrCon subst goal _) =
 generateChildren ps ctx@(Context env) (DTreeMulti AndCon subst goal _) =
   -- aGoals ::[(E.Sigma, [G S], G.Generalizer)]
   let (aGoals, nEnv) = abstractFixed (Set.fromList ps) (getGoal goal) subst env
-  in
-  trace ("Goal: " ++ pretty (getGoal goal) ++ " is abstracted by " ++ show (findAnc (getGoal goal) (Set.fromList ps)) ++ "\nResult: " ++ show aGoals ++ "\n" ) $
-  let
       trees = (\(subst, nGoal, gen) -> Gen (goalToTree ps nEnv subst $ (initGoal nGoal :: a)) gen) <$> aGoals
   in (ctx{ctxEnv = nEnv}, trees)
 
