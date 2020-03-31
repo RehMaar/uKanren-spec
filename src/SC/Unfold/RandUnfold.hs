@@ -52,7 +52,7 @@ topLevel seed g = let
 
     derivationStep goal@(RndGoal realGoal rng) ancs env subst seen depth
       | checkLeaf realGoal seen
-      = (Leaf realGoal ancs subst env, seen, head $ trd3 env)
+      = (Renaming realGoal ancs subst env, seen, head $ trd3 env)
       | otherwise
       =
       let
@@ -65,7 +65,7 @@ topLevel seed g = let
                  (\(a, t, i) -> (a, t:ts, max i m)) $
                    evalSubTree depth (fixEnv m newEnv) newAncs seen g)
                  (newSeen, [], head $ trd3 env) uGoals
-           in (Or (reverse ts) subst realGoal ancs, seen', maxVarNum)
+           in (Unfold (reverse ts) subst realGoal ancs, seen', maxVarNum)
 
     evalSubTree depth env ancs seen (subst, goal@(RndGoal realGoal rng))
       | null realGoal
@@ -81,7 +81,7 @@ topLevel seed g = let
                   (\(a, t, i) -> (a, t:ts, max i m)) $
                   evalGenSubTree m depth ancs seen rng g)
                   (newSeen, [], head $ trd3 env) absGoals
-        in (seen', And (reverse ts) subst realGoal ancs, maxVarNum)
+        in (seen', Abs (reverse ts) subst realGoal ancs, maxVarNum)
       | otherwise
       =
         let
@@ -144,12 +144,12 @@ topLevelIO g = do
       -- | depth >= 50
       -- = (Prune (getGoal goal), seen)
       | checkLeaf goal seen
-      = pure (Leaf goal ancs subst env, seen)
+      = pure (Renaming goal ancs subst env, seen)
       | otherwise
       = do
         let realGoal = goal
         let newAncs = Set.insert realGoal ancs
-        -- Add `goal` to a seen set (`Or` node in the tree).
+        -- Add `goal` to a seen set (`Unfold` node in the tree).
         let newSeen = Set.insert realGoal seen
         (l, r) <- randUnfoldStepIO rg env subst
         case (l, r) of
@@ -158,7 +158,7 @@ topLevelIO g = do
               -- Делаем свёртку, чтобы просмотренные вершины из одного обработанного поддерева
               -- можно было передать в ещё не обработанное.
             (seen', ts) <- foldM (\(seen, ts) g -> fmap (:ts) <$> evalSubTreeIO depth newEnv newAncs seen g) (newSeen, []) uGoals
-            pure (Or (reverse ts) subst realGoal ancs, seen')
+            pure (Unfold (reverse ts) subst realGoal ancs, seen')
 
 
     evalSubTreeIO :: Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, RndGoalIO) -> IO (Set.Set DGoal, DTree)
@@ -169,10 +169,10 @@ topLevelIO g = do
       , isGen realGoal ancs
       = do
         let absGoals = abstract ancs realGoal subst env
-          -- Add `realGoal` to a seen set (`And` node in the tree).
+          -- Add `realGoal` to a seen set (`Abs` node in the tree).
         let newSeen = Set.insert realGoal seen
         (seen', ts) <- foldM (\(seen, ts) g -> fmap (:ts) <$> evalGenSubTree depth ancs seen g) (newSeen, []) absGoals
-        pure (seen', And (reverse ts) subst realGoal ancs)
+        pure (seen', Abs (reverse ts) subst realGoal ancs)
       | otherwise
       = do
         let newDepth = 1 + depth

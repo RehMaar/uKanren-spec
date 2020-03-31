@@ -21,6 +21,7 @@ import qualified SC.Unfold.NonRecUnfold as NU
 import qualified SC.Unfold.RecUnfold as RecU
 import qualified SC.SC as U
 import qualified SC.SCInst as SCI
+import qualified SC.SCU as SCU
 
 import SC.DTreeDotPrinter
 import qualified SC.DTree as DT
@@ -144,4 +145,9 @@ gGoal = f $ fresh ["x"] $ call "f" [V "x", V "x"]
            (V "x" === L.succ (V "z") &&& call "f" [V "z", V "y"])
            ||| (call "f" [V "x", V "z"] &&& call "h" [V "z", V "y"])
          )) . h
+
+g = [Invoke "lookupo" [V (616 :: Int), V 423, C "true" []],
+     Invoke "loginto" [C "Cons" [C "pair" [V 614, V 615], V 616], V 620, V 622],
+     Invoke "ando"    [V 621, V 622, C "false" []],
+     Invoke "loginto" [C "Cons" [C "pair" [V 614, V 615], V 616], V 623, V 627]]
 

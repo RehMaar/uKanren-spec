@@ -43,7 +43,7 @@ derive' = derivationStep'
         = (Success subst, seen, maxFreshVar env)
         -- If we already seen the same node, stop evaluate it.
         | checkLeaf (getGoal goal) seen
-        = (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
+        = (Renaming (getGoal goal) ancs subst env, seen, maxFreshVar env)
         -- | d > 4
         -- = (Prune (getGoal goal), seen, 0)
         -- If a node is generalization of one of ancestors generalize.
@@ -65,7 +65,7 @@ derive' = derivationStep'
                 )
                 (nSeen, [], maxFreshVar env)
                 aGoals
-            tree = And (reverse trees) subst rGoal ancs
+            tree = Abs (reverse trees) subst rGoal ancs
           in (tree, seen', maxVarNum)
         | otherwise
         = case unfoldStep goal env subst of
@@ -83,5 +83,5 @@ derive' = derivationStep'
                     )
                     (nSeen, [], maxFreshVar nEnv)
                     uGoals
-                tree = Or (reverse trees) subst rGoal ancs
+                tree = Unfold (reverse trees) subst rGoal ancs
               in (tree, seen', maxVarNum)

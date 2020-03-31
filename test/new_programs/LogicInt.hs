@@ -41,6 +41,8 @@ lookupoTest3 = lookupo $ fresh ["res", "st", "k"] $
 lookupoTest4 = lookupo $ fresh ["res", "tail"] $
   call "lookupo" [pair (C "x" []) trueo % (V "tail"), C "x" [], V "res"]
 
+lookupoTest5 = lookupo $ fresh ["a", "b", "c", "v", "r"] $ call "lookupo" [pair (V "a") (V "b") % V "c", V "v", V "r"]
+
 -------------------------------------------------------------
 {-
 lookupo2 :: G x -> G x
@@ -133,13 +135,17 @@ logintoCut =
   Let (def "loginto" ["subst", "formula", "result"] $
     fresh ["x", "y", "l", "r", "rl", "rr"] (
     (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
-    ||| (formula === neg (V "x")
+{-    ||| (formula === neg (V "x")
          &&& call "loginto" [subst, V "x", V "rl"]
-         &&& call "noto" [V "rl", result])
-    ||| (formula === conj (V "l") (V "r")
+         &&& call "noto" [V "rl", result])-}
+{-    ||| (formula === conj (V "l") (V "r")
          &&& call "loginto" [subst, V "l", V "rl"]
          &&& call "loginto" [subst, V "r", V "rr"]
-         &&& call "ando" [V "rl", V "rr", result])
+         &&& call "ando" [V "rl", V "rr", result])-}
+    ||| (formula === disj (V "l") (V "r")
+         &&& call "loginto" [subst, V "l", V "rl"]
+         &&& call "loginto" [subst, V "r", V "rr"]
+         &&& call "oro" [V "rl", V "rr", result])
     )) . lookupo . noto . ando . oro
 
 logintoEnv ="open GT\nopen OCanren\nopen Std\nopen Nat\nopen LogicExpr"
@@ -167,10 +173,10 @@ logintoNotAnd =
        &&& call "loginto" [subst, V "l", V "rl"]
        &&& call "loginto" [subst, V "r", V "rr"]
        &&& call "ando" [V "rl", V "rr", result])
-  -- ||| (formula === disj (V "l") (V "r")
-  --     &&& call "loginto" [subst, V "l", V "rl"]
-  --     &&& call "loginto" [subst, V "r", V "rr"]
-  --     &&& call "oroNotAnd" [V "rl", V "rr", result])
+  ||| (formula === disj (V "l") (V "r")
+       &&& call "loginto" [subst, V "l", V "rl"]
+       &&& call "loginto" [subst, V "r", V "rr"]
+       &&& call "oroNotAnd" [V "rl", V "rr", result])
   )) . lookupo . oroNotAnd . noto . ando
   where
     oroNotAnd :: G a -> G a

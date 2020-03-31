@@ -46,7 +46,7 @@ derive' :: UnfoldableGoal a =>
   -> (DTree, Set.Set DGoal, S)
 derive' goal ancs env subst seen depth
     | checkLeaf (getGoal goal) seen
-    = {-trace (">Leaf: " ++ pretty(getGoal goal)) $-} (Leaf (getGoal goal) ancs subst env, seen, maxFreshVar env)
+    = {-trace (">Renaming: " ++ pretty(getGoal goal)) $-} (Renaming (getGoal goal) ancs subst env, seen, maxFreshVar env)
     | depth > 8
     = (Prune (getGoal goal), seen, maxFreshVar env)
     | otherwise
@@ -64,7 +64,7 @@ derive' goal ancs env subst seen depth
                (\(a, t, i) -> (a, t:ts, max i m)) $
                  evalSubTree' (succ depth) (fixEnv m newEnv) newAncs seen g)
                (newSeen, [], maxFreshVar env) uGoals
-         in (Or (reverse ts) subst realGoal ancs, seen', maxVarNum)
+         in (Unfold (reverse ts) subst realGoal ancs, seen', maxVarNum)
    where
     evalSubTree' :: UnfoldableGoal a => Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, a) -> (Set.Set DGoal, DTree, S)
     evalSubTree' depth env ancs seen (subst, goal :: a)
@@ -76,14 +76,14 @@ derive' goal ancs env subst seen depth
       -- trace (">Abstract: " ++ pretty realGoal {-++ "; anc: " ++ show (findAnc realGoal ancs)-}) $
       let
         absGoals = abstract ancs realGoal subst env
-        -- Add `realGoal` to a seen set (`And` node in the tree).
+        -- Add `realGoal` to a seen set (`Abs` node in the tree).
         newSeen = Set.insert realGoal seen
       in {-trace (">>Got " ++ show (length absGoals) ++ " subgoals") $-} let
         (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                 (\(a, t, i) -> (a, t:ts, max i m)) $
                  evalGenSubTree m (succ depth) ancs seen g)
                  (newSeen, [], maxFreshVar env) absGoals
-          in (seen', And (reverse ts) subst realGoal ancs, maxVarNum)
+          in (seen', Abs (reverse ts) subst realGoal ancs, maxVarNum)
         | otherwise
         =
           let

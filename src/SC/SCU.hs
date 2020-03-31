@@ -23,10 +23,10 @@ import Debug.Trace
 toDTree :: UnfoldableGoal a => DTree' a -> DTree
 toDTree Fail = Fail
 toDTree (Success a) = Success a
-toDTree (Leaf ugoal b c d) = Leaf (getGoal ugoal) b c d
+toDTree (Renaming ugoal b c d) = Renaming (getGoal ugoal) b c d
 toDTree (Gen a b) = Gen (toDTree a) b
-toDTree (Or ts a ugoal b) = Or (toDTree <$> ts) a (getGoal ugoal) b
-toDTree (And ts a ugoal b) = And (toDTree <$> ts) a (getGoal ugoal) b
+toDTree (Unfold ts a ugoal b) = Unfold (toDTree <$> ts) a (getGoal ugoal) b
+toDTree (Abs ts a ugoal b) = Abs (toDTree <$> ts) a (getGoal ugoal) b
 
 type ListContext a = ([a], [a]) 
 
@@ -66,7 +66,7 @@ instance Show (DTreeEnd a) where
 endToNode :: DTreeEnd a -> DTree' a
 endToNode FailEnd            = Fail
 endToNode (SuccessEnd s)     = Success s
-endToNode (LeafEnd d ds s g) = Leaf d ds s g
+endToNode (LeafEnd d ds s g) = Renaming d ds s g
 
 data MNodeType = OrCon | AndCon
   deriving Show
@@ -80,8 +80,8 @@ data DTreeMulti a = DTreeMulti
 
 mnodeToNode :: DTreeMulti a -> [DTree' a] -> DTree' a
 mnodeToNode (DTreeMulti typ s d ds) children = tpFun typ children s d ds
-    where tpFun OrCon  = Or
-          tpFun AndCon = And
+    where tpFun OrCon  = Unfold
+          tpFun AndCon = Abs
 
 type DTreeGen = E.Sigma
 
@@ -106,9 +106,9 @@ parents = snd
 dTreeNode :: DTree' a -> DTreeNode a
 dTreeNode Fail            = DTreeEndNode FailEnd
 dTreeNode (Success s)     = DTreeEndNode (SuccessEnd s)
-dTreeNode (Leaf d ds s g) = DTreeEndNode (LeafEnd d ds s g)
-dTreeNode (Or cs s d ds)  = DTreeMultiNode (DTreeMulti OrCon s d ds) cs
-dTreeNode (And cs s d ds) = DTreeMultiNode (DTreeMulti AndCon s d ds) cs
+dTreeNode (Renaming d ds s g) = DTreeEndNode (LeafEnd d ds s g)
+dTreeNode (Unfold cs s d ds)  = DTreeMultiNode (DTreeMulti OrCon s d ds) cs
+dTreeNode (Abs cs s d ds) = DTreeMultiNode (DTreeMulti AndCon s d ds) cs
 dTreeNode (Gen c s)       = DTreeGenNode s c
 
 dTreeZipper parents dtree = (dTreeNode dtree, parents)
@@ -127,8 +127,8 @@ goNextChild (DTreeMultiNode dc cs, p) = do zipper <- listZipper cs
 goNextChild (DTreeGenNode s c, p)     = Just $ dTreeZipper (DTreeGenParent s : p) c
 
 isEmptyChild :: DTree' a -> Bool
-isEmptyChild (Or [] _ _ _)  = True
-isEmptyChild (And [] _ _ _) = True
+isEmptyChild (Unfold [] _ _ _)  = True
+isEmptyChild (Abs [] _ _ _) = True
 isEmptyChild (Gen t _)      = isEmptyChild t
 isEmptyChild _              = False
 
@@ -248,7 +248,7 @@ generateChildren :: forall a. UnfoldableGoal a =>
   -> Context       -- | Context
   -> DTreeMulti a  -- | Node in focus
   -> (Context, [DTree' a])
--- If node is <Or> we need to unfold a goal and return newly created possibly unfinished subtrees.
+-- If node is <Unfold> we need to unfold a goal and return newly created possibly unfinished subtrees.
 generateChildren ps ctx@(Context env) (DTreeMulti OrCon subst goal _) =
   case unfoldStep goal env subst of
      ([], _)        -> (ctx, [Fail])
@@ -268,14 +268,14 @@ goalToTree parents env subst goal
   | emptyGoal goal
   = Success subst
   | checkLeaf (getGoal goal) parentsSet
-  = Leaf goal parentsSet subst env
+  = Renaming goal parentsSet subst env
   | isGen (getGoal goal) parentsSet
   -- Need to check it until we completly add upward abstraction
 {-  , abs <- abstract parentsSet (getGoal goal) subst env
   , not $ abstractSame abs (getGoal goal)-}
-  = And [] subst goal parentsSet
+  = Abs [] subst goal parentsSet
   | otherwise
-  = Or [] subst goal parentsSet
+  = Unfold [] subst goal parentsSet
   where parentsSet = Set.fromList parents
         {- Want to leave original parents -}
 

@@ -31,14 +31,14 @@ residualizeSubst subst =
 --
 -- Marked Derivation Tree
 --
--- `Bool` flag for `And` and `Or` constructors set to True
--- if some `Leaf` is a variant of one of these nodes.
+-- `Bool` flag for `Abs` and `Unfold` constructors set to True
+-- if some `Renaming` is a variant of one of these nodes.
 --
 data MarkedTree = Fail
   | Success E.Sigma
-  | Or  [MarkedTree] E.Sigma DT.DGoal Bool
-  | And [MarkedTree] E.Sigma DT.DGoal Bool
-  | Leaf DT.DGoal E.Sigma
+  | Unfold  [MarkedTree] E.Sigma DT.DGoal Bool
+  | Abs [MarkedTree] E.Sigma DT.DGoal Bool
+  | Renaming DT.DGoal E.Sigma
   | Gen MarkedTree E.Sigma
   deriving Eq
 --
@@ -47,10 +47,10 @@ data MarkedTree = Fail
 instance Show MarkedTree where
   show Fail                  = "Fail"
   show (Success s)           = "{Success}"
-  show (Or ts _ goal isVar)  = "{Or " ++ show isVar ++ "\n [" ++ concatMap show ts ++ "]\n}"
-  show (And ts _ goal isVar) = "{And " ++ show isVar ++ "\n [" ++ concatMap show ts ++ "]\n}"
+  show (Unfold ts _ goal isVar)  = "{Unfold " ++ show isVar ++ "\n [" ++ concatMap show ts ++ "]\n}"
+  show (Abs ts _ goal isVar) = "{Abs " ++ show isVar ++ "\n [" ++ concatMap show ts ++ "]\n}"
   show (Gen t s)             = "{Gen  " ++ show t ++ "\n}"
-  show (Leaf g _)          = "{Leaf " ++ show g ++ "}"
+  show (Renaming g _)          = "{Renaming " ++ show g ++ "}"
 
 --
 -- Change to downscale the tree.
@@ -62,40 +62,40 @@ instance Dot MarkedTree where
   dot Fail = "Fail"
   dot (Success s)   = "Success <BR/> " ++ dotSigma s
   dot (Gen _ s)     = "Gen <BR/> Generalizer: " ++ dotSigma s
-  dot (And _ s d f) = printf "And %s <BR/> Subst: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dot d)
-  dot (Or ts s d f) = printf "Or %s <BR/> Subst: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dot d)
-  dot (Leaf goal s) = printf "Leaf <BR/> Goal: %s <BR/> Subst: %s" (dot goal)  (dotSigma s)
+  dot (Abs _ s d f) = printf "Abs %s <BR/> Subst: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dot d)
+  dot (Unfold ts s d f) = printf "Unfold %s <BR/> Subst: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dot d)
+  dot (Renaming goal s) = printf "Renaming <BR/> Goal: %s <BR/> Subst: %s" (dot goal)  (dotSigma s)
 
 showF True = "T"
 showF _ = ""
 
 instance DotPrinter MarkedTree where
-  labelNode t@(Or ch _ _ _) = addChildren t ch
-  labelNode t@(And ch _ _ _) = addChildren t ch
+  labelNode t@(Unfold ch _ _ _) = addChildren t ch
+  labelNode t@(Abs ch _ _ _) = addChildren t ch
   labelNode t@(Gen ch _) = addChild t ch
   labelNode t = addLeaf t
 
--- (Leaf, Fail, Success)
+-- (Renaming, Fail, Success)
 countLeafs :: MarkedTree -> (Int, Int, Int)
-countLeafs (Or ts _ _ _)  = foldl (\(n1, m1, k1) (n2, m2, k2) -> (n1 + n2, m1 + m2, k1 + k2)) (0, 0, 0) (countLeafs <$> ts)
-countLeafs (And ts _ _ _) = foldl (\(n1, m1, k1) (n2, m2, k2) -> (n1 + n2, m1 + m2, k1 + k2)) (0, 0, 0) (countLeafs <$> ts)
+countLeafs (Unfold ts _ _ _)  = foldl (\(n1, m1, k1) (n2, m2, k2) -> (n1 + n2, m1 + m2, k1 + k2)) (0, 0, 0) (countLeafs <$> ts)
+countLeafs (Abs ts _ _ _) = foldl (\(n1, m1, k1) (n2, m2, k2) -> (n1 + n2, m1 + m2, k1 + k2)) (0, 0, 0) (countLeafs <$> ts)
 countLeafs (Gen t _) = countLeafs t
 countLeafs Fail        = (0, 1, 0)
 countLeafs (Success _) = (0, 0, 1)
-countLeafs (Leaf _ _)  = (1, 0, 0)
+countLeafs (Renaming _ _)  = (1, 0, 0)
 
 countDepth :: MarkedTree -> Int
-countDepth (Or ts _ _ _) = 1 + foldl max 0 (countDepth <$> ts)
-countDepth (And ts _ _ _) = 1 + foldl max 0 (countDepth <$> ts)
+countDepth (Unfold ts _ _ _) = 1 + foldl max 0 (countDepth <$> ts)
+countDepth (Abs ts _ _ _) = 1 + foldl max 0 (countDepth <$> ts)
 countDepth (Gen t _) = 1 + countDepth t
 countDepth _ = 1
 
 -- -> (Count of nodes, Count of calls)
 countNodes :: MarkedTree -> (Int, Int)
-countNodes (Or ts _ _ True)  = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b + 1)
-countNodes (And ts _ _ True) = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b + 1)
-countNodes (Or ts _ _ _)     = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b)
-countNodes (And ts _ _ _)    = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b)
+countNodes (Unfold ts _ _ True)  = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b + 1)
+countNodes (Abs ts _ _ True) = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b + 1)
+countNodes (Unfold ts _ _ _)     = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b)
+countNodes (Abs ts _ _ _)    = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) (0, 0) (countNodes <$> ts) in (a + 1, b)
 countNodes (Gen t _) = let (a, b) = countNodes t in (a + 1, b)
 countNodes _ = (1, 0)
 
@@ -108,21 +108,21 @@ makeMarkedTree :: DT.DTree -> MarkedTree
 makeMarkedTree x = makeMarkedTree' x (DT.leaves x) x
   where
     makeMarkedTree' :: DT.DTree      -- Root of the tree
-                    -> [DT.DGoal]    -- Leaves of the tree (Only `Leaf` nodes)
+                    -> [DT.DGoal]    -- Leaves of the tree (Only `Renaming` nodes)
                     -> DT.DTree      -- Currently traversed tree.
                     -> MarkedTree
     makeMarkedTree' _ _ DT.Fail                  = Fail
     makeMarkedTree' _ _ (DT.Success s)           = Success s
     makeMarkedTree' root leaves (DT.Gen t s)     = Gen (makeMarkedTree' root leaves t) s
-    makeMarkedTree' root leaves (DT.Leaf goal _ s _) = Leaf goal s
-    makeMarkedTree' root leaves (DT.Or ts s g a)  = let
+    makeMarkedTree' root leaves (DT.Renaming goal _ s _) = Renaming goal s
+    makeMarkedTree' root leaves (DT.Unfold ts s g a)  = let
         isVar = any (`isVariant` g) leaves
         ts'   = makeMarkedTree' root leaves <$> ts
-      in Or ts' s g isVar
-    makeMarkedTree' root leaves (DT.And ts s g a)  = let
+      in Unfold ts' s g isVar
+    makeMarkedTree' root leaves (DT.Abs ts s g a)  = let
         isVar = any (`isVariant` g) leaves
         ts'   = makeMarkedTree' root leaves <$> ts
-      in And ts' s g isVar
+      in Abs ts' s g isVar
 
 --
 -- Get all variables from the given term.
@@ -217,18 +217,18 @@ isInvoke _ = False
 --
 -- Collect all invocation from the derivation tree.
 --
-collectCallNames cs (And ts _ goal True) = let c = (goal, genCall' cs goal) in foldl collectCallNames (c:cs) ts
-collectCallNames cs (Or  ts _ goal True) = let c = (goal, genCall' cs goal) in foldl collectCallNames (c:cs) ts
-collectCallNames cs (Or  ts _ _ _) = foldl collectCallNames cs ts
-collectCallNames cs (And ts _ _ _) = foldl collectCallNames cs ts
+collectCallNames cs (Abs ts _ goal True) = let c = (goal, genCall' cs goal) in foldl collectCallNames (c:cs) ts
+collectCallNames cs (Unfold  ts _ goal True) = let c = (goal, genCall' cs goal) in foldl collectCallNames (c:cs) ts
+collectCallNames cs (Unfold  ts _ _ _) = foldl collectCallNames cs ts
+collectCallNames cs (Abs ts _ _ _) = foldl collectCallNames cs ts
 collectCallNames cs (Gen t _) = collectCallNames cs t
 collectCallNames cs _ = cs
 
 topLevel t = topLevel' $ cutFailedDerivations $ makeMarkedTree t
   where
     topLevel' Fail = error "How to residualize failed derivation?"
-    topLevel' mt'@(Or f1 f2 goal f3) = let
-      mt = Or f1 f2 goal True
+    topLevel' mt'@(Unfold f1 f2 goal f3) = let
+      mt = Unfold f1 f2 goal True
       cs = collectCallNames [] mt
       (defs, body) = res cs [] mt
       topLevelArgs = getArgsForPostEval cs goal
@@ -261,17 +261,17 @@ res = f
       in (def : concat defs, goal')
 
 
-    f cs s (Or ts subst dg True) = helper cs s ts subst dg (:\/:)
+    f cs s (Unfold ts subst dg True) = helper cs s ts subst dg (:\/:)
 
-    f cs s (Or ts subst dg _)    = let
+    f cs s (Unfold ts subst dg _)    = let
         diff = subst \\ s
         un   = subst `union` s
         (defs, goals) = unzip $ f cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:\/:) goals)
 
-    f cs s (And ts subst dg True) = helper cs s ts subst dg (:/\:)
+    f cs s (Abs ts subst dg True) = helper cs s ts subst dg (:/\:)
 
-    f cs s (And ts subst dg _)    = let
+    f cs s (Abs ts subst dg _)    = let
         diff = subst \\ s
         un   = subst `union` s
         (defs, goals) = unzip $ f cs un <$> ts
@@ -280,7 +280,7 @@ res = f
     f cs s (Gen t subst) =
       second (applySubst (subst \\ s)) $ f cs (s `union` subst) t
 
-    f cs s (Leaf dg subst) =
+    f cs s (Renaming dg subst) =
         ([], applySubst (subst \\ s) $ findInvoke cs dg)
 
     f _ s  (Success subst)
@@ -333,8 +333,8 @@ mapTwoLists l1 l2
       | otherwise = Just (m:as)
     checkMap' _ _ = Nothing
 
--- За один шаг. Предполагаем, что всё строилось слева направо. В процессе прохода собираем список плохих помеченных `Or`
--- и каждый лист, который вариант плохого `Or`, обрабатывать как Fail.
+-- За один шаг. Предполагаем, что всё строилось слева направо. В процессе прохода собираем список плохих помеченных `Unfold`
+-- и каждый лист, который вариант плохого `Unfold`, обрабатывать как Fail.
 cutFailedDerivations = fromMaybe Fail . fst . cfd Set.empty 
   where
     cfd :: Set.Set DT.DGoal -- *Плохие* узлы, которые привели только к Fail узлам.
@@ -342,16 +342,16 @@ cutFailedDerivations = fromMaybe Fail . fst . cfd Set.empty
         -> (Maybe MarkedTree, Set.Set DT.DGoal) -- Новое поддерево и обновлённый список *плохих* узлов
     cfd gs Fail = (Nothing, gs)
     cfd gs t@(Success _) = (Just t, gs)
-    cfd gs t@(Leaf goal _)
+    cfd gs t@(Renaming goal _)
       | Just _ <- find (isVariant goal) gs
       = (Nothing, gs)
       | otherwise
       = (Just t, gs)
     cfd gs (Gen t s) = first (flip Gen s <$>) (cfd gs t)
-    cfd gs (Or  ts f1 g True) = cfdCommon1 Or gs ts f1 g
-    cfd gs (And ts f1 g True) = cfdCommon1 And gs ts f1 g
-    cfd gs (Or  ts f1 g f3)   = cfdCommon2 Or  gs ts f1 g f3
-    cfd gs (And ts f1 g f3)   = cfdCommon2 And gs ts f1 g f3
+    cfd gs (Unfold  ts f1 g True) = cfdCommon1 Unfold gs ts f1 g
+    cfd gs (Abs ts f1 g True) = cfdCommon1 Abs gs ts f1 g
+    cfd gs (Unfold  ts f1 g f3)   = cfdCommon2 Unfold  gs ts f1 g f3
+    cfd gs (Abs ts f1 g f3)   = cfdCommon2 Abs gs ts f1 g f3
 
     cfdCommon1 ctr gs ts f1 g = let
         (mts, gs') = foldl foldCfd ([], gs) ts
