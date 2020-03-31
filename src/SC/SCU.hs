@@ -13,6 +13,9 @@ import qualified Eval as E
 
 import qualified Data.Set as Set
 import Data.Foldable (foldl')
+import Data.List as List (union)
+
+import Embedding
 
 import PrettyPrint
 import Debug.Trace
@@ -203,16 +206,18 @@ isZipperAnOurParent _ _ = False
 
 stepZipper :: UnfoldableGoal a => DTreeZipper a -> Context -> Maybe (DTreeZipper a, Context)
 -- There's an option that we may want to do upward abstraction.
---
-{-stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
+stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
   | needUpwardGen (Set.fromList $ parentGoals parents) ctx mn
   , Just anc <- findAncUpward (getGoal $ dtmGoal mn) (Set.fromList $ parentGoals parents)
   =
-    trace ("Upward: " ++ show (getGoal $ dtmGoal mn) ++ "\nAnc: " ++ show anc) $
-    let (Just (_, parents')) = stepUntil goUp (isZipperAnOurParent anc) zipper
-    in Just ((DTreeMultiNode mn{dtmMnodeType = OrCon} [], parents'), ctx)-}
+    let (Just (parentNode, parents')) = stepUntil goUp (isZipperAnOurParent anc) zipper
+        newSubst = updateSubst (dtmSubst $ dtnMultiNode parentNode) (zipVars anc (getGoal $ dtmGoal mn))
+    in
+    trace ("Upward: " ++ show (getGoal $ dtmGoal mn) ++ "\nAnc: " ++ show anc ++ "\nNewSubst: " ++ show newSubst ++ "\n") $
+    Just ((DTreeMultiNode mn{dtmMnodeType = OrCon, dtmSubst = newSubst} [], parents'), ctx)
 -- Empty <children> for MultiNode means that we need to fill it which possible children
-stepZipper (DTreeMultiNode mn [], parents) ctx = let
+stepZipper (DTreeMultiNode mn [], parents) ctx =
+  let
   realGoal = getGoal $ dtmGoal mn
   -- First of all, need to generate nearest children of the node-in-focus
   (ctx', children) = generateChildren (parentGoals parents) ctx mn
@@ -266,13 +271,39 @@ goalToTree parents env subst goal
   = Leaf goal parentsSet subst env
   | isGen (getGoal goal) parentsSet
   -- Need to check it until we completly add upward abstraction
-  , abs <- abstract parentsSet (getGoal goal) subst env
-  , not $ abstractSame abs (getGoal goal)
+{-  , abs <- abstract parentsSet (getGoal goal) subst env
+  , not $ abstractSame abs (getGoal goal)-}
   = And [] subst goal parentsSet
-{-  | isUpwardGen (getGoal goal) parentsSet
-  = And [] subst goal parentsSet
--}
   | otherwise
   = Or [] subst goal parentsSet
   where parentsSet = Set.fromList parents
         {- Want to leave original parents -}
+
+-- | After upward abstraction we need to fix accumulated substitution for the node
+-- | to remove/change variables to
+updateSubst :: E.Sigma -> [(S, Ts)] -> E.Sigma
+updateSubst subst mp = mp ++ subst
+
+goalVars :: DGoal -> [S]
+goalVars = foldr List.union [] . map invokeVars
+
+invokeVars :: G a -> [a]
+invokeVars (Invoke _ args) = concatMap getVars $ filter hasVars args
+  where
+    getVars (V i) = [i]
+    getVars (C _ ts) = concatMap getVars ts
+
+    hasVars (V _) = True
+    hasVars (C _ ts) = any hasVars ts && not (null ts)
+
+mapVars i1@(Invoke n1 a1) i2@(Invoke n2 a2)
+  | n1 == n2
+  , length a1 == length a2
+  = concatMap (uncurry mapTerms) $ zip a1 a2
+  | otherwise
+  = error $ "Can't map variables of invokes <" ++ show i1 ++ "> and <" ++ show i2 ++ ">"
+ where mapTerms (V v1)    v2 = [(v1, v2)]
+       mapTerms (C _ ts1) (C _ ts2) = concatMap (uncurry mapTerms) $ zip ts1 ts2
+       mapTerms t1 t2 = error ("Can't map terms <" ++ show t1 ++ "> and <" ++ show t2 ++ ">")
+
+zipVars g = concatMap (uncurry mapVars) . zip g
