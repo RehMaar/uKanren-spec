@@ -36,8 +36,8 @@ data DTree' a =
   -- ^Intermediate node, that contains a conjunctions.
   -- Its children are parts of a disjunction.
   | Abs [DTree' a] E.Sigma a  (Set.Set DGoal)
-  -- ^Node for an abstracted goal.
-  | UAbs [DTree' a] E.Sigma a  (Set.Set DGoal) [(S, Ts)]
+--  -- ^Node for an abstracted goal.
+--  | UAbs [DTree' a] E.Sigma a  (Set.Set DGoal) E.Sigma
   -- ^Node for an upward abstracted goal. Also have to save arguments mapping.
   | Renaming a (Set.Set DGoal) E.Sigma E.Gamma
   -- ^An expression in the node is a renaming of any parent (or already seen) node.

@@ -15,8 +15,8 @@ instance DotPrinter DTree where
   labelNode t@(Gen ch _) = addChild t ch
   labelNode t = addLeaf t
 
---dotSigma _ = ""
-dotSigma = E.dotSigma
+dotSigma _ = ""
+--dotSigma = E.dotSigma
 
 instance Dot DTree where
   dot Fail = "Fail"
