@@ -46,7 +46,9 @@ class Show a => UnfoldableGoal a where
 
 type Derivable a =  a -> Set.Set DGoal -> E.Gamma -> E.Sigma -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
 
-type SuperComp = G X -> (DTree, G S, [S])
+type SuperCompGen a = G X -> (DTree' a, G S, [S])
+
+type SuperComp = SuperCompGen DGoal
 
 newtype Derive a = Derive { derive :: Derivable a }
 

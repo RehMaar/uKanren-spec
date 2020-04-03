@@ -8,6 +8,7 @@ import SC.DTree
 import SC.SC
 import SC.SC1
 import SC.SC2
+import qualified SC.SCU as SCU
 
 import qualified SC.Unfold.SeqUnfold as SU
 import qualified SC.Unfold.FullUnfold as FU
@@ -63,3 +64,28 @@ run1 name = fromJust $ lookup name scConfs1
 
 run2 :: String -> SuperComp
 run2 name = fromJust $ lookup name scConfs2
+
+first3 :: (a -> a') -> (a, b, c) -> (a', b, c)
+first3 f (a, b, c) = (f a, b, c)
+
+scompUSU  g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen SU.SUGoal) g
+scompUFU  g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen FU.FUGoal) g
+scompUNU  g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen NU.NUGoal) g
+scompURcU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen RecU.RecGoal) g
+scompUMxU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen MaxU.MaxGoal) g
+scompUMnU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen MinU.MinGoal) g
+scompUFsU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen FstU.FstGoal) g
+
+scConfsU :: [(String, SuperComp)]
+scConfsU =
+  [ ("SU",   scompUSU )
+  , ("FU",   scompUFU )
+  , ("NU",   scompUNU )
+  , ("RU",   scompURcU)
+  , ("MxU",  scompUMxU)
+  , ("MnU",  scompUMnU)
+  , ("FstU", scompUFsU)
+  ]
+
+runU :: String -> SuperComp
+runU name = fromJust $ lookup name scConfsU

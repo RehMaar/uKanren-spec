@@ -91,18 +91,6 @@ mnodeToNode (DTreeMulti typ s d ds) children = tpFun typ children s d ds
   tpFun UnfoldCon = Unfold
   tpFun AbsCon    = Abs
 
--- |Description of `UAbs` node
-{-data DTreeUAbs a = DTreeUAbs
-                 { dtuaSubst :: E.Sigma
-                 , dtuaGoal :: a
-                 , dtuaParents :: Set.Set DGoal
-                 , dtuaArgs :: E.Sigma
-                 }
-  deriving Show
-
-uabsToNode :: DTreeUAbs a -> [DTree' a] -> DTree' a
-uabsToNode (DTreeUAbs s g p a) children = UAbs children s g p a-}
-
 -- |Description of `Gen` node
 type DTreeGen = E.Sigma
 
@@ -110,8 +98,6 @@ type DTreeGen = E.Sigma
 data DTreeParent a = DTreeMNodeParent { dtpMNode :: DTreeMulti a, dtpChildren :: ListContext (DTree' a) }
                   -- ^MultiNode Parenthood.
                   -- Stores the rest of its children with a hole for a currently focused one.
-                   -- | DTreeUAbsParent  { dtpUaNode :: DTreeUAbs a, dtpChildren :: ListContext (DTree' a) }
-                  -- ^UAbs Parenthood.
                    | DTreeGenParent   { dtpGen :: DTreeGen }
                   -- ^Gen Parenthood.
   deriving Show
@@ -119,13 +105,11 @@ data DTreeParent a = DTreeMNodeParent { dtpMNode :: DTreeMulti a, dtpChildren ::
 -- |Tree Context. Describes focused node.
 data DTreeNode a = DTreeEndNode   { dtnEndNode :: DTreeEnd a }
                  | DTreeMultiNode { dtnMultiNode :: DTreeMulti a, dtnChildren :: [DTree' a] }
-                 -- | DTreeUAbsNode  { dtnUAbsNode :: DTreeUAbs a, dtnChildren :: [DTree' a] }
                  | DTreeGenNode   { dtnGen :: DTreeGen, dtnChild :: DTree' a }
   deriving Show
 
 nodeToDTree (DTreeEndNode end             ) = endToNode end
 nodeToDTree (DTreeMultiNode mnode children) = mnodeToNode mnode children
--- nodeToDTree (DTreeUAbsNode node children  ) = uabsToNode node children
 nodeToDTree (DTreeGenNode   gen   t       ) = Gen t gen
 
 -- |Tree Zipper: a focused node and its context (all their parents).
@@ -141,7 +125,6 @@ dTreeNode (Success s          ) = DTreeEndNode (SuccessEnd s)
 dTreeNode (Renaming d  ds s g ) = DTreeEndNode (RenamingEnd d ds s g)
 dTreeNode (Unfold cs s d ds)    = DTreeMultiNode (DTreeMulti UnfoldCon s d ds) cs
 dTreeNode (Abs cs s  d ds)      = DTreeMultiNode (DTreeMulti AbsCon s d ds) cs
--- dTreeNode (UAbs cs s  d ds as)  = DTreeUAbsNode (DTreeUAbs s d ds as) cs
 dTreeNode (Gen c s            ) = DTreeGenNode s c
 
 -- | Create a zipper
@@ -165,9 +148,6 @@ goFirstChild (DTreeEndNode _      , _) = Nothing
 goFirstChild (DTreeMultiNode dc cs, p) = do
   (c, lz) <- listZipper cs
   pure $ dTreeZipper (DTreeMNodeParent dc lz : p) c
--- goFirstChild (DTreeUAbsNode dc cs, p) = do
---  (c, lz) <- listZipper cs
---  pure $ dTreeZipper (DTreeUAbsParent dc lz : p) c
 goFirstChild (DTreeGenNode s c, p) =
   Just $ dTreeZipper (DTreeGenParent s : p) c
 
@@ -178,10 +158,6 @@ goNextChild (DTreeMultiNode dc cs, p) = do
   zipper         <- listZipper cs
   (child, lzCtx) <- lzShiftUntil isEmptyChild zipper
   pure $ dTreeZipper (DTreeMNodeParent dc lzCtx : p) child
-{-goNextChild (DTreeUAbsNode dc cs, p) = do
-  zipper         <- listZipper cs
-  (child, lzCtx) <- lzShiftUntil isEmptyChild zipper
-  pure $ dTreeZipper (DTreeUAbsParent dc lzCtx : p) child-}
 goNextChild (DTreeGenNode s c, p) = Just $ dTreeZipper (DTreeGenParent s : p) c
 
 isEmptyChild :: DTree' a -> Bool
@@ -207,11 +183,6 @@ goRightOrUp (c, DTreeMNodeParent mn childrenContext : ps)
     (dTreeNode nc, DTreeMNodeParent mn newChildrenContext : ps)
   | otherwise = Just (DTreeMultiNode mn (zipperList lz), ps)
   where lz = (nodeToDTree c, childrenContext)
-{-goRightOrUp (c, DTreeUAbsParent mn childrenContext : ps)
-  | Just (nc, newChildrenContext) <- lzRight lz = Just
-    (dTreeNode nc, DTreeUAbsParent mn newChildrenContext : ps)
-  | otherwise = Just (DTreeUAbsNode mn (zipperList lz), ps)
-  where lz = (nodeToDTree c, childrenContext)-}
 goRightOrUp _ = Nothing
 
 -- | Take a step until a `predicate`.
@@ -228,10 +199,11 @@ instance Show Context where
   show _ = "{context}"
 
 
-runnest gl =
-  let (goal, env, _) = goalXtoGoalS gl
+supercompUGen :: UnfoldableGoal a => SuperCompGen a
+supercompUGen gl =
+  let (goal, env, names) = goalXtoGoalS gl
       ug             = initGoal [goal]
-  in  runZipper ug env
+  in (zipperToDTree $ runZipper ug env, goal, names)
 
 -- |Run a zipper to build a tree.
 runZipper :: UnfoldableGoal a => a -> E.Gamma -> DTreeZipper a
@@ -239,7 +211,7 @@ runZipper goal env =
   let ctx = Context env
       zipper =
           (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal Set.empty) [], [])
-  in  f zipper ctx
+  in  runner zipper ctx
 
 runZipper' :: UnfoldableGoal a => a -> E.Gamma -> (DTreeZipper a, Context)
 runZipper' goal env =
@@ -248,10 +220,10 @@ runZipper' goal env =
           (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal Set.empty) [], [])
   in  (,) zipper ctx
 
-f :: UnfoldableGoal a => DTreeZipper a -> Context -> DTreeZipper a
-f z ctx = case stepZipper z ctx of
+runner :: UnfoldableGoal a => DTreeZipper a -> Context -> DTreeZipper a
+runner z ctx = case stepZipper z ctx of
   Nothing        -> z
-  Just (z', ctx) -> f z' ctx
+  Just (z', ctx) -> runner z' ctx
 
 -- |Get goals from `DTreeParent` type.
 parentGoals :: UnfoldableGoal a => [DTreeParent a] -> [DGoal]
@@ -259,12 +231,9 @@ parentGoals [] = []
 parentGoals (p : ps)
   | DTreeGenParent _ <- p      = parentGoals ps
   | DTreeMNodeParent nm _ <- p = getGoal (dtmGoal nm) : parentGoals ps
-  -- | DTreeUAbsParent  nm _ <- p = getGoal (dtuaGoal nm) : parentGoals ps
 
 isZipperAnOurParent parent zipper@(DTreeMultiNode mn _, _) =
   parent == getGoal (dtmGoal mn)
---isZipperAnOurParent parent zipper@(DTreeUAbsNode mn _, _) =
---  parent == getGoal (dtuaGoal mn)
 isZipperAnOurParent _ _ = False
 
 stepZipper
@@ -277,8 +246,6 @@ stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
   | needUpwardGen parentSet ctx mn
   , Just anc <- findAncUpward goal parentSet
   = let (Just (parentNode, parents')) = stepUntil goUp (isZipperAnOurParent anc) zipper
-{-        uan = DTreeUAbs (parentSubst parentNode) (dtmGoal mn) parentSet (zipVars goal anc)
-    in Just ((DTreeUAbsNode uan [], parents'), ctx)-}
         varSubst = zipVars goal anc
         child = Unfold [] (parentSubst parentNode) (dtmGoal mn) parentSet
         node = DTreeGenNode varSubst child
@@ -288,7 +255,6 @@ stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
         goal = getGoal $ dtmGoal mn
 
         parentSubst (DTreeMultiNode mn _) = dtmSubst mn
-        -- parentSubst (DTreeUAbsNode mn _) = dtuaSubst mn
         parentSubst _ = error "stepZipper: wrong kind of node as a parent!"
 
 -- Empty <children> for MultiNode means that we need to fill it which possible children
@@ -347,14 +313,10 @@ goalToTree :: UnfoldableGoal a => [DGoal] -> E.Gamma -> E.Sigma -> a -> DTree' a
 goalToTree parents env subst goal
   | emptyGoal goal                      = Success subst
   | checkLeaf (getGoal goal) parentsSet = Renaming goal parentsSet subst env
-  | isGen (getGoal goal) parentsSet
-  -- Need to check it until we completly add upward abstraction
-{-  , abs <- abstract parentsSet (getGoal goal) subst env
-  , not $ abstractSame abs (getGoal goal)-}
-                                    = Abs [] subst goal parentsSet
+  | isGen (getGoal goal) parentsSet     = Abs [] subst goal parentsSet
   | otherwise                           = Unfold [] subst goal parentsSet
   where parentsSet = Set.fromList parents
-        {- Want to leave original parents -}
+        {- Want to leave original parents now -}
 
 goalVars :: DGoal -> [S]
 goalVars = foldr (List.union . invokeVars) []
