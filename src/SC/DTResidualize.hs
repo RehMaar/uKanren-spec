@@ -55,8 +55,8 @@ instance Show MarkedTree where
 --
 -- Change to downscale the tree.
 --
---dotSigma _ = ""
-dotSigma = E.dotSigma
+dotSigma _ = ""
+--dotSigma = E.dotSigma
 
 instance Dot MarkedTree where
   dot Fail = "Fail"
@@ -244,10 +244,10 @@ foldGoals _ [] = error "Empty goals!"
 foldGoals _ [g] = g
 foldGoals f gs  = foldr1 f gs
 
-res = f
+res = go
   where
     helper cs s ts subst goal foldf = let
-        (defs, goals) = unzip $ f cs (subst `union` s) <$> ts
+        (defs, goals) = unzip $ go cs (subst `union` s) <$> ts
 
         Call name args argsOrig = findCall cs goal
 
@@ -261,33 +261,33 @@ res = f
       in (def : concat defs, goal')
 
 
-    f cs s (Unfold ts subst dg True) = helper cs s ts subst dg (:\/:)
+    go cs s (Unfold ts subst dg True) = helper cs s ts subst dg (:\/:)
 
-    f cs s (Unfold ts subst dg _)    = let
+    go cs s (Unfold ts subst dg _)    = let
         diff = subst \\ s
         un   = subst `union` s
-        (defs, goals) = unzip $ f cs un <$> ts
+        (defs, goals) = unzip $ go cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:\/:) goals)
 
-    f cs s (Abs ts subst dg True) = helper cs s ts subst dg (:/\:)
+    go cs s (Abs ts subst dg True) = helper cs s ts subst dg (:/\:)
 
-    f cs s (Abs ts subst dg _)    = let
+    go cs s (Abs ts subst dg _)    = let
         diff = subst \\ s
         un   = subst `union` s
-        (defs, goals) = unzip $ f cs un <$> ts
+        (defs, goals) = unzip $ go cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:/\:) goals)
 
-    f cs s (Gen t subst) =
-      second (applySubst (subst \\ s)) $ f cs (s `union` subst) t
+    go cs s (Gen t subst) =
+      second (applySubst (subst \\ s)) $ go cs (s `union` subst) t
 
-    f cs s (Renaming dg subst) =
+    go cs s (Renaming dg subst) =
         ([], applySubst (subst \\ s) $ findInvoke cs dg)
 
-    f _ s  (Success subst)
+    go _ s  (Success subst)
       | null (subst \\ s) = ([], Invoke "success" [])
       | otherwise         = ([], residualizeSubst (subst \\ s))
 
-    f _ _ Fail = ([], Invoke "failure" [])
+    go _ _ Fail = ([], Invoke "failure" [])
 
 applySubst [] = id
 applySubst diff = (residualizeSubst diff :/\:)

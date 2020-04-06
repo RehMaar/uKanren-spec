@@ -13,7 +13,7 @@ import qualified Eval                          as E
 
 import qualified Data.Set                      as Set
 import           Data.List                     as List
-                                                          ( union )
+                                                          ( union, find )
 import           Data.Foldable                            ( foldl' )
 
 import           Embedding
@@ -65,7 +65,7 @@ data DTreeEnd a = FailEnd
 instance Show (DTreeEnd a) where
   show FailEnd        = "FailEnd"
   show (SuccessEnd s) = "SuccessEnd"
-  show RenamingEnd{}  = "LeadEnd"
+  show RenamingEnd{}  = "RenamingEnd"
 
 endToNode :: DTreeEnd a -> DTree' a
 endToNode FailEnd                = Fail
@@ -139,6 +139,24 @@ zipperToDTree zipper = foldl' parentToDTree
   parentToDTree tree (DTreeGenParent gen) = Gen tree gen
   parentToDTree tree (DTreeMNodeParent mnode lz) =
     let children = zipperList (tree, lz) in mnodeToNode mnode children
+
+-- |Return a set of already met and fully evaluated nodes.
+-- Such nodes are current node's parents left children.
+readyNodes :: DTreeZipper a -> [a]
+readyNodes (_, parents) = concatMap ready' parents
+  where
+    ready' (DTreeMNodeParent mn children) = dtmGoal mn : readyLC children
+    ready' (DTreeGenParent _) = []
+
+    readyLC :: ListContext (DTree' a) -> [a]
+    readyLC (c, _) = concatMap readyInTree c
+
+    readyInTree :: DTree' a -> [a]
+    readyInTree (Unfold ts _ gl _) = gl : concatMap readyInTree ts
+    readyInTree (Abs ts _ gl _) = gl : concatMap readyInTree ts
+    readyInTree (Gen t _) = readyInTree t
+    readyInTree (Renaming gl _ _ _) = [gl]
+    readyInTree _ = []
 
 -- |Zipper walkers
 
@@ -225,6 +243,27 @@ runner z ctx = case stepZipper z ctx of
   Nothing        -> z
   Just (z', ctx) -> runner z' ctx
 
+------------
+
+
+runDebug n gl =
+  let (goal, env, names) = goalXtoGoalS gl
+      ug                 = initGoal [goal]
+  in zipperToDTree $ runZipperN n ug env
+
+runZipperN :: UnfoldableGoal a => Int -> a -> E.Gamma -> DTreeZipper a
+runZipperN n goal env =
+  let ctx = Context env
+      zipper =
+          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal Set.empty) [], [])
+  in  runnerN n zipper ctx
+
+runnerN :: UnfoldableGoal a => Int -> DTreeZipper a -> Context -> DTreeZipper a
+runnerN 0 z _ = z
+runnerN n z ctx = case stepZipper z ctx of
+  Nothing -> z
+  Just (z', ctx) -> runnerN (pred n) z' ctx
+
 -- |Get goals from `DTreeParent` type.
 parentGoals :: UnfoldableGoal a => [DTreeParent a] -> [DGoal]
 parentGoals [] = []
@@ -232,9 +271,9 @@ parentGoals (p : ps)
   | DTreeGenParent _ <- p      = parentGoals ps
   | DTreeMNodeParent nm _ <- p = getGoal (dtmGoal nm) : parentGoals ps
 
-isZipperAnOurParent parent zipper@(DTreeMultiNode mn _, _) =
+isZipperOurParent parent zipper@(DTreeMultiNode mn _, _) =
   parent == getGoal (dtmGoal mn)
-isZipperAnOurParent _ _ = False
+isZipperOurParent _ _ = False
 
 stepZipper
   :: UnfoldableGoal a
@@ -243,14 +282,17 @@ stepZipper
   -> Maybe (DTreeZipper a, Context)
 -- There's an option that we may want to do upward abstraction.
 stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
-  | needUpwardGen parentSet ctx mn
-  , Just anc <- findAncUpward goal parentSet
-  = let (Just (parentNode, parents')) = stepUntil goUp (isZipperAnOurParent anc) zipper
+  | needUpwardGen parentSet mn
+  , Just anc <- List.find (isUpwardGenP goal) parentList
+  =
+    -- trace ("U:\nGoal: " ++ show goal ++ "\nAnc: " ++ show anc ++ "\nIs: " ++ show (isUpwardGenP goal anc)) $
+    let (Just (parentNode, parents')) = stepUntil goUp (isZipperOurParent anc) zipper
         varSubst = zipVars goal anc
         child = Unfold [] (parentSubst parentNode) (dtmGoal mn) parentSet
         node = DTreeGenNode varSubst child
     in Just ((node, parents'), ctx)
-  where parentSet = Set.fromList $ parentGoals parents
+  where parentSet = Set.fromList $ parentList
+        parentList = parentGoals parents
 
         goal = getGoal $ dtmGoal mn
 
@@ -258,10 +300,13 @@ stepZipper zipper@(DTreeMultiNode mn [], parents) ctx
         parentSubst _ = error "stepZipper: wrong kind of node as a parent!"
 
 -- Empty <children> for MultiNode means that we need to fill it which possible children
-stepZipper (DTreeMultiNode mn [], parents) ctx =
+stepZipper zipper@(DTreeMultiNode mn [], parents) ctx =
   let realGoal         = getGoal $ dtmGoal mn
+      -- Now we have a lot of problems with this optimization, need to change the algorithm.
+      -- seen             = Set.fromList $ getGoal <$> readyNodes zipper
+      parentsList      = parentGoals parents
       -- First of all, need to generate nearest children of the node-in-focus
-      (ctx', children) = generateChildren (parentGoals parents) ctx mn
+      (ctx', children) = generateChildren parentsList ctx mn
       -- And then focus on the most left one.
       newZipper        = goFirstChild (DTreeMultiNode mn children, parents)
   in  (, ctx') <$> newZipper
@@ -277,11 +322,12 @@ stepZipper zipper@(DTreeMultiNode _ children, _) ctx
   | otherwise                              = (, ctx) <$> goUp zipper
 
 needUpwardGen
-  :: UnfoldableGoal a => Set.Set DGoal -> Context -> DTreeMulti a -> Bool
-needUpwardGen parents ctx@(Context env) (DTreeMulti AbsCon subst goal _) =
-  let abs = abstract parents (getGoal goal) subst env
-  in  abstractSame abs (getGoal goal)
-needUpwardGen _ _ _ = False
+  :: UnfoldableGoal a => Set.Set DGoal -> DTreeMulti a -> Bool
+needUpwardGen parents (DTreeMulti AbsCon _ goal _) = isUpwardGen (getGoal goal) parents
+needUpwardGen _ _ = False
+
+goalFocus   = [Invoke "gto" [V 48, C "S" [V 42], C "true" []], Invoke "maxo1" [C "Cons" [V 51, V 52], V 48, V 1], Invoke "lengtho" [V 52, V (53 :: S)]]
+goalVariant = [Invoke "gto" [V 72, C "S" [V 42], C "true" []], Invoke "maxo1" [C "Cons" [V 75, V 76], V 72, V 1], Invoke "lengtho" [V 76, V (77 :: S)]]
 
 generateChildren
   :: forall a
@@ -292,31 +338,37 @@ generateChildren
   -> (Context, [DTree' a])
 -- If node is <Unfold> we need to unfold a goal and return newly created possibly unfinished subtrees.
 generateChildren ps ctx@(Context env) (DTreeMulti UnfoldCon subst goal _) =
-  case unfoldStep goal env subst of
+    case unfoldStep goal env subst of
     ([], _) -> (ctx, [Fail])
     -- uGoal :: [(E.Sigma, UnfoldableGoal a)]
     (uGoals, nEnv) ->
-      let trees = uncurry (goalToTree (getGoal goal : ps) nEnv) <$> uGoals
+      let parents = Set.fromList (getGoal goal : ps)
+          trees = uncurry (goalToTree parents nEnv) <$> uGoals
       in  (ctx { ctxEnv = nEnv }, trees)
 generateChildren ps ctx@(Context env) (DTreeMulti AbsCon subst goal _) =
   -- aGoals ::[(E.Sigma, [G S], G.Generalizer)]
   let (aGoals, nEnv) = abstractFixed (Set.fromList ps) (getGoal goal) subst env
       trees =
           (\(subst, nGoal, gen) ->
-              let tree = goalToTree ps nEnv subst (initGoal nGoal :: a) in
+              let parents = Set.fromList ps
+                  tree = goalToTree parents nEnv subst (initGoal nGoal :: a) in
               if null gen then tree else Gen tree gen
           ) <$> aGoals
   in  (ctx { ctxEnv = nEnv }, trees)
 
 
-goalToTree :: UnfoldableGoal a => [DGoal] -> E.Gamma -> E.Sigma -> a -> DTree' a
+goalToTree
+  :: UnfoldableGoal a =>
+     Set.Set DGoal  -- |Parent nodes.
+  -> E.Gamma        -- |Environment.
+  -> E.Sigma        -- |Substitution.
+  -> a              -- |Goal.
+  -> DTree' a
 goalToTree parents env subst goal
-  | emptyGoal goal                      = Success subst
-  | checkLeaf (getGoal goal) parentsSet = Renaming goal parentsSet subst env
-  | isGen (getGoal goal) parentsSet     = Abs [] subst goal parentsSet
-  | otherwise                           = Unfold [] subst goal parentsSet
-  where parentsSet = Set.fromList parents
-        {- Want to leave original parents now -}
+  | emptyGoal goal                   = Success subst
+  | checkLeaf (getGoal goal) parents = Renaming goal parents subst env
+  | whistle parents (getGoal goal)   = Abs [] subst goal parents
+  | otherwise                        = Unfold [] subst goal parents
 
 goalVars :: DGoal -> [S]
 goalVars = foldr (List.union . invokeVars) []
@@ -340,6 +392,6 @@ mapVars i1@(Invoke n1 a1) i2@(Invoke n2 a2)
   mapTerms (V v1   ) v2        = [(v1, v2)]
   mapTerms (C _ ts1) (C _ ts2) = concatMap (uncurry mapTerms) $ zip ts1 ts2
   mapTerms t1 t2 =
-    error ("Can't map terms <" ++ show t1 ++ "> and <" ++ show t2 ++ ">")
+    error ("Can't map terms <" ++ show t1 ++ "> and <" ++ show t2 ++ "> for <" ++ show i1 ++ "> and <" ++ show i2 ++ ">")
 
 zipVars g = concatMap (uncurry mapVars) . zip g

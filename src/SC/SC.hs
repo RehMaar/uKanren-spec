@@ -82,7 +82,8 @@ goalXtoGoalS g = let
 
 isGen goal ancs = any (`embed` goal) ancs && not (Set.null ancs)
 
-isUpwardGen goal ancs = any (\anc -> embed goal anc && G.msgExists anc goal) ancs && not (Set.null ancs)
+isUpwardGen goal ancs = any (isUpwardGenP goal) ancs && not (Set.null ancs)
+isUpwardGenP goal anc = embed goal anc && not (embed anc goal) && length goal == length anc
 
 --
 
@@ -115,11 +116,28 @@ conjOfDNFtoDNF (x {- Disj (Conj a) -} :xs) = concat $ addConjToDNF x <$> conjOfD
 addConjToDNF :: Disj (Conj a) -> Conj a -> Disj (Conj a)
 addConjToDNF ds c = (c ++) <$> ds
 
+-- |Check if a goal is a renaming (in terms of local programming) of already met goal.
 checkLeaf :: DGoal -> Set.Set DGoal -> Bool
 checkLeaf = variantCheck
 
+-- |Check if we after abstraction we got a renaming.
 abstractSame [(_, aGoal, _, _)] goal = isVariant aGoal goal
 abstractSame _ _ = False
+
+
+abstractU
+  :: Set.Set [G S]               -- Ancestors of the goal
+  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
+  -> [(E.Sigma, [G S], G.Generalizer, E.Gamma)]
+abstractU ancs g subst (p, iota, delt) =
+  let (abstracted, delta) = abstractU' ancs g delt
+  in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
+  where
+   abstractU'  ancs g delt
+     | Just anc <- findAncUpward g ancs
+     = generalize g anc delt
+     | otherwise
+     = error $ "Unable to generalize (U) <" ++ show g ++ "> with ancs: " ++ show ancs
 
 abstract
   :: Set.Set [G S]               -- Ancestors of the goal
@@ -147,10 +165,17 @@ abstractDebug ancs g subst delt =
   let (abstracted, delta) = abstract' ancs g delt
   in  map (\(g, gen) -> (subst, g, gen)) abstracted
 
+abstract' ancs g delt
+  | Just anc <- findAnc g ancs
+  = generalize g anc delt
+  | otherwise
+  = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList (Set.toList ancs)
+
 findAncUpward g = find (embed g) . sortBy goalOrdering . Set.toList
   where
     goalOrdering a1 a2 = compare (length a2) (length a1)
 
+-- |Find a parent who is embeded in us.
 findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
   where
     goalOrdering a1 a2 = compare (length a2) (length a1)
@@ -163,22 +188,21 @@ findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
 
 findRenaming goal = find (isVariant goal)
 
-abstract' ancs g delt
-  | Just anc <- findAnc g ancs
-  =
-   let r = generalize g anc delt
-   in
-    --trace ("Generalize " ++ pretty g ++ "\nwith anc: " ++ pretty anc
-    --  ++ "\nposs: " ++ prettyList (delete anc $ filter (`embed` g) $ Set.toList ancs)
-    --  ++ "\nAnd got: " ++ show (fst r) ++ "\n") $
-    r
-  | otherwise
-  = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList (Set.toList ancs)
+-- Old whistles.
 
-whistle :: Set.Set [G S] -> [G S] -> Maybe [G S]
-whistle ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
+-- |Strict whisle using strict homeo embedding
+whistleStrict :: Set.Set [G S] -> [G S] -> Maybe [G S]
+whistleStrict ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
 
-whistleP anc goal = homeo anc goal  && not (isVariant anc goal)
+-- |
+whistle :: Set.Set [G S] -> [G S] -> Bool
+whistle ancs goal = any (whistleP goal) ancs
+
+whistleP goal anc = homeo anc goal  && not (isVariant anc goal)
+
+findW goal = find (whistleP goal)
+
+-- |Generalization at its core.
 
 generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
 generalize = generalizeCpd
@@ -202,18 +226,23 @@ generalizeSimple goal anc delt =
   let (g, _, gen, delt') = G.generalizeGoals delt goal anc
   in ([(g, gen)], delt')
 
+-- |Check if we need to do a split step.
 toSplit :: [G S] -> Bool
 toSplit = null . foldl1 intersect . map getInvokeArgs . filter isInvoke
 
+--
 getInvokeArgs (Invoke _ ts) = ts
 getInvokeArgs _ = []
 
+--
 isInvoke (Invoke _ _) = True
 isInvoke _ = False
 
+--
 getInvokeName (Invoke name _) = name
 getInvokeName g = error $ "getInvokeName: not Invoke: " ++ show g
 
+-- |Goal normaliztion.
 normalize :: G a -> [[G a]]
 normalize (f :\/: g) = normalize f ++ normalize g
 normalize (f :/\: g) = (++) <$> normalize f <*> normalize g
@@ -221,8 +250,10 @@ normalize g@(Invoke _ _) = [[g]]
 normalize g@(_ :=: _) = [[g]]
 normalize (Fresh _ goal) = normalize goal
 
+-- |To avoid code repeatition and exhausting renaming.
 goalToDNF = normalize
 
+-- |Apply unifications and add some more of them.
 unifyStuff :: E.Sigma -> [G S] -> Maybe ([G S], E.Sigma)
 unifyStuff state gs = go gs state [] where
   go []                    state conjs = Just (reverse conjs, state)

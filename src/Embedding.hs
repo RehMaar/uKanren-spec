@@ -46,6 +46,9 @@ instance Homeo [G a] where
 class (Eq b) => Instance a b | b -> a where
   inst :: b -> b -> Map.Map a (Term a) -> Maybe (Map.Map a (Term a))
 
+  -- |e1 is an **instance** of e2, if exists a substitution O
+  -- such as e1 O = e2.
+  -- e1 `inst` e2 = O => substitute O e1 = e2
   isInst :: b -> b -> Bool
   isInst x y = isJust $ inst x y Map.empty
 
@@ -57,7 +60,7 @@ class (Eq b) => Instance a b | b -> a where
 
   isRenaming :: b -> b -> Bool
   isRenaming x y =
-    x == y || maybe False (all (\e -> case e of V _ -> True; _ -> False ) . Map.elems) (inst x y Map.empty)
+    x == y || maybe False (all (\e -> case e of V _ -> True; _ -> False) . Map.elems) (inst x y Map.empty)
 
   instanceCheck :: Foldable t => b -> t b -> Bool
   instanceCheck g = any (`isInst` g)
