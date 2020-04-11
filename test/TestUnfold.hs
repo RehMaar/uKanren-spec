@@ -107,7 +107,9 @@ methods runner =
 
 methods1 = methods SCI.run1
 methods2 = methods SCI.run2
+methodsU = methods SCI.runU
 
+palindromeTQ = TQ "Pldrm" testRev' Nothing (Just "pldrmAuto/src/")
 dappTQ = TQ "Dapp" testDA Nothing (Just "dappAuto/src/")
 logintTQ = TQ "Logint" LI.logintoQueryTrue (Just LI.logintoEnv) (Just "logintAuto/src/")
 maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
@@ -118,6 +120,7 @@ unifyTQ  = TQ "Unify" Unify.query (Just env) (Just "unifyAuto/src/")
 
 testMethodsOnTest1 query = mapM_ (testMethodOnTest query) methods1
 testMethodsOnTest2 query = mapM_ (testMethodOnTest query) methods2
+testMethodsOnTestU query = mapM_ (testMethodOnTest query) methodsU
 
 testMethodOnTest (TQ qname query env path) (TM fname fun) = do
    putStrLn $ "Query: " ++ qname ++ " Method: " ++ fname

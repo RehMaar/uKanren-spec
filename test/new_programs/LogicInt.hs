@@ -3,6 +3,7 @@ module LogicInt where
 import Syntax
 import Bool hiding (oro, ando, noto)
 import List hiding (lit)
+import Prelude hiding (succ)
 import Num
 
 pair x y = C "pair" [x, y]
@@ -17,13 +18,14 @@ lookupo =
       var   = V "var"
       result = V "result"
   in
-  Let (def "lookupo" ["subst", "var", "result"] $ (
-    fresh ["key", "val", "tail"] $
+  Let (def "lookupo" ["subst", "var", "result"] (
+    fresh ["key", "val", "tail"]
     (subst === pair (V "key") (V "val") % V "tail" &&& (
       (var === V "key" &&& result === V "val")
       ||| call "lookupo" [V "tail", var, result])
     )
   ))
+
 
 --
 -- Test lookup
@@ -44,18 +46,7 @@ lookupoTest4 = lookupo $ fresh ["res", "tail"] $
 lookupoTest5 = lookupo $ fresh ["a", "b", "c", "v", "r"] $ call "lookupo" [pair (V "a") (V "b") % V "c", V "v", V "r"]
 
 -------------------------------------------------------------
-{-
-lookupo2 :: G x -> G x
-lookupo2 =
-  Let (def "lookupo2" ["list", "idx", "result"] $
-        ((idx === zero) &&& (V "h" % V "t" === list) &&& (V "h" === result))
-    ||| (fresh [] (idx === succ idx'))
-  )
-  where
-    idx = V "idx"
-    list = V "list"
-    result = V "result"
--}
+
 -------------------------------------------------------------
 
 true = C "ltrue" []
@@ -242,3 +233,68 @@ logintoQuery8 = loginto $ fresh ["s", "f", "r", "x", "y"] $ call "loginto" [V "s
 logintoQuery9 = loginto $ fresh ["s"] $ call "loginto" [V "s", logExpr6, trueo]
 
 logintoQuery4Debug = logintoCut $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
+
+---------
+
+lookupo2 :: G x -> G x
+lookupo2 =
+  Let (def "lookupo" ["list", "idx", "result"] $
+    fresh ["h", "t", "idx'"] $
+       ((idx === zero) &&& (V "h" % V "t" === list) &&& (V "h" === result))
+    ||| (idx === succ (V "idx'")  &&&
+         (V "h" % V "t" === list) &&&
+          call "lookupo" [V "idx'", V "t", V "result"])
+  )
+  where
+    idx = V "idx"
+    list = V "list"
+    result = V "result"
+
+loginto2 :: G a -> G a
+loginto2 =
+  let subst = V "subst"
+      formula = V "formula"
+      result = V "result"
+  in
+  Let (def "loginto" ["subst", "formula", "result"] $
+  fresh ["x", "y", "l", "r", "rl", "rr"] (
+      (formula === true &&& result === trueo)
+  ||| (formula === false &&& result === falso)
+  ||| (formula === var (V "y") &&& call "lookupo" [subst, V "y", result])
+  ||| (formula === neg (V "x")
+       &&& call "loginto" [subst, V "x", V "rl"]
+       &&& call "noto" [V "rl", result])
+  ||| (formula === conj (V "l") (V "r")
+       &&& call "loginto" [subst, V "l", V "rl"]
+       &&& call "loginto" [subst, V "r", V "rr"]
+       &&& call "ando" [V "rl", V "rr", result])
+  ||| (formula === disj (V "l") (V "r")
+       &&& call "loginto" [subst, V "l", V "rl"]
+       &&& call "loginto" [subst, V "r", V "rr"]
+       &&& call "oro" [V "rl", V "rr", result])
+  )) . lookupo2 . noto . ando . oro
+
+logintoCut2 :: G a -> G a
+logintoCut2 =
+  let subst = V "subst"
+      formula = V "formula"
+      result = V "result"
+  in
+  Let (def "loginto" ["subst", "formula", "result"] $
+    fresh ["x", "y", "l", "r", "rl", "rr"] (
+    (formula === var (V "y") &&& call "lookupo" [V "y", subst, result])
+    ||| (formula === neg (V "x")
+         &&& call "loginto" [subst, V "x", V "rl"]
+         &&& call "noto" [V "rl", result])
+{-    ||| (formula === conj (V "l") (V "r")
+         &&& call "loginto" [subst, V "l", V "rl"]
+         &&& call "loginto" [subst, V "r", V "rr"]
+         &&& call "ando" [V "rl", V "rr", result])-}
+    ||| (formula === disj (V "l") (V "r")
+         &&& call "loginto" [subst, V "l", V "rl"]
+         &&& call "loginto" [subst, V "r", V "rr"]
+         &&& call "oro" [V "rl", V "rr", result])
+    )) . lookupo2 . noto . ando . oro
+
+logintoQueryId2 = loginto2 $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
+logintoQueryTrue2 = logintoCut2 $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]

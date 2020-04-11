@@ -232,10 +232,10 @@ statRandIO goal = do
   statTree t
   return (t, g, ns)
 
-statMMethods goal = do
+{-statMMethods goal = do
   statMMethod goal "FU  " FU.topLevel
   statMMethod goal "SU  " SU.topLevel
-  statMMethod goal "RU  " (RU.topLevel 17)
+--  statMMethod goal "RU  " (RU.topLevel 17)
   statMMethod goal "NU  " NU.topLevel
   statMMethod goal "RecU" RecU.topLevel
   statMMethod goal "MinU  " MinU.topLevel
@@ -243,7 +243,7 @@ statMMethods goal = do
   where
     statMMethod goal name topLevel = do
       putStr $ name ++ ": "
-      statMTree $ DTR.makeMarkedTree $ fst3 $ topLevel goal
+      statMTree $ DTR.makeMarkedTree $ fst3 $ topLevel goal-}
 
 ----------
 ----------
@@ -272,7 +272,7 @@ debug (DT.Abs ts _ g _) = concat (debug <$> ts)
 debug (DT.Gen t _) = debug t
 debug dbg@(DT.Debug _ _ _ _) = [dbg]
 
-findA :: DT.DGoal -> DT.DTree -> Maybe E.Sigma
+findA :: DT.DGoal -> DT.DTree -> Maybe E.Subst
 findA _ (DT.Success _)  = Nothing
 findA _ DT.Fail         = Nothing
 findA _ (DT.Renaming _ _ _ _) = Nothing
@@ -344,6 +344,17 @@ cutExcept cs (DT.Abs ts a b c) =
 cutExcept cs (DT.Unfold ts a b c) =
     (\x -> DT.Unfold x a b c) <$> (weird_sequence $ cutExcept cs <$> ts)
 cutExcept cs _ = Nothing
+
+cutLeaves :: DT.DTree -> Maybe DT.DTree
+cutLeaves (DT.Gen t _) = cutLeaves t
+cutLeaves t@(DT.Abs [] _ _ _) = Just t
+cutLeaves t@(DT.Unfold [] _ _ _) = Just t
+cutLeaves (DT.Abs ts a b c) =
+    (\x -> DT.Abs x a b c) <$> (weird_sequence $ cutLeaves <$> ts)
+cutLeaves (DT.Unfold ts a b c) =
+    (\x -> DT.Unfold x a b c) <$> (weird_sequence $ cutLeaves <$> ts)
+cutLeaves _ = Nothing
+
 
 --
 --

@@ -35,12 +35,6 @@ import qualified Programs as L
 
 import TestUtils
 
-open g = openInPdf $ fst3 $ SU.topLevel g
-
-cutTree = DTR.cutFailedDerivations . DTR.makeMarkedTree . fst3 . SU.topLevel
-openCut = openInPdf . cutTree
-
-
 testRevRev = L.reverso $ fresh ["xs", "sx"] $
   call "reverso" [V "xs", V "sx"] &&& call "reverso" [V "sx", V "xs"]
 
@@ -79,6 +73,8 @@ testDA3 = L.doubleAppendo $ fresh ["a", "b", "c", "d"]
 testRev = L.reverso $ fresh ["a", "b"]
               (call "reverso" [V "a", V "b"])
 
+testRev' = L.reverso $ fresh ["a"] (call "reverso" [V "a", V "a"])
+
 -- Test reverse without acc'
 testRev2 = L.reverso $ fresh ["a", "b"]
               (call "reverso" [L.peanify 1 L.% L.peanify 2 L.% L.peanify 3 L.% L.nil, V "b"])
@@ -96,6 +92,9 @@ testMaxo = L.maxo $ fresh ["a", "r"]
 
 testSort = L.sorto $ fresh ["xs", "ys"]
            (call "sorto" [V "xs", V "ys"])
+
+testSort' = L.sorto $ fresh ["xs"]
+           (call "sorto" [V "xs", V "xs"])
 
 testCall = outter $
   fresh ["x", "y", "z", "i"] $ call "outter" [V "x", V "y", V "z", V "i"]
