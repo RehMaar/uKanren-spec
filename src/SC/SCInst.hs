@@ -68,13 +68,13 @@ run2 name = fromJust $ lookup name scConfs2
 first3 :: (a -> a') -> (a, b, c) -> (a', b, c)
 first3 f (a, b, c) = (f a, b, c)
 
-scompUSU  g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen SU.SUGoal) g
-scompUFU  g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen FU.FUGoal) g
-scompUNU  g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen NU.NUGoal) g
-scompURcU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen RecU.RecGoal) g
-scompUMxU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen MaxU.MaxGoal) g
-scompUMnU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen MinU.MinGoal) g
-scompUFsU g = first3 SCU.toDTree $ (SCU.supercompUGen :: SuperCompGen FstU.FstGoal) g
+scompUSU  g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen SU.SUGoal) g
+scompUFU  g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen FU.FUGoal) g
+scompUNU  g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen NU.NUGoal) g
+scompURcU g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen RecU.RecGoal) g
+scompUMxU g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen MaxU.MaxGoal) g
+scompUMnU g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen MinU.MinGoal) g
+scompUFsU g = first3 (SCU.foldTree . SCU.toDTree) $ (SCU.supercompUGen :: SuperCompGen FstU.FstGoal) g
 
 scConfsU :: [(String, SuperComp)]
 scConfsU =
@@ -89,3 +89,28 @@ scConfsU =
 
 runU :: String -> SuperComp
 runU name = fromJust $ lookup name scConfsU
+
+
+runU2 :: String -> SuperComp
+runU2 name = fromJust $ lookup name scConfsU
+  where
+    -- TODO: avoid repeatition 
+    scompUSU  = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen SU.SUGoal)
+    scompUFU  = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen FU.FUGoal)
+    scompUNU  = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen NU.NUGoal)
+    scompURcU = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen RecU.RecGoal)
+    scompUMxU = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen MaxU.MaxGoal)
+    scompUMnU = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen MinU.MinGoal)
+    scompUFsU = first3 (SCU.foldTree . SCU.toDTree) . (SCU.supercompUGen2 :: SuperCompGen FstU.FstGoal)
+
+    scConfsU :: [(String, SuperComp)]
+    scConfsU =
+      [ ("SU",   scompUSU )
+      , ("FU",   scompUFU )
+      , ("NU",   scompUNU )
+      , ("RU",   scompURcU)
+      , ("MxU",  scompUMxU)
+      , ("MnU",  scompUMnU)
+      , ("FstU", scompUFsU)
+      ]
+

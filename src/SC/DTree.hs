@@ -30,22 +30,22 @@ instance PrettyPrint DGoal where
 data DTree' a =
     Fail
   -- ^Failed derivation.
-  | Success E.Sigma
+  | Success E.Subst
   -- ^Success derivation.
-  | Unfold [DTree' a] E.Sigma a (Set.Set DGoal)
+  | Unfold [DTree' a] E.Subst a (Set.Set DGoal)
   -- ^Intermediate node, that contains a conjunctions.
   -- Its children are parts of a disjunction.
-  | Abs [DTree' a] E.Sigma a  (Set.Set DGoal)
+  | Abs [DTree' a] E.Subst a  (Set.Set DGoal)
 --  -- ^Node for an abstracted goal.
---  | UAbs [DTree' a] E.Sigma a  (Set.Set DGoal) E.Sigma
+--  | UAbs [DTree' a] E.Subst a  (Set.Set DGoal) E.Subst
   -- ^Node for an upward abstracted goal. Also have to save arguments mapping.
-  | Renaming a (Set.Set DGoal) E.Sigma E.Gamma
+  | Renaming a (Set.Set DGoal) E.Subst E.Env
   -- ^An expression in the node is a renaming of any parent (or already seen) node.
-  | Gen (DTree' a) E.Sigma
+  | Gen (DTree' a) E.Subst
   -- ^Generalizer
   -- |Debug nodes
   | Prune a
-  | Debug E.Gamma E.Sigma DGoal (Set.Set DGoal)
+  | Debug E.Env E.Subst DGoal (Set.Set DGoal)
 
 type DTree = DTree' DGoal
 

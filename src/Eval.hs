@@ -30,7 +30,6 @@
 -}
 
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TupleSections     #-}
 
 module Eval where
 
@@ -46,9 +45,9 @@ class Substitution s where
   sLookup :: S -> s -> Maybe Ts
   sInsert :: S -> Ts -> s -> s
 
-instance Substitution Sigma where
+instance Substitution Subst where
   sEmpty = []
-  sLookup a s = lookup a s
+  sLookup = lookup
   sInsert a b s = (a, b) : s
 
 type MapSigma = Map.Map S Ts
@@ -59,14 +58,21 @@ instance Substitution MapSigma where
   sInsert = Map.insert
 
 -- States
+-- |Variables interpretation, whatever it is.
 type Iota  = ([X], X -> Ts)
-type Sigma = [(S, Ts)]
-type Delta = [S]
-type P     = Name -> Def
-type Gamma = (P, Iota, Delta)
+type Subst = [(S, Ts)]
+type NameSupply = [S]
+-- type P     = Name -> Def
+-- type Env = (P, Iota, NameSupply)
+data Env = Env { envDefs :: Map.Map Name Def, envIota :: Iota, envNS :: NameSupply }
 
-unifyG :: Substitution subst => (S -> Ts -> subst -> Bool)
-          -> Maybe subst -> Ts -> Ts -> Maybe subst
+envLookupDef (Env defs _ _) name
+  | Just def <- Map.lookup name defs
+  = def
+  | otherwise
+  = error $ "No such a defnition in environment: <" ++ name ++ ">"
+
+unifyG :: Substitution subst => (S -> Ts -> subst -> Bool) -> Maybe subst -> Ts -> Ts -> Maybe subst
 unifyG _ Nothing _ _ = Nothing
 unifyG f st@(Just subst) u v =
   unify' (walk u subst) (walk v subst)  where
@@ -106,7 +112,7 @@ unify =
 
     -- occursCheck u' t s = if elem u' $ fv t then Nothing else s
 
-unifySubsts :: Sigma -> Sigma -> Maybe Sigma
+unifySubsts :: Subst -> Subst -> Maybe Subst
 unifySubsts one two =
     -- trace ("one: " ++ show one ++ "\ntwo: " ++ show two) $
     let maximumVar = max (findUpper one) (findUpper two) in
@@ -142,59 +148,63 @@ app :: Iota -> X -> Ts
 app (_, i) = i
 
 -- Applying substitution
-class Subst a where
-  substitute :: Sigma -> a -> a
+class Substitute a where
+  substitute :: Subst -> a -> a
 
-instance Subst (Term S) where
+instance Substitute (Term S) where
   substitute s t@(V x) =
     case lookup x s of
       Just tx | tx /= t -> substitute s tx
       _                 -> t
   substitute s (C m ts) = C m $ map (substitute s) ts
 
-instance Subst (G S) where
+instance Substitute (G S) where
   substitute s (Invoke name as) = Invoke name (map (substitute s) as)
   substitute _ g = error $ printf "We have only planned to substitute into calls, and you are trying to substitute into:\n%s" (show g)
 
-instance Subst [G S] where
+instance Substitute [G S] where
   substitute = map . substitute
 
-substituteConjs :: Sigma -> [G S] -> [G S]
+substituteConjs :: Subst -> [G S] -> [G S]
 substituteConjs = substitute
 
 ---- Composing substitutions
-o :: Sigma -> Sigma -> Sigma
+o :: Subst -> Subst -> Subst
 o sigma theta =
   case map fst sigma `intersect` map fst theta of
-    [] -> map (\ (s, ts) -> (s, substitute sigma ts)) theta ++ sigma
+    [] -> map (fmap (substitute sigma)) theta ++ sigma
     _  -> error "Non-disjoint domains in substitution composition"
 
-dotSigma :: Sigma -> String
+dotSigma :: Subst -> String
 dotSigma s = printf " [ %s ] " (intercalate ", " (map (\(x,y) -> printf "%s &rarr; %s" (dot $ V x) (dot y)) s))
 
-showSigma :: Sigma -> String
+showSigma :: Subst -> String
 showSigma s = printf " [ %s ] " (intercalate ", " (map (\(x,y) -> printf "%s &rarr; %s" (show $ V x) (show y)) s))
 
-showSigma' :: Sigma -> String
+showSigma' :: Subst -> String
 showSigma' s = printf " [ %s ] " (intercalate ", " (map (\(x,y) -> printf "%s -> %s" (show $ V x) (show y)) s))
 
 -- Pre-evaluation
 preEval' = preEval
 
-preEval :: Gamma -> G X -> (G S, Gamma, [S])
+preEval :: Env -> G X -> (G S, Env, [S])
 preEval = go []
  where
-  go vars g@(_, i, _) (t1 :=: t2)  = (i <@> t1 :=: i <@> t2, g, vars)
-  go vars g           (g1 :/\: g2) = let (g1', g' , vars' ) = go vars  g  g1 in
-                                     let (g2', g'', vars'') = go vars' g' g2 in
-                                     (g1' :/\: g2', g'', vars'')
-  go vars g           (g1 :\/: g2) = let (g1', g' , vars')  = go vars  g  g1 in
-                                     let (g2', g'', vars'') = go vars' g' g2 in
-                                     (g1' :\/: g2', g'', vars'')
-  go vars   (p, i, y : d') (Fresh x g') =
-    go (y : vars) (p, extend i x (V y), d') g'
-  go vars g@(_, i, _) (Invoke f fs)  = (Invoke f (map (i <@>) fs), g, vars)
-  go vars e           (Let    def g) = let (g', e', vars') = go vars e g in
+  -- go vars g@(_, i, _) (t1 :=: t2)  = (i <@> t1 :=: i <@> t2, g, vars)
+  go vars g (t1 :=: t2)  = let i = envIota g in (i <@> t1 :=: i <@> t2, g, vars)
+  go vars g (g1 :/\: g2) = let (g1', g' , vars' ) = go vars  g  g1
+                               (g2', g'', vars'') = go vars' g' g2
+                           in (g1' :/\: g2', g'', vars'')
+  go vars g (g1 :\/: g2) = let (g1', g' , vars') = go vars  g  g1
+                               (g2', g'', vars'') = go vars' g' g2
+                           in (g1' :\/: g2', g'', vars'')
+  -- go vars   (p, i, y : d') (Fresh x g') = go (y : vars) (p, extend i x (V y), d') g'
+  go vars env (Fresh x g')
+    | y : ns' <- envNS env
+    = go (y:vars) env{envIota = extend (envIota env) x (V y), envNS = ns'} g'
+  -- go vars g@(_, i, _) (Invoke f fs)  = (Invoke f (map (i <@>) fs), g, vars)
+  go vars g (Invoke f fs) = (Invoke f (map (envIota g <@>) fs), g, vars)
+  go vars e (Let    def g) = let (g', e', vars') = go vars e g in
                                        (Let def g', e', vars')
 
 postEval' :: [X] -> G X -> G X
@@ -209,14 +219,16 @@ postEval' as goal =
     postEval vars (g1 :\/: g2) = postEval vars g1 :\/: postEval vars g2
     postEval _ g = g
 
-env0 :: Gamma
-env0 = (\ i -> error $ printf "Empty environment on %s" (show i), emptyIota, [0 ..])
+env0 :: Env
+-- env0 = (error . printf "Empty environment on %s" . show, emptyIota, [0 ..])
+env0 = Env Map.empty emptyIota [0..]
 
-update :: Gamma -> Def -> Gamma
-update (p, i, d) def'@(name, _, _) = (\ name' -> if name == name' then def' else p name', i, d)
+update :: Env -> Def -> Env
+-- update (p, i, d) def'@(name, _, _) = (\ name' -> if name == name' then def' else p name', i, d)
+update env@(Env defs _ _) def'@(name, _, _) = env{envDefs = Map.insert name def' defs}
 
-updateDefsInGamma :: Gamma -> [Def] -> Gamma
+updateDefsInGamma :: Env -> [Def] -> Env
 updateDefsInGamma = foldl' update
 
-s0 :: Sigma
+s0 :: Subst
 s0 = []

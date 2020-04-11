@@ -20,7 +20,7 @@ import           Data.Maybe (listToMaybe)
 map1in4 :: (a -> b) -> (a, c, d, e) -> (b, c, d, e)
 map1in4 f (x, y, z, t) = (f x, y, z, t)
 
-type Generalizer = E.Sigma
+type Generalizer = E.Subst
 
 class Generalization a g | g -> a where
   generalize :: [a] -> Generalizer -> Generalizer -> g -> g -> (g, Generalizer, Generalizer, [a])
@@ -136,7 +136,7 @@ minimallyGeneral xs =
     find (\x -> all (not . isStrictInst (fst x) . fst) xs) xs <|>
     listToMaybe (reverse xs)
 
-bmc :: E.Delta -> [G S] -> [[G S]] -> ([([G S], Generalizer)],  E.Delta)
+bmc :: E.NameSupply -> [G S] -> [[G S]] -> ([([G S], Generalizer)],  E.NameSupply)
 bmc d q [] = ([], d)
 bmc d q (q':qCurly) | msgExists q q' =
   let (generalized, _, gen, delta) = generalizeGoals d q q' in
@@ -144,7 +144,7 @@ bmc d q (q':qCurly) | msgExists q q' =
   ((generalized, gen) : gss, delta')
 bmc d q (q':qCurly) = trace "why msg does not exist?!" $ bmc d q qCurly
 
-split :: E.Delta -> [G S] -> [G S] -> (([G S], [G S]), Generalizer, E.Delta)
+split :: E.NameSupply -> [G S] -> [G S] -> (([G S], [G S]), Generalizer, E.NameSupply)
 split d q q' = -- q <= q'
   let n = length q
       qCurly = filter (\q'' -> and $ zipWith embed q q'') $ subconjs q' n

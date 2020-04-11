@@ -49,24 +49,17 @@ derive' = derivationStep'
         = (Renaming (getGoal goal) ancs subst env, seen, maxFreshVar env)
         -- If a node is generalization of one of ancsectors generalize.
         | isGen (getGoal goal) ancs
-        , aGoals <- abstract ancs (getGoal goal) subst env
+        , aGoals <- abstract ancs (getGoal goal) subst $ E.envNS env
         , not $ abstractSame aGoals (getGoal goal)
         =
-          -- trace ("\nAbstract: " ++ show (getGoal goal)) $
           let
             rGoal = getGoal goal
-            --aGoals = abstract ancs rGoal subst env
-          -- in trace ("Goal: " ++ pretty rGoal
-          --         ++ "\nAbs:  " ++ show ((\(_,g,_,_) -> pretty g) <$> aGoals) ++ "\n"
-          --         ++ "Ancs: " ++ show ancs ++ "\n"
-          --         ) $
-          -- let
             nAncs = Set.insert rGoal ancs
             nSeen = Set.insert rGoal seen
             (seen', trees, maxVarNum) =
               foldl
-                (\(seen, ts, m) (subst, goal, gen, nEnv) ->
-                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m nEnv) subst seen (succ d)
+                (\(seen, ts, m) (subst, goal, gen, ns) ->
+                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m env{E.envNS = ns}) subst seen (succ d)
                       t' = if null gen then t else Gen t gen
                   in (seen'', t':ts, mv)
                 )

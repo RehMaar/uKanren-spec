@@ -24,7 +24,7 @@ generateFreshName n names =
   then n
   else until (`notElem` names) ('_' :) n
 
-residualizeSubst :: E.Sigma -> G X
+residualizeSubst :: E.Subst -> G X
 residualizeSubst subst =
   foldl1 (&&&) $ map (\(s, ts) -> toX (V s) === toX ts) $ reverse subst
 
@@ -35,11 +35,11 @@ residualizeSubst subst =
 -- if some `Renaming` is a variant of one of these nodes.
 --
 data MarkedTree = Fail
-  | Success E.Sigma
-  | Unfold  [MarkedTree] E.Sigma DT.DGoal Bool
-  | Abs [MarkedTree] E.Sigma DT.DGoal Bool
-  | Renaming DT.DGoal E.Sigma
-  | Gen MarkedTree E.Sigma
+  | Success E.Subst
+  | Unfold  [MarkedTree] E.Subst DT.DGoal Bool
+  | Abs [MarkedTree] E.Subst DT.DGoal Bool
+  | Renaming DT.DGoal E.Subst
+  | Gen MarkedTree E.Subst
   deriving Eq
 --
 -- Debug output.

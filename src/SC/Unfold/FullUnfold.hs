@@ -18,22 +18,14 @@ import Debug.Trace
 
 newtype FUGoal = FUGoal DGoal deriving (Show, Eq, Ord)
 
-topLevel :: G X -> (DTree, G S, [S])
-topLevel g = let
-  (lgoal, lgamma, lnames) = goalXtoGoalS g
-  igoal = FUGoal [lgoal]
-  tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
-  in (tree, lgoal, lnames)
-
 instance UnfoldableGoal FUGoal where
   getGoal (FUGoal dgoal) = dgoal
   initGoal = FUGoal
   emptyGoal (FUGoal dgoal) = null dgoal
   mapGoal (FUGoal dgoal) f = FUGoal (f dgoal)
   unfoldStep = fullUnfoldStep
-    -- where
 
-fullUnfoldStep :: FUGoal  -> E.Gamma -> E.Sigma -> ([(E.Sigma, FUGoal)], E.Gamma)
+fullUnfoldStep :: FUGoal  -> E.Env -> E.Subst -> ([(E.Subst, FUGoal)], E.Env)
 fullUnfoldStep (FUGoal goal) env subst = let
     (newEnv, unfoldedGoal) = unfoldAll env goal
     n = (goalToDNF <$> unfoldedGoal)
@@ -43,13 +35,11 @@ fullUnfoldStep (FUGoal goal) env subst = let
     unifiedGoal = (\(conj, subst) -> (subst, FUGoal $ E.substituteConjs subst conj)) <$> unifyAll subst normalizedGoal
   in (unifiedGoal, newEnv)
 
-instance Unfold FUGoal where
-
 -- Return value is Conj (G S), but now (G S) is a body of corresponding Invoke.
-unfoldAll :: E.Gamma -> Conj (G S) -> (E.Gamma, Conj (G S))
+unfoldAll :: E.Env -> Conj (G S) -> (E.Env, Conj (G S))
 unfoldAll gamma = foldl unfold' (gamma, [])
   where
     unfold' (gamma, goals) inv = (:goals) <$> unfold inv gamma
 
-showUnified :: Disj (E.Sigma, Conj (G S)) -> String
+showUnified :: Disj (E.Subst, Conj (G S)) -> String
 showUnified = concatMap (\(subst, conj) -> "(" ++ show (null subst) ++ ", " ++ show conj ++ ")")

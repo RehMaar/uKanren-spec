@@ -24,14 +24,6 @@ trace' _ = id
 
 newtype NUGoal = NUGoal DGoal deriving Show
 
-topLevel :: G X -> (DTree, G S, [S])
-topLevel g = let
-  (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = normalize lgoal
-  igoal = assert (length lgoal' == 1) $ NUGoal (head lgoal')
-  tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
-  in (tree, lgoal, lnames)
-
 instance UnfoldableGoal NUGoal where
   getGoal (NUGoal dgoal) = dgoal
   initGoal = NUGoal
@@ -39,10 +31,7 @@ instance UnfoldableGoal NUGoal where
   mapGoal (NUGoal dgoal) f = NUGoal (f dgoal)
   unfoldStep = unreqUnfoldStep
 
-
-instance Unfold NUGoal where
-
-unreqUnfoldStep :: NUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, NUGoal)], E.Gamma)
+unreqUnfoldStep :: NUGoal -> E.Env -> E.Subst -> ([(E.Subst, NUGoal)], E.Env)
 unreqUnfoldStep (NUGoal dgoal) env subst = let
     (ls, conj, rs) = splitGoal env dgoal
     (newEnv, uConj) = unfold conj env
@@ -54,25 +43,18 @@ unreqUnfoldStep (NUGoal dgoal) env subst = let
   where
     suGoal subst cs ls rs = NUGoal $ E.substitute subst $ ls ++ cs ++ rs
 
-splitGoal :: E.Gamma -> DGoal -> ([G S], G S, [G S])
+splitGoal :: E.Env -> DGoal -> ([G S], G S, [G S])
 splitGoal env gs =
    let c = minimumBy ((compare `on` isRec env) <> compareGoals env) gs
    in fromJust $ split (c ==) gs
 
-isRec :: E.Gamma -> G S -> Bool
-isRec (p, _, _) goal@(Invoke call _) =
-  let (name, args, body) = p call in
-  any ((== name) . getInvokeName) $ getInvokes body
-  where
-    getInvokes b = concat $ filter isInvoke <$> normalize b
-isRec _ _ = False
-
-compareGoals :: E.Gamma -> G a -> G a -> Ordering
-compareGoals (p, _, _) (Invoke g1 _) (Invoke g2 _)
+compareGoals :: E.Env -> G a -> G a -> Ordering
+compareGoals env (Invoke g1 _) (Invoke g2 _)
   | g1 == g2
   = EQ
   | otherwise
-  = let n1 = length $ normalize $ trd3 $ p g1
-        n2 = length $ normalize $ trd3 $ p g2
+  = let n1 = length $ normalize $ trd3 $ E.envLookupDef env g1
+        n2 = length $ normalize $ trd3 $ E.envLookupDef env g2
     in compare n1 n2
 compareGoals _ _ _ = EQ
+

@@ -27,14 +27,6 @@ trace' _ = id
 
 data FullNUGoal = FullNUGoal DGoal deriving Show
 
-topLevel :: G X -> (DTree, G S, [S])
-topLevel g = let
-  (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = normalize lgoal
-  igoal = assert (length lgoal' == 1) $ FullNUGoal (head lgoal')
-  tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
-  in (tree, lgoal, lnames)
-
 instance UnfoldableGoal FullNUGoal where
   getGoal (FullNUGoal dgoal) = dgoal
   initGoal goal = FullNUGoal goal
@@ -42,9 +34,7 @@ instance UnfoldableGoal FullNUGoal where
   mapGoal (FullNUGoal dgoal) f = FullNUGoal (f dgoal)
   unfoldStep = fnrUnfoldStep
 
-instance Unfold FullNUGoal where
-
-fnrUnfoldStep :: FullNUGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, FullNUGoal)], E.Gamma)
+fnrUnfoldStep :: FullNUGoal -> E.Env -> E.Subst -> ([(E.Subst, FullNUGoal)], E.Env)
 fnrUnfoldStep (FullNUGoal dgoal) env subst = let
     (ls, conj, rs) = splitGoal env dgoal
     (newEnv, uConj) = FU.unfoldAll env conj
@@ -56,8 +46,8 @@ fnrUnfoldStep (FullNUGoal dgoal) env subst = let
   where
     suGoal subst cs ls rs = FullNUGoal $ E.substituteConjs subst $ ls ++ cs ++ rs
 
-splitGoal :: E.Gamma -> DGoal -> ([G S], [G S], [G S])
+splitGoal :: E.Env -> DGoal -> ([G S], [G S], [G S])
 splitGoal env gs =
-  case partition (not . NU.isRec env) gs of
+  case partition (not . isRec env) gs of
      ([], r) -> let (ls, g, rs) = NU.splitGoal env r in (ls, [g], rs)
      ((n:ns), r) -> (ns, [n], r)

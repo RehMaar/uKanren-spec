@@ -46,7 +46,7 @@ import           Syntax
 import           Text.Printf
 import           Utils
 
-type Generalizer = E.Sigma
+type Generalizer = E.Subst
 
 refine :: ([G S], Generalizer, Generalizer, [S]) ->  ([G S], Generalizer, Generalizer, [S])
 refine msg@(g, s1, s2, d) =
@@ -99,7 +99,7 @@ generalizeGoals s as bs =
           map (substitute s1_) msg_ == as) $
   res
 
-substitute :: E.Sigma -> G S -> G S
+substitute :: E.Subst -> G S -> G S
 substitute s (t1 :=: t2  ) = E.substitute s t1 :=: E.substitute s t2
 substitute s (g1 :/\: g2 ) = substitute s g1 :/\: substitute s g2
 substitute s (g1 :\/: g2 ) = substitute s g1 :\/: substitute s g2

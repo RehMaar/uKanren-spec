@@ -51,8 +51,8 @@ lzShiftUntil p ~zipper@(c, _)
 
 -- |Leaf nodes description
 data DTreeEnd a = FailEnd
-                | SuccessEnd E.Sigma
-                | RenamingEnd a (Set.Set DGoal) E.Sigma E.Gamma
+                | SuccessEnd E.Subst
+                | RenamingEnd a (Set.Set DGoal) E.Subst E.Env
 
 instance Show (DTreeEnd a) where
   show FailEnd        = "FailEnd"
@@ -71,7 +71,7 @@ data MNodeType = UnfoldCon | AbsCon
 
 data DTreeMulti a = DTreeMulti
                   { dtmMnodeType :: MNodeType
-                  , dtmSubst     :: E.Sigma
+                  , dtmSubst     :: E.Subst
                   , dtmGoal      :: a
                   , dtmParents   :: Set.Set DGoal
                   }
@@ -84,7 +84,7 @@ mnodeToNode (DTreeMulti typ s d ds) children = tpFun typ children s d ds
   tpFun AbsCon    = Abs
 
 -- |Description of `Gen` node
-type DTreeGen = E.Sigma
+type DTreeGen = E.Subst
 
 -- |Context for all possible parent nodes.
 data DTreeParent a = DTreeMNodeParent { dtpMNode :: DTreeMulti a, dtpChildren :: ListContext (DTree' a) }

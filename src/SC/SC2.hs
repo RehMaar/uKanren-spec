@@ -47,8 +47,9 @@ derive' = derivationStep'
         -- | d > 4
         -- = (Prune (getGoal goal), seen, 0)
         -- If a node is generalization of one of ancestors generalize.
-        | trace ("Goal: " ++ show (getGoal goal) ++ "\nSeen: " ++ show seen ++ "\n" ++ show (isGen (getGoal goal) seen)) $ isGen (getGoal goal) seen
-        , aGoals <- abstract seen (getGoal goal) subst env
+        | {-trace ("Goal: " ++ show (getGoal goal) ++ "\nSeen: " ++ show seen ++ "\n" ++ show (isGen (getGoal goal) seen)) $-}
+          isGen (getGoal goal) seen
+        , aGoals <- abstract seen (getGoal goal) subst $ E.envNS env
         , not $ abstractSame aGoals (getGoal goal)
         =
           --trace ("\nAbstract: " ++ show (getGoal goal)) $
@@ -58,8 +59,9 @@ derive' = derivationStep'
             nSeen = Set.insert rGoal seen
             (seen', trees, maxVarNum) =
               foldl
-                (\(seen, ts, m) (subst, goal, gen, nEnv) ->
-                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m nEnv) subst seen (succ d)
+                (\(seen, ts, m) (subst, goal, gen, ns) ->
+                  let nEnv = fixEnv m env{E.envNS = ns}
+                      (t, seen'', mv) = derivationStep' (initGoal goal) nAncs nEnv subst seen (succ d)
                       t' = if null gen then t else Gen t gen
                   in (seen'', t':ts, mv)
                 )

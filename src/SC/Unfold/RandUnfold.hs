@@ -23,14 +23,16 @@ import Debug.Trace
 
 data RndGoal = RndGoal DGoal StdGen deriving Show
 
-topLevel :: Int -> G X -> (DTree, G S, [S])
+firstFreeVar = head . E.envNS
+
+{-topLevel :: Int -> G X -> (DTree, G S, [S])
 topLevel seed g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   igoal = RndGoal [lgoal] (mkStdGen seed)
   tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
   in (tree, lgoal, lnames)
   where
-    randUnfoldStep :: RndGoal -> E.Gamma -> E.Sigma -> ([(E.Sigma, RndGoal)], E.Gamma)
+    randUnfoldStep :: RndGoal -> E.Env -> E.Subst -> ([(E.Subst, RndGoal)], E.Env)
     randUnfoldStep (RndGoal dgoal rng) env subst = let
         len = length dgoal
 
@@ -52,24 +54,24 @@ topLevel seed g = let
 
     derivationStep goal@(RndGoal realGoal rng) ancs env subst seen depth
       | checkLeaf realGoal seen
-      = (Renaming realGoal ancs subst env, seen, head $ trd3 env)
+      = (Renaming realGoal ancs subst env, seen, firstFreeVar env)
       | otherwise
       =
       let
         newAncs = Set.insert realGoal ancs
       in case randUnfoldStep goal env subst of
-         ([], _)          -> (Fail, seen, head $ trd3 env)
+         ([], _)          -> (Fail, seen, firstFreeVar env)
          (uGoals, newEnv) -> let
              newSeen = Set.insert realGoal seen
              (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                  (\(a, t, i) -> (a, t:ts, max i m)) $
                    evalSubTree depth (fixEnv m newEnv) newAncs seen g)
-                 (newSeen, [], head $ trd3 env) uGoals
+                 (newSeen, [], firstFreeVar env) uGoals
            in (Unfold (reverse ts) subst realGoal ancs, seen', maxVarNum)
 
     evalSubTree depth env ancs seen (subst, goal@(RndGoal realGoal rng))
       | null realGoal
-      = (seen, Success subst, head $ trd3 env)
+      = (seen, Success subst, firstFreeVar env)
       | not (checkLeaf realGoal seen)
       , isGen realGoal ancs
       =
@@ -80,7 +82,7 @@ topLevel seed g = let
           (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                   (\(a, t, i) -> (a, t:ts, max i m)) $
                   evalGenSubTree m depth ancs seen rng g)
-                  (newSeen, [], head $ trd3 env) absGoals
+                  (newSeen, [], firstFreeVar env) absGoals
         in (seen', Abs (reverse ts) subst realGoal ancs, maxVarNum)
       | otherwise
       =
@@ -96,7 +98,7 @@ topLevel seed g = let
             rngGoal = RndGoal goal rng
             (tree, seen', maxVarNum) = derivationStep rngGoal  ancs env subst seen newDepth
             subtree  = if null gen then tree else Gen tree gen
-          in (seen', subtree, maxVarNum)
+          in (seen', subtree, maxVarNum)-}
 
 --
 -- Implementation of the Random Unfolding rule using global randomizer.
@@ -111,7 +113,7 @@ topLevelIO g = do
   (tree, _) <- derivationStepIO igoal Set.empty lgamma E.s0 Set.empty 0
   pure (tree, lgoal, lnames)
   where
-    randUnfoldStepIO :: RndGoalIO -> E.Gamma -> E.Sigma -> IO ([(E.Sigma, RndGoalIO)], E.Gamma)
+    randUnfoldStepIO :: RndGoalIO -> E.Env -> E.Subst -> IO ([(E.Subst, RndGoalIO)], E.Env)
     randUnfoldStepIO (RndGoalIO dgoal) env subst = do
         let len' = length dgoal
         let len = if len' == 0 then 0 else pred len'
@@ -135,8 +137,8 @@ topLevelIO g = do
     derivationStepIO
       :: RndGoalIO         -- Conjunction of invokes and substs.
       -> Set.Set DGoal     -- Ancsectors.
-      -> E.Gamma           -- Context.
-      -> E.Sigma           -- Substitution.
+      -> E.Env           -- Context.
+      -> E.Subst           -- Substitution.
       -> Set.Set DGoal     -- Already seen.
       -> Int               -- Depth for debug.
       -> IO (DTree, Set.Set DGoal)
@@ -161,17 +163,17 @@ topLevelIO g = do
             pure (Unfold (reverse ts) subst realGoal ancs, seen')
 
 
-    evalSubTreeIO :: Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, RndGoalIO) -> IO (Set.Set DGoal, DTree)
+    evalSubTreeIO :: Int -> E.Env -> Set.Set DGoal -> Set.Set DGoal -> (E.Subst, RndGoalIO) -> IO (Set.Set DGoal, DTree)
     evalSubTreeIO depth env ancs seen (subst, rg@(RndGoalIO goal))
       | null goal
       = pure (seen, Success subst)
       | not (checkLeaf realGoal seen)
       , isGen realGoal ancs
       = do
-        let absGoals = abstract ancs realGoal subst env
+        let absGoals = abstract ancs realGoal subst (E.envNS env)
           -- Add `realGoal` to a seen set (`Abs` node in the tree).
         let newSeen = Set.insert realGoal seen
-        (seen', ts) <- foldM (\(seen, ts) g -> fmap (:ts) <$> evalGenSubTree depth ancs seen g) (newSeen, []) absGoals
+        (seen', ts) <- foldM (\(seen, ts) g -> fmap (:ts) <$> evalGenSubTree depth ancs seen env g) (newSeen, []) absGoals
         pure (seen', Abs (reverse ts) subst realGoal ancs)
       | otherwise
       = do
@@ -180,9 +182,9 @@ topLevelIO g = do
         pure (seen', tree)
       where
         realGoal = goal
-        evalGenSubTree depth ancs seen (subst, goal, gen, env) = do
+        evalGenSubTree depth ancs seen env (subst, goal, gen, ns) = do
           let newDepth = if null gen then 2 + depth else 3 + depth
-          (tree, seen') <- derivationStepIO (RndGoalIO goal) ancs env subst seen newDepth
+          (tree, seen') <- derivationStepIO (RndGoalIO goal) ancs (env{E.envNS = ns}) subst seen newDepth
           let subtree  = if null gen then tree else Gen tree gen
           pure (seen', subtree)
 

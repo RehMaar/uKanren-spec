@@ -39,8 +39,8 @@ derive1 = Derive derive'
 derive' :: UnfoldableGoal a =>
      a                 -- Conjunction of invokes and substs.
   -> Set.Set DGoal     -- Ancsectors.
-  -> E.Gamma           -- Context.
-  -> E.Sigma           -- Substitution.
+  -> E.Env           -- Context.
+  -> E.Subst           -- Substitution.
   -> Set.Set DGoal     -- Already seen.
   -> Int -- depth for debug
   -> (DTree, Set.Set DGoal, S)
@@ -66,7 +66,7 @@ derive' goal ancs env subst seen depth
                (newSeen, [], maxFreshVar env) uGoals
          in (Unfold (reverse ts) subst realGoal ancs, seen', maxVarNum)
    where
-    evalSubTree' :: UnfoldableGoal a => Int -> E.Gamma -> Set.Set DGoal -> Set.Set DGoal -> (E.Sigma, a) -> (Set.Set DGoal, DTree, S)
+    evalSubTree' :: UnfoldableGoal a => Int -> E.Env -> Set.Set DGoal -> Set.Set DGoal -> (E.Subst, a) -> (Set.Set DGoal, DTree, S)
     evalSubTree' depth env ancs seen (subst, goal :: a)
      | emptyGoal goal
      = {-trace ">Success" $-} (seen, Success subst, maxFreshVar env)
@@ -75,13 +75,13 @@ derive' goal ancs env subst seen depth
      =
       -- trace (">Abstract: " ++ pretty realGoal {-++ "; anc: " ++ show (findAnc realGoal ancs)-}) $
       let
-        absGoals = abstract ancs realGoal subst env
+        absGoals = abstract ancs realGoal subst $ E.envNS env
         -- Add `realGoal` to a seen set (`Abs` node in the tree).
         newSeen = Set.insert realGoal seen
       in {-trace (">>Got " ++ show (length absGoals) ++ " subgoals") $-} let
         (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
                 (\(a, t, i) -> (a, t:ts, max i m)) $
-                 evalGenSubTree m (succ depth) ancs seen g)
+                 evalGenSubTree m (succ depth) ancs seen env g)
                  (newSeen, [], maxFreshVar env) absGoals
           in (seen', Abs (reverse ts) subst realGoal ancs, maxVarNum)
         | otherwise
@@ -92,10 +92,10 @@ derive' goal ancs env subst seen depth
         where
           realGoal = getGoal goal
 
-          evalGenSubTree m depth ancs seen (subst, goal, gen, env') =
+          evalGenSubTree m depth ancs seen env (subst, goal, gen, ns') =
             let
-              env = fixEnv m env'
+              env' = fixEnv m env{E.envNS = ns'}
               igoal :: a = initGoal goal
-              (tree, seen', maxVarNum) = derive' igoal ancs env subst seen depth
+              (tree, seen', maxVarNum) = derive' igoal ancs env' subst seen depth
               subtree  = if null gen then tree else Gen tree gen
             in (seen', subtree, maxVarNum)

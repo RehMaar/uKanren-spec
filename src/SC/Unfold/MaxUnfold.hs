@@ -25,14 +25,6 @@ trace' _ = id
 
 newtype MaxGoal = MaxGoal DGoal deriving Show
 
-topLevel :: G X -> (DTree, G S, [S])
-topLevel g = let
-  (lgoal, lgamma, lnames) = goalXtoGoalS g
-  lgoal' = normalize lgoal
-  igoal = assert (length lgoal' == 1) $ MaxGoal (head lgoal')
-  tree = fst3 $ derivationStep igoal Set.empty lgamma E.s0 Set.empty 0
-  in (tree, lgoal, lnames)
-
 instance UnfoldableGoal MaxGoal where
   getGoal (MaxGoal dgoal) = dgoal
   initGoal      = MaxGoal
@@ -40,20 +32,17 @@ instance UnfoldableGoal MaxGoal where
   mapGoal (MaxGoal dgoal) f = MaxGoal (f dgoal)
   unfoldStep = genUnfoldStep splitGoal MaxGoal
 
-
-instance Unfold MaxGoal where
-
-splitGoal :: E.Gamma -> MaxGoal -> (DGoal, G S, DGoal)
+splitGoal :: E.Env -> MaxGoal -> (DGoal, G S, DGoal)
 splitGoal env (MaxGoal gs) =
   let c = minimumBy (compareGoals env) gs
   in fromJust $ split (c ==) gs
 
-compareGoals :: E.Gamma -> G a -> G a -> Ordering
-compareGoals (p, _, _) (Invoke g1 _) (Invoke g2 _)
+compareGoals :: E.Env -> G a -> G a -> Ordering
+compareGoals env (Invoke g1 _) (Invoke g2 _)
   | g1 == g2
   = EQ
   | otherwise
-  = let n1 = length $ normalize $ trd3 $ p g1
-        n2 = length $ normalize $ trd3 $ p g2
+  = let n1 = length $ normalize $ trd3 $ E.envLookupDef env g1
+        n2 = length $ normalize $ trd3 $ E.envLookupDef env g2
     in compare n2 n1
 compareGoals _ _ _ = EQ

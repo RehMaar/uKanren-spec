@@ -3,6 +3,7 @@ module Embedding where
 import Syntax
 import Utils
 
+import Data.List (sort)
 import Data.Maybe (isJust)
 
 import qualified Data.Map.Strict as Map
@@ -30,8 +31,9 @@ instance Homeo (Term a) where
   homeo x y = couple x y || diving x y
 
 instance Homeo (G a) where
-  couple goal@(Invoke f as) (Invoke g bs) | isAlwaysEmbeddable goal || f == g && length as == length bs =
-    all (uncurry homeo) $ zip as bs
+  couple goal@(Invoke f as) (Invoke g bs)
+    | isAlwaysEmbeddable goal || f == g && length as == length bs
+    = all (uncurry homeo) $ zip as bs
   couple _ _ = False
 
   diving _ _ = False
@@ -89,9 +91,11 @@ instance (Eq a, Ord a) => Instance a (G a) where
 
 
 instance (Eq a, Ord a) => Instance a [G a] where
+  -- Sort before checking to allow conjuntions with same names but mixed orders:
+  -- a & b == b & a.
   inst as bs subst
-    | length as == length bs =
-      foldl (\s (a, b) -> s >>= \s -> inst a b s) (Just subst) (zip as bs)
+    | length as == length bs
+    = foldl (\s (a, b) -> s >>= \s -> inst a b s) (Just subst) (zip (sort as) (sort bs))
   inst _ _ _ = Nothing
 
 

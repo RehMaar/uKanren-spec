@@ -42,9 +42,9 @@ class Show a => UnfoldableGoal a where
   --
   -- `unfold` цели в `a'.
   --
-  unfoldStep :: a -> E.Gamma -> E.Sigma -> ([(E.Sigma, a)], E.Gamma)
+  unfoldStep :: a -> E.Env -> E.Subst -> ([(E.Subst, a)], E.Env)
 
-type Derivable a =  a -> Set.Set DGoal -> E.Gamma -> E.Sigma -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
+type Derivable a =  a -> Set.Set DGoal -> E.Env -> E.Subst -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
 
 type SuperCompGen a = G X -> (DTree' a, G S, [S])
 
@@ -60,11 +60,11 @@ supercomp d g = let
   tree = fst3 $ derive d igoal Set.empty lgamma E.s0 Set.empty 1
   in (tree, lgoal, lnames)
 
-fixEnv i (f1, f2, d:ds)
-  | i > d = (f1, f2, drop (i - d) ds)
-  | otherwise = (f1, f2, ds)
+fixEnv i (E.Env f1 f2 (d:ds))
+  | i > d = E.Env f1  f2 $ drop (i - d) ds
+  | otherwise = E.Env f1 f2 ds
 
-maxFreshVar = head . trd3
+maxFreshVar = head . E.envNS
 
 getVariant goal nodes = let
     vs = Set.filter (isVariant goal) nodes
@@ -72,7 +72,7 @@ getVariant goal nodes = let
 
 --
 
-goalXtoGoalS :: G X -> (G S, E.Gamma, [S])
+goalXtoGoalS :: G X -> (G S, E.Env, [S])
 goalXtoGoalS g = let
   (goal, _, defs)    = P.justTakeOutLets (g, [])
   gamma              = E.updateDefsInGamma E.env0 defs
@@ -87,12 +87,12 @@ isUpwardGenP goal anc = embed goal anc && not (embed anc goal) && length goal ==
 
 --
 
-unfold :: G S -> E.Gamma -> (E.Gamma, G S)
-unfold g@(Invoke f as) env@(p, i, d)
-  | (n, fs, body) <- p f
+unfold :: G S -> E.Env -> (E.Env, G S)
+unfold g@(Invoke f as) env
+  | (n, fs, body) <- E.envLookupDef env f
   , length fs == length as
-  = let i' = foldl extend i (zip fs as)
-        (g', env', names) = E.preEval' (p, i', d) body
+  = let i' = foldl extend (E.envIota env) (zip fs as)
+        (g', env', names) = E.preEval' env{E.envIota = i'}  body
     in (env', g')
   | otherwise = error "Unfolding error: different number of factual and actual arguments"
 unfold g env = (env, g)
@@ -102,7 +102,7 @@ extend = uncurry . E.extend
 
 --
 
-unifyAll :: E.Sigma -> Disj (Conj (G S)) -> Disj (Conj (G S), E.Sigma)
+unifyAll :: E.Subst -> Disj (Conj (G S)) -> Disj (Conj (G S), E.Subst)
 unifyAll = mapMaybe . unifyStuff
 
 --
@@ -125,41 +125,23 @@ abstractSame [(_, aGoal, _, _)] goal = isVariant aGoal goal
 abstractSame _ _ = False
 
 
-abstractU
-  :: Set.Set [G S]               -- Ancestors of the goal
-  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
-  -> [(E.Sigma, [G S], G.Generalizer, E.Gamma)]
-abstractU ancs g subst (p, iota, delt) =
-  let (abstracted, delta) = abstractU' ancs g delt
-  in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
-  where
-   abstractU'  ancs g delt
-     | Just anc <- findAncUpward g ancs
-     = generalize g anc delt
-     | otherwise
-     = error $ "Unable to generalize (U) <" ++ show g ++ "> with ancs: " ++ show ancs
-
 abstract
-  :: Set.Set [G S]               -- Ancestors of the goal
-  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
-  -> [(E.Sigma, [G S], G.Generalizer, E.Gamma)]
-abstract = abstractChild
-
-abstractChild
-  :: Set.Set [G S]               -- Ancestors of the goal
-  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
-  -> [(E.Sigma, [G S], G.Generalizer, E.Gamma)]
-abstractChild ancs g subst (p, iota, delt) =
-  let (abstracted, delta) = abstract' ancs g delt
-  in  map (\(g, gen) -> (subst, g, gen, (p, iota, delta))) abstracted
+  :: Set.Set [G S]
+  -> [G S]
+  -> E.Subst
+  -> E.NameSupply
+  -> [(E.Subst, [G S], G.Generalizer, E.NameSupply)]
+abstract ancs g subst ns  =
+  let (abstracted, delta) = abstract' ancs g ns
+  in  map (\(g, gen) -> (subst, g, gen, ns)) abstracted
 
 abstractFixed
-  :: Set.Set [G S]               -- Ancestors of the goal
-  -> [G S] -> E.Sigma -> E.Gamma -- Body: the goal with subst and ctx
-  -> ([(E.Sigma, [G S], G.Generalizer)], E.Gamma)
-abstractFixed ancs g subst (p, iota, delt) =
-  let (abstracted, delta) = abstract' ancs g delt
-  in  (map (\(g, gen) -> (subst, g, gen)) abstracted, (p, iota, delta))
+  :: Set.Set [G S]
+  -> [G S] -> E.Subst -> E.NameSupply
+  -> ([(E.Subst, [G S], G.Generalizer)], E.NameSupply)
+abstractFixed ancs g subst ns =
+  let (abstracted, delta) = abstract' ancs g ns
+  in  (map (\(g, gen) -> (subst, g, gen)) abstracted, delta)
 
 abstractDebug ancs g subst delt =
   let (abstracted, delta) = abstract' ancs g delt
@@ -167,10 +149,12 @@ abstractDebug ancs g subst delt =
 
 abstract' ancs g delt
   | Just anc <- findAnc g ancs
-  = generalize g anc delt
+  = -- trace ("Goal: " ++ show g ++ "\nAnc: " ++ show anc ++ "\n\n") $
+    generalize g anc delt
   | otherwise
   = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList (Set.toList ancs)
 
+-- |Find a goal for upward abstraction.
 findAncUpward g = find (embed g) . sortBy goalOrdering . Set.toList
   where
     goalOrdering a1 a2 = compare (length a2) (length a1)
@@ -178,14 +162,8 @@ findAncUpward g = find (embed g) . sortBy goalOrdering . Set.toList
 -- |Find a parent who is embeded in us.
 findAnc g = find (`embed` g) . sortBy goalOrdering . Set.toList
   where
-    goalOrdering a1 a2 = compare (length a2) (length a1)
-    {-
-    goalOrdering a1 a2
-      | isVariant a1 a2 = EQ
-      | a1 `embed` a2 = GT
-      | otherwise = LT
-    -}
-
+    goalOrdering a1 a2 = compare (length a1) (length a2)
+    
 findRenaming goal = find (isVariant goal)
 
 -- Old whistles.
@@ -198,30 +176,22 @@ whistleStrict ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
 whistle :: Set.Set [G S] -> [G S] -> Bool
 whistle ancs goal = any (whistleP goal) ancs
 
-whistleP goal anc = homeo anc goal  && not (isVariant anc goal)
-
-findW goal = find (whistleP goal)
+whistleP goal anc = embed anc goal  && not (isVariant anc goal)
 
 -- |Generalization at its core.
 
-generalize :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
+generalize :: [G S] -> [G S] -> E.NameSupply -> ([([G S], G.Generalizer)], E.NameSupply)
 generalize = generalizeCpd
 
-generalizeCpd :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
+generalizeCpd :: [G S] -> [G S] -> E.NameSupply -> ([([G S], G.Generalizer)], E.NameSupply)
 generalizeCpd m b d =
   let ((m1, m2), genOrig, delta) = G.split d b m in
   (map (,genOrig) (G.mcs m1) ++ map (,[]) (G.mcs m2), delta)
 
---generalizeCpd' :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
-generalizeCpd' m b d =
-  let ((m1, m2), genOrig, delta) = G.split d b m in
-  -- ((map (,genOrig) (G.mcs m1)) ++ (map (,[]) (G.mcs m2)), delta)
-  (m1, m2, genOrig)
-
 {-
   TODO: describe generalization, add SPLIT step
 -}
-generalizeSimple :: [G S] -> [G S] -> E.Delta -> ([([G S], G.Generalizer)], E.Delta)
+generalizeSimple :: [G S] -> [G S] -> E.NameSupply -> ([([G S], G.Generalizer)], E.NameSupply)
 generalizeSimple goal anc delt = 
   let (g, _, gen, delt') = G.generalizeGoals delt goal anc
   in ([(g, gen)], delt')
@@ -250,11 +220,11 @@ normalize g@(Invoke _ _) = [[g]]
 normalize g@(_ :=: _) = [[g]]
 normalize (Fresh _ goal) = normalize goal
 
--- |To avoid code repeatition and exhausting renaming.
+-- |To avoid code repeatition and exhausting refactor renaming.
 goalToDNF = normalize
 
 -- |Apply unifications and add some more of them.
-unifyStuff :: E.Sigma -> [G S] -> Maybe ([G S], E.Sigma)
+unifyStuff :: E.Subst -> [G S] -> Maybe ([G S], E.Subst)
 unifyStuff state gs = go gs state [] where
   go []                    state conjs = Just (reverse conjs, state)
   go (g@(Invoke _ _) : gs) state conjs = go gs state (g : conjs)
@@ -262,13 +232,16 @@ unifyStuff state gs = go gs state [] where
     s <- E.unify  (Just state) t u
     go gs s conjs
 
+-- |Generalized unfold step.
+-- <split> function defines the way to split a goal into a node to
+-- actualy unfold and the rest of the goal..
 genUnfoldStep :: UnfoldableGoal a =>
-     (E.Gamma -> a -> (DGoal, G S, DGoal))
+     (E.Env -> a -> (DGoal, G S, DGoal))
   -> (DGoal -> a)
   -> a
-  -> E.Gamma
-  -> E.Sigma
-  -> ([(E.Sigma, a)], E.Gamma)
+  -> E.Env
+  -> E.Subst
+  -> ([(E.Subst, a)], E.Env)
 genUnfoldStep split ctr goal env subst = let
     (ls, conj, rs) = split env goal
     (newEnv, uConj) = unfold conj env
@@ -280,13 +253,11 @@ genUnfoldStep split ctr goal env subst = let
   where
     construct subst cs ls rs = ctr $ E.substitute subst $ ls ++ cs ++ rs
 
-class UnfoldableGoal a => Unfold a where
-  derivationStep
-    :: a                 -- Conjunction of invokes and substs.
-    -> Set.Set DGoal     -- Ancsectors.
-    -> E.Gamma           -- Context.
-    -> E.Sigma           -- Substitution.
-    -> Set.Set DGoal     -- Already seen.
-    -> Int -- depth for debug
-    -> (DTree, Set.Set DGoal, S)
-  derivationStep = undefined
+-- |Check if a goal has a recursive call.
+isRec :: E.Env -> G S -> Bool
+isRec env goal@(Invoke call _) =
+  let (name, args, body) = E.envLookupDef env call in
+  any ((== name) . getInvokeName) $ getInvokes body
+  where
+    getInvokes b = concat $ filter isInvoke <$> normalize b
+isRec _ _ = False
