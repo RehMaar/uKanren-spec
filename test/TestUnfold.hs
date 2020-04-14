@@ -84,10 +84,10 @@ testMWL = DTR.mapTwoLists [1, 2, 2] [1, 2, 3] == Nothing
 -- Test unfold methods
 ------------------------------------------
 
-pathPrefix :: String
-pathPrefix = "test/ocanren/auto/"
+-- pathPrefix :: String
+-- pathPrefix = "test/ocanren/auto/"
 
-toTestPath fpath (n:name) = pathPrefix ++ fromMaybe "" fpath ++ toUpper n : name ++ ".ml"
+toTestPath pathPrefix fpath (n:name) = pathPrefix ++ fromMaybe "" fpath ++ toUpper n : name ++ ".ml"
 
 data TestMethod = TM { tmName :: String, tmFun :: U.SuperComp}
 
@@ -96,35 +96,46 @@ data TestQuery = TQ { tqName :: String, tqQuery :: G X, env :: Maybe String, tmD
 methods runner =
   [
     --TM "ranu" (RU.topLevel 17),
-    TM "fulu" (runner "FU"),
     TM "sequ" (runner "SU"),
     TM "nrcu" (runner "NU"),
     TM "recu" (runner "RU"),
     TM "minu" (runner "MnU"),
     TM "maxu" (runner "MxU"),
+    TM "fulu" (runner "FU"),
     TM "fstu" (runner "FstU")
   ]
 
 methods1 = methods SCI.run1
 methods2 = methods SCI.run2
+methods3 = methods SCI.run3
 methodsU = methods SCI.runU
+methodsU2 = methods SCI.runU2
 
+-- reverso(a, a)
 palindromeTQ = TQ "Pldrm" testRev' Nothing (Just "pldrmAuto/src/")
+-- doubleAppend(a, b, c, d)
 dappTQ = TQ "Dapp" testDA Nothing (Just "dappAuto/src/")
+-- loginto(form, subst, true)
 logintTQ = TQ "Logint" LI.logintoQueryTrue (Just LI.logintoEnv) (Just "logintAuto/src/")
+-- maxLengtho(..)
 maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
+-- isPath(graph, path, true)
 isPathTQ = TQ "IsPath" Path.query1 Nothing (Just "pathAuto/src/")
+-- 
 unifyTQ  = TQ "Unify" Unify.query (Just env) (Just "unifyAuto/src/")
-  where
-    env = "open OCanren\nopen GT\nopen Std\nopen Nat\nopen UnifyTerm\n"
+  where env = "open OCanren\nopen GT\nopen Std\nopen Nat\nopen UnifyTerm\n"
+-- Simple sorting
+sortTQ = TQ "Sort" testSort Nothing (Just "sortAuto/src/")
 
-testMethodsOnTest1 query = mapM_ (testMethodOnTest query) methods1
-testMethodsOnTest2 query = mapM_ (testMethodOnTest query) methods2
-testMethodsOnTestU query = mapM_ (testMethodOnTest query) methodsU
+testMethodsOnTest1 query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methods1
+testMethodsOnTest2 query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methods2
+testMethodsOnTest3 query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methods3
+testMethodsOnTestU query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methodsU
+testMethodsOnTestU2 query = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ methodsU2
 
-testMethodOnTest (TQ qname query env path) (TM fname fun) = do
+testMethodOnTest prefix (TQ qname query env path) (TM fname fun) = do
    putStrLn $ "Query: " ++ qname ++ " Method: " ++ fname
-   TestUtils.ocanrenUltraGen env fun (fname ++ qname) (toTestPath path $ fname ++ qname) query
+   TestUtils.ocanrenUltraGen env fun (fname ++ qname) (toTestPath prefix path $ fname ++ qname) query
 
 testMethodOnTestQuick (TQ qname query env _) (TM fname fun) = do
    TestUtils.ocanrenUltraGen env fun (fname ++ qname) (fname ++ qname ++ ".ml") query

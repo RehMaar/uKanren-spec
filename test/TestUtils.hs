@@ -149,14 +149,14 @@ ocanrenPrint goal = do
 -- DTree test utils
 --
 findGoal :: DT.DGoal -> DT.DTree -> Maybe DT.DTree
-findGoal g t@(DT.Unfold ts _ g' _)
+findGoal g t@(DT.Unfold ts _ g')
   | Emb.isVariant g g' = Just t
   | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
-findGoal g t@(DT.Abs ts _ g' _)
+findGoal g t@(DT.Abs ts _ g')
   | Emb.isVariant g g'  = Just t
   | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
 findGoal g (DT.Gen t _) = findGoal g t
-findGoal g t@(DT.Renaming g' _ _ _)
+findGoal g t@(DT.Renaming g' _)
   | Emb.isVariant g g' = Just t
 findGoal _ _ = Nothing
 
@@ -250,34 +250,34 @@ statRandIO goal = do
 ----------
 prune :: DT.DTree -> [DT.DGoal]
 prune (DT.Prune g) = [g]
-prune (DT.Unfold ts _ _ _) = concat $ prune <$> ts
-prune (DT.Abs ts _ _ _) = concat $ prune <$> ts
+prune (DT.Unfold ts _ _) = concat $ prune <$> ts
+prune (DT.Abs ts _ _) = concat $ prune <$> ts
 prune (DT.Gen t _) = prune t
 prune _ = []
 
 leavesT :: DT.DTree -> [(Int, DT.DGoal)]
 leavesT (DT.Success _) = []
 leavesT DT.Fail        = []
-leavesT (DT.Renaming _ _ _ _) = []
-leavesT (DT.Unfold ts _ g _) = (1, g) : concat (leavesT <$> ts)
-leavesT (DT.Abs ts _ g _) = (0, g) : concat (leavesT <$> ts)
+leavesT (DT.Renaming _ _) = []
+leavesT (DT.Unfold ts _ g) = (1, g) : concat (leavesT <$> ts)
+leavesT (DT.Abs ts _ g) = (0, g) : concat (leavesT <$> ts)
 leavesT (DT.Gen t _) = leavesT t
 
 debug :: DT.DTree -> [DT.DTree]
-debug (DT.Success _) = []
+debug DT.Success {} = []
 debug DT.Fail        = []
-debug (DT.Renaming _ _ _ _) = []
-debug (DT.Unfold ts _ g _) = concat (debug <$> ts)
-debug (DT.Abs ts _ g _) = concat (debug <$> ts)
+debug DT.Renaming{} = []
+debug (DT.Unfold ts _ g) = concat (debug <$> ts)
+debug (DT.Abs ts _ g) = concat (debug <$> ts)
 debug (DT.Gen t _) = debug t
 debug dbg@(DT.Debug _ _ _ _) = [dbg]
 
 findA :: DT.DGoal -> DT.DTree -> Maybe E.Subst
 findA _ (DT.Success _)  = Nothing
 findA _ DT.Fail         = Nothing
-findA _ (DT.Renaming _ _ _ _) = Nothing
-findA g (DT.Unfold ts _ _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
-findA g' (DT.Abs ts s g _)  | g == g' = Just s
+findA _ (DT.Renaming _ _) = Nothing
+findA g (DT.Unfold ts _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
+findA g' (DT.Abs ts s g)  | g == g' = Just s
                        | otherwise = getFirst $ mconcat $ First <$> (findA g' <$> ts)
 findA g (DT.Gen t _)    = findA g t
 
@@ -286,17 +286,10 @@ prunesAncs = prunes' []
    where
      prunes' :: [DT.DGoal] -> DT.DTree -> [(DT.DGoal, [DT.DGoal])]
      prunes' ancs (DT.Prune goal) = [(goal, ancs)]
-     prunes' ancs (DT.Unfold ts _ g _) = concatMap (prunes' (g:ancs)) ts
-     prunes' ancs (DT.Abs ts _ g _) = concatMap (prunes' (g:ancs)) ts
+     prunes' ancs (DT.Unfold ts _ g) = concatMap (prunes' (g:ancs)) ts
+     prunes' ancs (DT.Abs ts _ g) = concatMap (prunes' (g:ancs)) ts
      prunes' ancs (DT.Gen t _) = prunes' ancs t
      prunes' _ _ = []
-
-leavesAncs :: DT.DTree -> [(DT.DGoal, [DT.DGoal])]
-leavesAncs (DT.Renaming g a _ _) = [(g, Set.toList a)]
-leavesAncs (DT.Unfold ts _ g _) = concatMap leavesAncs ts
-leavesAncs (DT.Abs ts _ g _) = concatMap leavesAncs ts
-leavesAncs (DT.Gen t _) = leavesAncs t
-leavesAncs _ = []
 
 --
 -- Prints list of goal and it's ancestors
@@ -336,23 +329,23 @@ checkOrder ancs =
 cutExcept :: [DT.DGoal] -> DT.DTree -> Maybe DT.DTree
 cutExcept cs t@(DT.Prune goal)
  | goal `elem` cs = Just t
-cutExcept cs t@(DT.Renaming goal _ _ _)
+cutExcept cs t@(DT.Renaming goal _)
  | goal `elem` cs = Just t
 cutExcept cs (DT.Gen t _) = cutExcept cs t
-cutExcept cs (DT.Abs ts a b c) =
-    (\x -> DT.Abs x a b c) <$> (weird_sequence $ cutExcept cs <$> ts)
-cutExcept cs (DT.Unfold ts a b c) =
-    (\x -> DT.Unfold x a b c) <$> (weird_sequence $ cutExcept cs <$> ts)
+cutExcept cs (DT.Abs ts a b) =
+    (\x -> DT.Abs x a b) <$> (weird_sequence $ cutExcept cs <$> ts)
+cutExcept cs (DT.Unfold ts a b) =
+    (\x -> DT.Unfold x a b) <$> (weird_sequence $ cutExcept cs <$> ts)
 cutExcept cs _ = Nothing
 
 cutLeaves :: DT.DTree -> Maybe DT.DTree
 cutLeaves (DT.Gen t _) = cutLeaves t
-cutLeaves t@(DT.Abs [] _ _ _) = Just t
-cutLeaves t@(DT.Unfold [] _ _ _) = Just t
-cutLeaves (DT.Abs ts a b c) =
-    (\x -> DT.Abs x a b c) <$> (weird_sequence $ cutLeaves <$> ts)
-cutLeaves (DT.Unfold ts a b c) =
-    (\x -> DT.Unfold x a b c) <$> (weird_sequence $ cutLeaves <$> ts)
+cutLeaves t@(DT.Abs [] _ _) = Just t
+cutLeaves t@(DT.Unfold [] _ _) = Just t
+cutLeaves (DT.Abs ts a b) =
+    (\x -> DT.Abs x a b) <$> (weird_sequence $ cutLeaves <$> ts)
+cutLeaves (DT.Unfold ts a b) =
+    (\x -> DT.Unfold x a b) <$> (weird_sequence $ cutLeaves <$> ts)
 cutLeaves _ = Nothing
 
 
@@ -362,10 +355,10 @@ cutLeaves _ = Nothing
 cutNotPruned :: DT.DTree -> Maybe DT.DTree
 cutNotPruned t@(DT.Prune _) = Just t
 cutNotPruned (DT.Gen t _) = cutNotPruned t
-cutNotPruned (DT.Abs ts a b c) =
-    (\x -> DT.Abs x a b c) <$> (weird_sequence $ cutNotPruned <$> ts)
-cutNotPruned (DT.Unfold ts a b c) =
-    (\x -> DT.Unfold x a b c) <$> (weird_sequence $ cutNotPruned <$> ts)
+cutNotPruned (DT.Abs ts a b) =
+    (\x -> DT.Abs x a b) <$> (weird_sequence $ cutNotPruned <$> ts)
+cutNotPruned (DT.Unfold ts a b) =
+    (\x -> DT.Unfold x a b) <$> (weird_sequence $ cutNotPruned <$> ts)
 cutNotPruned _ = Nothing
 
 -- TODO: find better way
@@ -373,3 +366,20 @@ weird_sequence :: [Maybe a] -> Maybe [a]
 weird_sequence ts = 
  let a = fromJust <$> filter isJust ts
  in if null a then Nothing else Just a
+
+cutSubtree :: DT.DGoal -> DT.DTree -> Maybe DT.DTree
+cutSubtree = go
+  where
+    go g t@(DT.Unfold ts _ goal)
+      | goal == g
+      = Just t
+      | otherwise
+      = findFirst (go g) ts
+    go g t@(DT.Abs ts _ goal)
+      | goal == g
+      = Just t
+      | otherwise
+      = findFirst (go g) ts
+    go g (DT.Gen t _) = go g t
+    go g _ = Nothing
+

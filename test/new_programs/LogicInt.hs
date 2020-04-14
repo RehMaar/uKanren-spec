@@ -286,15 +286,17 @@ logintoCut2 =
     ||| (formula === neg (V "x")
          &&& call "loginto" [subst, V "x", V "rl"]
          &&& call "noto" [V "rl", result])
-{-    ||| (formula === conj (V "l") (V "r")
+     ||| (formula === conj (V "l") (V "r")
          &&& call "loginto" [subst, V "l", V "rl"]
          &&& call "loginto" [subst, V "r", V "rr"]
-         &&& call "ando" [V "rl", V "rr", result])-}
+         &&& call "ando" [V "rl", V "rr", result])
     ||| (formula === disj (V "l") (V "r")
          &&& call "loginto" [subst, V "l", V "rl"]
          &&& call "loginto" [subst, V "r", V "rr"]
          &&& call "oro" [V "rl", V "rr", result])
     )) . lookupo2 . noto . ando . oro
 
+
 logintoQueryId2 = loginto2 $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", V "r"]
-logintoQueryTrue2 = logintoCut2 $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
+logintoQueryTrue2 = loginto2 $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]
+logintoQueryTrueCut2 = logintoCut2 $ fresh ["s", "f", "r"] $ call "loginto" [V "s", V "f", trueo]

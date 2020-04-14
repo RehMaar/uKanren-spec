@@ -12,8 +12,8 @@ lookupo =
       var   = V "var"
       result = V "result"
   in
-  Let (def "lookupo" ["subst", "var", "result"] $ (
-    fresh ["key", "val", "tail"] $
+  Let (def "lookupo" ["subst", "var", "result"] (
+    fresh ["key", "val", "tail"]
     (subst === pair (V "key") (V "val") % V "tail" &&& (
       (var === V "key" &&& result === V "val")
       ||| call "lookupo" [V "tail", var, result])
@@ -33,18 +33,18 @@ NOTE: Please, do not use clashed variables!
 
 substo :: G a -> G a
 substo = Let (def "substo" ["expr", "val", "term", "result"] $
-    (fresh ["y"] $
-      (expr === var (V "y")) &&&
-      (V "y" === val) &&&
-      (result === term))
+    fresh ["y"] (
+       (expr === var (V "y")) &&&
+       (V "y" === val) &&&
+       (result === term))
     |||
-    (fresh ["le", "re", "rt", "lt"] $
+    fresh ["le", "re", "rt", "lt"] (
       expr   === app (V "le") (V "re") &&&
       result === app (V "lt") (V "rt") &&&
       call "substo" [V "le", val, term, V "lt"] &&&
       call "substo" [V "re", val, term, V "rt"])
     |||
-    (fresh ["hd", "bd"] $
+    fresh ["hd", "bd"] (
       expr === lam (V "hd") (V "bd") &&&
       (((val === V "hd") &&& (expr === result)) |||
        (fresh ["bd'"] $
@@ -59,11 +59,11 @@ slamo :: G a -> G a
 slamo =
   Let (def "slamo" ["expr", "result"] $
     -- expr is var
-    (fresh ["v"] $
-      (expr === var (V "v") &&& expr === result))
+    fresh ["v"]
+      (expr === var (V "v") &&& expr === result)
     -- expr is abstraction
     |||
-    (fresh ["hd", "body", "reduced"] $
+    fresh ["hd", "body", "reduced"] (
       (expr === lam (V "hd") (V "body") &&&
        call "slamo" [V "body", V "reduced"] &&&
        result === lam (V "hd") (V "reduced")
@@ -71,7 +71,7 @@ slamo =
     )
     -- expr is application
     |||
-    (fresh ["fun", "arg", "hd", "body", "rfun", "app"] $
+    fresh ["fun", "arg", "hd", "body", "rfun", "app"] (
       (expr === app (V "fun") (V "arg") &&&
         (
           -- If fun is lambda head body then body[hd -> arg]
@@ -96,7 +96,7 @@ lamIdY = lam (val "y") (var (val "y"))
 
 slamoQuery1 = slamo $ fresh ["r"] $ call "slamo" [lamId,V "r"]
 slamoQuery2 = slamo $ fresh ["r"] $ call "slamo" [app lamId lamIdY, V "r"]
-slamoQueryQuine = slamo $ fresh ["p"] $ call "slamo" [V "p", V "p"]
+slamoQueryB = slamo $ fresh ["r"] $ call "slamo" [V "r",lamId]
 slamoQueryId = slamo $ fresh ["p1", "p2"] $ call "slamo" [V "p1", V "p2"]
 
 substoQuery1 = substo $ fresh ["a", "b", "c", "d"] $ call "substo" [V "a", V "b", V "c", V "d"]

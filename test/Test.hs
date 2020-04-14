@@ -145,8 +145,4 @@ gGoal = f $ fresh ["x"] $ call "f" [V "x", V "x"]
            ||| (call "f" [V "x", V "z"] &&& call "h" [V "z", V "y"])
          )) . h
 
-g = [Invoke "lookupo" [V (616 :: Int), V 423, C "true" []],
-     Invoke "loginto" [C "Cons" [C "pair" [V 614, V 615], V 616], V 620, V 622],
-     Invoke "ando"    [V 621, V 622, C "false" []],
-     Invoke "loginto" [C "Cons" [C "pair" [V 614, V 615], V 616], V 623, V 627]]
-
+g = [Invoke "loginto" [V 0, V 53, V (54 :: S)]]
