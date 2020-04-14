@@ -95,7 +95,8 @@ instance (Eq a, Ord a) => Instance a [G a] where
   -- a & b == b & a.
   inst as bs subst
     | length as == length bs
-    = foldl (\s (a, b) -> s >>= \s -> inst a b s) (Just subst) (zip (sort as) (sort bs))
+    = foldl (\s (a, b) -> s >>= \s -> inst a b s) (Just subst) $ zip as bs
+    --(zip (sort as) (sort bs))
   inst _ _ _ = Nothing
 
 
