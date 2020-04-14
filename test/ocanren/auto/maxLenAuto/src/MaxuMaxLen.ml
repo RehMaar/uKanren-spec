@@ -1,6 +1,0 @@
-open GT
-open OCanren
-open Std
-open Nat
-
-let maxuMaxLen x0 x1 x2 = let rec maxLengtho y0 y1 y2 = (fresh (x17 x19 x18 x4) (((((y0 === nil ()) &&& (y2 === zero)) &&& (y1 === zero)) ||| (((y0 === (x4 % x18)) &&& (y2 === succ (x19))) &&& (((x17 === (x4 % x18)) &&& (maxo1 x17 y1)) &&& ((x17 === (x4 % x18)) &&& (lengtho x18 x19))))))) and maxo1 y3 y4 = (fresh (x37 x26 x25 x23) ((((y3 === nil ()) &&& (y4 === zero)) ||| (((y3 === (zero % x23)) &&& (maxo1 x23 y4)) ||| ((y3 === (x25 % x26)) &&& ((x25 === succ (x37)) &&& (_maxo1 x26 x37 y4))))))) and _maxo1 y5 y6 y7 = (fresh (x63 x45 x44 x52 x42 x41) ((((y5 === nil ()) &&& (y7 === succ (y6))) ||| (((y5 === (x41 % x42)) &&& ((_maxo1 x42 y6 y7) &&& ((x41 === zero) ||| ((x41 === succ (x52)) &&& (leo x52 y6))))) ||| ((y5 === (x44 % x45)) &&& ((x44 === succ (x63)) &&& ((_maxo1 x45 x63 y7) &&& (gto x63 y6)))))))) and leo y8 y9 = (fresh (x58 x57) (((y8 === zero) ||| (((y8 === succ (x57)) &&& (y9 === succ (x58))) &&& (leo x57 x58))))) and gto y10 y11 = (fresh (x70 x69 x68) ((((y10 === succ (x68)) &&& (y11 === zero)) ||| (((y10 === succ (x69)) &&& (y11 === succ (x70))) &&& (gto x69 x70))))) and lengtho y12 y13 = (fresh (x76 x75 x74) ((((y12 === nil ()) &&& (y13 === zero)) ||| (((y12 === (x74 % x75)) &&& (y13 === succ (x76))) &&& (lengtho x75 x76))))) in       (maxLengtho x0 x1 x2)
