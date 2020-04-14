@@ -51,23 +51,20 @@ generalizeGoals s as bs | as `isRenaming` bs =
   let (Just subst) = inst as bs Map.empty in
   (bs, Map.toList subst, [], s)
 generalizeGoals s as bs | length as == length bs =
-  refine $ generalize s [] [] as bs 
+  refine $ generalize s [] [] as bs
 generalizeGoals _ as bs = error $ printf "Cannot generalize: different lengths of\nas: %s\nbs: %s\n" (show as) (show bs)
 
-generalizeSplit :: [S] -> [G S] -> [G S] -> ([G S], [G S], Generalizer, Generalizer, [S])
+--generalizeSplit :: [S] -> [G S] -> [G S] -> ([G S], [G S], Generalizer, Generalizer, [S])
 generalizeSplit s gs hs =
     let (ok, notOk) = go gs hs in
-    let (res, gen1, gen2, d) = generalizeGoals s gs ok in
-    (res, notOk, gen1, gen2, d)
+    (ok, notOk)
+--    let (res, gen1, gen2, d) = generalizeGoals s gs ok in
+--    (res, notOk, gen1, gen2, d)
   where
-    go gs hs | length gs == length hs = (hs, [])
-    go (g : gs) (h : hs) | g `embed` h =
-      let (ok, notOk) = go gs hs in
-      (h : ok, notOk)
-    go (g : gs) (h : hs) =
-      let (ok, notOk) = go gs hs in
-      (ok, h : notOk)
-    go [] hs = ([], hs)
+    go gs hs | length gs == length hs  = (hs, [])
+    go (g : gs) (h : hs) | g `embed` h = let (ok, notOk) = go gs hs in (h : ok, notOk)
+    go (g : gs) (h : hs)               = let (ok, notOk) = go gs hs in (ok, h : notOk)
+    go [] hs                           = ([], hs)
 
 refine :: ([G S], Generalizer, Generalizer, [S]) ->  ([G S], Generalizer, Generalizer, [S])
 refine msg@(g, s1, s2, d) =
@@ -118,8 +115,7 @@ msgExists _ _ = False
 
 -- works for ordered subconjunctions
 complementSubconjs :: (Instance a (Term a), Eq a, Ord a, Show a) => [G a] -> [G a] -> [G a]
-complementSubconjs xs ys =
-  go xs ys
+complementSubconjs = go
    where
     go [] xs = xs
     go (x:xs) (y:ys) | x == y         = go xs ys
@@ -147,7 +143,7 @@ bmc d q (q':qCurly) = trace "why msg does not exist?!" $ bmc d q qCurly
 split :: E.NameSupply -> [G S] -> [G S] -> (([G S], [G S]), Generalizer, E.NameSupply)
 split d q q' = -- q <= q'
   let n = length q
-      qCurly = filter (\q'' -> and $ zipWith embed q q'') $ subconjs q' n
+      qCurly = filter (and . zipWith embed q) $ subconjs q' n
       (bestMC, delta) = bmc d q qCurly
       (b, gen) = minimallyGeneral bestMC
   in ((b, if length q' > n then complementSubconjs b q' else []), gen, delta)

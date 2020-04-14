@@ -37,42 +37,40 @@ derive3 = Derive derive'
 derive' :: UnfoldableGoal a => Derivable a
 derive' = derivationStep'
     where
-      abstractSame [(_, aGoal, _, _)] goal = isVariant aGoal goal
-      abstractSame _ _ = False
-
       derivationStep' goal ancs env subst seen d
         -- Empty goal => everything evaluated fine
         | emptyGoal goal
         = (Success subst, seen, maxFreshVar env)
         -- If we already seen the same node, stop evaluate it.
         | checkLeaf (getGoal goal) seen
-        = (Renaming (getGoal goal) ancs subst env, seen, maxFreshVar env)
+        = (Renaming (getGoal goal) subst, seen, maxFreshVar env)
         -- If a node is generalization of one of ancsectors generalize.
-        | isGen (getGoal goal) ancs
-        , aGoals <- abstract ancs (getGoal goal) subst $ E.envNS env
+        | isGen (getGoal goal) (Set.fromList ancs)
+        , (aGoals, ns) <- abstractL ancs (getGoal goal) $ E.envNS env
         , not $ abstractSame aGoals (getGoal goal)
         =
           let
             rGoal = getGoal goal
-            nAncs = Set.insert rGoal ancs
+            nAncs = rGoal : ancs
             nSeen = Set.insert rGoal seen
+            nEnv = env{E.envNS = ns}
             (seen', trees, maxVarNum) =
               foldl
-                (\(seen, ts, m) (subst, goal, gen, ns) ->
-                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m env{E.envNS = ns}) subst seen (succ d)
+                (\(seen, ts, m) (goal, gen) ->
+                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m nEnv) subst seen (succ d)
                       t' = if null gen then t else Gen t gen
                   in (seen'', t':ts, mv)
                 )
                 (nSeen, [], maxFreshVar env)
                 aGoals
-            tree = Abs (reverse trees) subst rGoal ancs
+            tree = Abs (reverse trees) subst rGoal
           in (tree, seen', maxVarNum)
         | otherwise
         = case unfoldStep goal env subst of
             ([], _) -> (Fail, seen, maxFreshVar env)
             (uGoals, nEnv) -> let
                 rGoal = getGoal goal
-                nAncs = Set.insert rGoal ancs
+                nAncs = rGoal : ancs
                 nSeen = Set.insert rGoal seen
 
                 (seen', trees, maxVarNum) =
@@ -83,5 +81,5 @@ derive' = derivationStep'
                     )
                     (nSeen, [], maxFreshVar nEnv)
                     uGoals
-                tree = Unfold (reverse trees) subst rGoal ancs
+                tree = Unfold (reverse trees) subst rGoal
               in (tree, seen', maxVarNum)

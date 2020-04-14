@@ -146,7 +146,7 @@ topLevelIO g = do
       -- | depth >= 50
       -- = (Prune (getGoal goal), seen)
       | checkLeaf goal seen
-      = pure (Renaming goal ancs subst env, seen)
+      = pure (Renaming goal subst, seen)
       | otherwise
       = do
         let realGoal = goal
@@ -160,7 +160,7 @@ topLevelIO g = do
               -- Делаем свёртку, чтобы просмотренные вершины из одного обработанного поддерева
               -- можно было передать в ещё не обработанное.
             (seen', ts) <- foldM (\(seen, ts) g -> fmap (:ts) <$> evalSubTreeIO depth newEnv newAncs seen g) (newSeen, []) uGoals
-            pure (Unfold (reverse ts) subst realGoal ancs, seen')
+            pure (Unfold (reverse ts) subst realGoal, seen')
 
 
     evalSubTreeIO :: Int -> E.Env -> Set.Set DGoal -> Set.Set DGoal -> (E.Subst, RndGoalIO) -> IO (Set.Set DGoal, DTree)
@@ -174,7 +174,7 @@ topLevelIO g = do
           -- Add `realGoal` to a seen set (`Abs` node in the tree).
         let newSeen = Set.insert realGoal seen
         (seen', ts) <- foldM (\(seen, ts) g -> fmap (:ts) <$> evalGenSubTree depth ancs seen env g) (newSeen, []) absGoals
-        pure (seen', Abs (reverse ts) subst realGoal ancs)
+        pure (seen', Abs (reverse ts) subst realGoal)
       | otherwise
       = do
         let newDepth = 1 + depth

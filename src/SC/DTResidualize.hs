@@ -6,12 +6,13 @@ import Embedding
 
 import qualified SC.DTree as DT
 import qualified Eval as E
+import qualified Purification as P
 
 import Data.List
 import Utils
 import Data.Maybe (isJust, fromMaybe, mapMaybe, fromJust, catMaybes)
 import Data.Char
-import Control.Arrow (first, second)
+import Control.Arrow (first)
 
 import qualified Data.Set as Set
 
@@ -99,34 +100,38 @@ countNodes (Abs ts _ _ _)    = let (a, b) = foldl (\(a1, b1) (a2, b2) -> (a1 + a
 countNodes (Gen t _) = let (a, b) = countNodes t in (a + 1, b)
 countNodes _ = (1, 0)
 
---
---
-data Call = Call { callName :: Name, callArgs :: [S], callOrigArgs :: [S] }
+-- |Describes a call of a relation.
+data Call = Call
+    { callName :: Name
+   -- ^Generated name for a relational call.
+    , callArgs :: [S]
+   -- ^TODO: ???
+    , callOrigArgs :: [S]
+   -- ^Original arguments of a call node.
+    }
   deriving Show
 
 makeMarkedTree :: DT.DTree -> MarkedTree
-makeMarkedTree x = makeMarkedTree' x (DT.leaves x) x
+makeMarkedTree x = go x (DT.leaves x) x
   where
-    makeMarkedTree' :: DT.DTree      -- Root of the tree
-                    -> [DT.DGoal]    -- Leaves of the tree (Only `Renaming` nodes)
-                    -> DT.DTree      -- Currently traversed tree.
-                    -> MarkedTree
-    makeMarkedTree' _ _ DT.Fail                  = Fail
-    makeMarkedTree' _ _ (DT.Success s)           = Success s
-    makeMarkedTree' root leaves (DT.Gen t s)     = Gen (makeMarkedTree' root leaves t) s
-    makeMarkedTree' root leaves (DT.Renaming goal _ s _) = Renaming goal s
-    makeMarkedTree' root leaves (DT.Unfold ts s g a)  = let
-        isVar = any (`isVariant` g) leaves
-        ts'   = makeMarkedTree' root leaves <$> ts
+    go :: DT.DTree      -- |Root of the tree
+       -> [DT.DGoal]    -- |Leaves of the tree (Only `Renaming` nodes)
+       -> DT.DTree      -- |Currently traversed tree.
+       -> MarkedTree
+    go _     _     DT.Fail                  = Fail
+    go _     _     (DT.Success s)           = Success s
+    go root leaves (DT.Gen t s)             = Gen (go root leaves t) s
+    go root leaves (DT.Renaming goal s) = Renaming goal s
+    go root leaves (DT.Unfold ts s g)     =
+      let isVar = any (`isVariant` g) leaves
+          ts'   = go root leaves <$> ts
       in Unfold ts' s g isVar
-    makeMarkedTree' root leaves (DT.Abs ts s g a)  = let
-        isVar = any (`isVariant` g) leaves
-        ts'   = makeMarkedTree' root leaves <$> ts
+    go root leaves (DT.Abs ts s g)        =
+      let isVar = any (`isVariant` g) leaves
+          ts'   = go root leaves <$> ts
       in Abs ts' s g isVar
 
---
--- Get all variables from the given term.
---
+-- |Get all variables from the given term.
 getVarFromTerm :: Term x -> [Term x]
 getVarFromTerm v@(V _) = [v]
 getVarFromTerm (C _ vs) = concatMap getVarFromTerm vs
@@ -138,16 +143,12 @@ getSFromTerm (C _ vs) = concatMap getSFromTerm vs
 argsToS :: [Term S] -> [S]
 argsToS = concatMap getSFromTerm
 
---
--- Generate name for an invocation.
---
+-- |Generate name for an invocation.
 genCallName :: [G a] -> String
 genCallName = nameToOCamlName . concat . toUpperTail . fmap toName . filter isInvoke
   where toName (Invoke g _) = g
 
---
--- Return all arguments of the conj's invokes.
---
+-- |Return all arguments of the conj's invokes.
 getArgs :: [G a] -> [Term a]
 getArgs = concatMap getInvokeArgs . filter isInvoke
 
@@ -189,53 +190,45 @@ genInvokeByCall (Call name args orig) goal = let
      invArgs = map toX $ genArgsByOrig args orig goalArgs
      in Invoke name invArgs
 
---
--- Generate call signature
---
+-- |Generate call signature
 genLetSig :: Ord a => [G a] -> (Name, [Term a])
 genLetSig goal = (genCallName goal, genArgs goal)
 
---
--- Get arguments from the given invoke.
---
+-- |Get arguments from the given invoke.
 getInvokeArgs (Invoke _ ts) = ts
 getInvokeArgs _ = []
 
---
--- Capitalize tail of the list of strings.
---
+-- |Capitalize tail of the list of strings.
 toUpperTail :: [String] -> [String]
 toUpperTail [] = []
 toUpperTail (x:xs) = x : ((\(c:cs) -> toUpper c : cs) <$> xs)
 
---
--- Check if the goal is an invocation
---
+-- |Check if the goal is an invocation
 isInvoke (Invoke _ _) = True
 isInvoke _ = False
 
---
--- Collect all invocation from the derivation tree.
---
-collectCallNames cs (Abs ts _ goal True) = let c = (goal, genCall' cs goal) in foldl collectCallNames (c:cs) ts
-collectCallNames cs (Unfold  ts _ goal True) = let c = (goal, genCall' cs goal) in foldl collectCallNames (c:cs) ts
-collectCallNames cs (Unfold  ts _ _ _) = foldl collectCallNames cs ts
-collectCallNames cs (Abs ts _ _ _) = foldl collectCallNames cs ts
-collectCallNames cs (Gen t _) = collectCallNames cs t
-collectCallNames cs _ = cs
+-- |Collect all invocation from the derivation tree.
+collectCallNames = go
+  where
+    go cs (Abs ts _ goal True)     = let c = (goal, genCall' cs goal) in foldl go (c:cs) ts
+    go cs (Unfold  ts _ goal True) = let c = (goal, genCall' cs goal) in foldl go (c:cs) ts
+    go cs (Unfold  ts _ _ _)       = foldl go cs ts
+    go cs (Abs ts _ _ _)           = foldl go cs ts
+    go cs (Gen t _)                = go cs t
+    go cs _                        = cs
 
 topLevel t = topLevel' $ cutFailedDerivations $ makeMarkedTree t
   where
     topLevel' Fail = error "How to residualize failed derivation?"
     topLevel' mt'@(Unfold f1 f2 goal f3) = let
-      mt = Unfold f1 f2 goal True
+      mt = rearrangeTree $ Unfold f1 f2 goal True
       cs = collectCallNames [] mt
       (defs, body) = res cs [] mt
       topLevelArgs = getArgsForPostEval cs goal
       in (foldDefs defs $ postEval topLevelArgs goal body, topLevelArgs)
 
-getArgsForPostEval cs goal = let Call _ args _ = findCall cs goal in args
-postEval names goal = E.postEval' (vident <$> names)
+getArgsForPostEval cs = callArgs . findCall cs
+postEval names goal   = E.postEval' (vident <$> names)
 
 foldDefs [] g = g
 foldDefs xs g = foldr1 (.) xs g
@@ -244,20 +237,24 @@ foldGoals _ [] = error "Empty goals!"
 foldGoals _ [g] = g
 foldGoals f gs  = foldr1 f gs
 
-res = go
-  where
+res = go where
+    -- Make a call and form a new definition.
     helper cs s ts subst goal foldf = let
+        -- Collect the rest definitions and body off the call.
         (defs, goals) = unzip $ go cs (subst `union` s) <$> ts
-
+        -- Finding a call.
         Call name args argsOrig = findCall cs goal
-
+        -- Make a body of the call.
         argsS = vident <$> args
         body = E.postEval' argsS $ foldGoals foldf goals
+        -- Form a definition.
         def = Let (name, argsS, body)
+        --
         goalArgs = genArgs' goal
         iargs = map toX $ genArgsByOrig args argsOrig goalArgs
         diff  = subst \\ s
         goal' = applySubst diff $ Invoke name iargs
+
       in (def : concat defs, goal')
 
 
@@ -269,24 +266,28 @@ res = go
         (defs, goals) = unzip $ go cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:\/:) goals)
 
+    -- If `Abs` is marked, call helper for making a relational call.
     go cs s (Abs ts subst dg True) = helper cs s ts subst dg (:/\:)
-
+    -- If `Abs` isn't marked.
     go cs s (Abs ts subst dg _)    = let
+        -- Substitutions we didn't add.
         diff = subst \\ s
+        -- Substitutions we added.
         un   = subst `union` s
         (defs, goals) = unzip $ go cs un <$> ts
       in (concat defs, applySubst diff $ foldGoals (:/\:) goals)
-
-    go cs s (Gen t subst) =
-      second (applySubst (subst \\ s)) $ go cs (s `union` subst) t
-
+    -- For `Gen` we just print generalizer before the rest of the body.
+    go cs s (Gen t subst) = applySubst (subst \\ s) <$> go cs (s `union` subst) t
+    -- For `Renaming` we just search for an invokation.
     go cs s (Renaming dg subst) =
         ([], applySubst (subst \\ s) $ findInvoke cs dg)
-
+    -- `Success` node says that we found a successful substitution.
+    -- Either
     go _ s  (Success subst)
       | null (subst \\ s) = ([], Invoke "success" [])
       | otherwise         = ([], residualizeSubst (subst \\ s))
-
+    -- `Fail` node must not be encountered, but just in sake of totality
+    -- add this case. <failure> has to be an OCanren function.
     go _ _ Fail = ([], Invoke "failure" [])
 
 applySubst [] = id
@@ -424,3 +425,37 @@ simplify _ = Nothing
 getV (V a) = a
 
 toCutMTree = cutFailedDerivations . makeMarkedTree
+
+-- |Rearrange goals (put a recursive call in the end)
+rearrangeTree :: MarkedTree -> MarkedTree
+rearrangeTree t@(Unfold _ _ g _) = go g t
+  where
+    go n (Unfold ts s g t)
+      | hasRenamingOf n ts
+      = let (renamings, rest) = partition isRenamingNode ts
+            (relevant, irrelevant) = partition (isVariantNode n) renamings
+            ts' = irrelevant ++ rest ++ relevant
+        in Unfold ts' s g t
+    go n (Unfold ts s g True) = Unfold (go g <$> ts) s g True
+    go n (Unfold ts s g t) = Unfold (go n <$> ts) s g t
+
+    go n (Abs ts s g t)
+      | hasRenamingOf n ts
+      = let (renamings, rest) = partition isRenamingNode ts
+            (relevant, irrelevant) = partition (isVariantNode n) renamings
+            ts' = irrelevant ++ rest ++ relevant
+        in Abs ts' s g t
+    go n (Abs ts s g True) = Abs (go g <$> ts) s g True
+    go n (Abs ts s g t) = Abs (go n <$> ts) s g t
+
+    go n (Gen t s) = Gen (go n t) s
+    go _ t = t
+
+    isRenamingNode Renaming{} = True
+    isRenamingNode _ = False
+
+    getGoal (Renaming g _) = g
+
+    isVariantNode n = isVariant n . getGoal
+
+    hasRenamingOf n = any id . fmap (isVariantNode n) . filter isRenamingNode

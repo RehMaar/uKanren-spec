@@ -52,7 +52,7 @@ lzShiftUntil p ~zipper@(c, _)
 -- |Leaf nodes description
 data DTreeEnd a = FailEnd
                 | SuccessEnd E.Subst
-                | RenamingEnd a (Set.Set DGoal) E.Subst E.Env
+                | RenamingEnd a E.Subst
 
 instance Show (DTreeEnd a) where
   show FailEnd        = "FailEnd"
@@ -60,9 +60,9 @@ instance Show (DTreeEnd a) where
   show RenamingEnd{}  = "RenamingEnd"
 
 endToNode :: DTreeEnd a -> DTree' a
-endToNode FailEnd                = Fail
-endToNode (SuccessEnd s        ) = Success s
-endToNode (RenamingEnd d ds s g) = Renaming d ds s g
+endToNode FailEnd           = Fail
+endToNode (SuccessEnd s   ) = Success s
+endToNode (RenamingEnd d s) = Renaming d s
 
 -- |Description of `Unfold` and `Abs` nodes
 data MNodeType = UnfoldCon | AbsCon
@@ -73,12 +73,11 @@ data DTreeMulti a = DTreeMulti
                   { dtmMnodeType :: MNodeType
                   , dtmSubst     :: E.Subst
                   , dtmGoal      :: a
-                  , dtmParents   :: Set.Set DGoal
                   }
   deriving Show
 
 mnodeToNode :: DTreeMulti a -> [DTree' a] -> DTree' a
-mnodeToNode (DTreeMulti typ s d ds) children = tpFun typ children s d ds
+mnodeToNode (DTreeMulti typ s d) children = tpFun typ children s d
  where
   tpFun UnfoldCon = Unfold
   tpFun AbsCon    = Abs
@@ -112,12 +111,12 @@ parents = snd
 
 -- | Focus on a node
 dTreeNode :: DTree' a -> DTreeNode a
-dTreeNode Fail                  = DTreeEndNode FailEnd
-dTreeNode (Success s          ) = DTreeEndNode (SuccessEnd s)
-dTreeNode (Renaming d  ds s g ) = DTreeEndNode (RenamingEnd d ds s g)
-dTreeNode (Unfold cs s d ds)    = DTreeMultiNode (DTreeMulti UnfoldCon s d ds) cs
-dTreeNode (Abs cs s  d ds)      = DTreeMultiNode (DTreeMulti AbsCon s d ds) cs
-dTreeNode (Gen c s            ) = DTreeGenNode s c
+dTreeNode Fail            = DTreeEndNode FailEnd
+dTreeNode (Success s    ) = DTreeEndNode (SuccessEnd s)
+dTreeNode (Renaming d  s) = DTreeEndNode (RenamingEnd d s)
+dTreeNode (Unfold cs s d) = DTreeMultiNode (DTreeMulti UnfoldCon s d) cs
+dTreeNode (Abs cs s  d)   = DTreeMultiNode (DTreeMulti AbsCon s d) cs
+dTreeNode (Gen c s      ) = DTreeGenNode s c
 
 -- | Create a zipper
 dTreeZipper parents dtree = (dTreeNode dtree, parents)
@@ -144,10 +143,10 @@ readyNodes (_, parents) = concatMap ready' parents
     readyLC (c, _) = concatMap readyInTree c
 
     readyInTree :: DTree' a -> [a]
-    readyInTree (Unfold ts _ gl _) = gl : concatMap readyInTree ts
-    readyInTree (Abs ts _ gl _) = gl : concatMap readyInTree ts
+    readyInTree (Unfold ts _ gl) = gl : concatMap readyInTree ts
+    readyInTree (Abs ts _ gl) = gl : concatMap readyInTree ts
     readyInTree (Gen t _) = readyInTree t
-    readyInTree (Renaming gl _ _ _) = [gl]
+    readyInTree (Renaming gl _) = [gl]
     readyInTree _ = []
 
 -- |Zipper walkers
@@ -171,10 +170,10 @@ goNextChild (DTreeMultiNode dc cs, p) = do
 goNextChild (DTreeGenNode s c, p) = Just $ dTreeZipper (DTreeGenParent s : p) c
 
 isEmptyChild :: DTree' a -> Bool
-isEmptyChild (Unfold [] _ _ _) = True
-isEmptyChild (Abs    [] _ _ _) = True
-isEmptyChild (Gen t _        ) = isEmptyChild t
-isEmptyChild _                 = False
+isEmptyChild (Unfold [] _ _ ) = True
+isEmptyChild (Abs    [] _ _ ) = True
+isEmptyChild (Gen t _       ) = isEmptyChild t
+isEmptyChild _                = False
 
 -- |Go upward.
 goUp :: DTreeZipper a -> Maybe (DTreeZipper a)

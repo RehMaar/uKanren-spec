@@ -44,7 +44,7 @@ class Show a => UnfoldableGoal a where
   --
   unfoldStep :: a -> E.Env -> E.Subst -> ([(E.Subst, a)], E.Env)
 
-type Derivable a =  a -> Set.Set DGoal -> E.Env -> E.Subst -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
+type Derivable a =  a -> [DGoal] -> E.Env -> E.Subst -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
 
 type SuperCompGen a = G X -> (DTree' a, G S, [S])
 
@@ -57,11 +57,11 @@ supercomp d g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ initGoal (head lgoal')
-  tree = fst3 $ derive d igoal Set.empty lgamma E.s0 Set.empty 1
+  tree = fst3 $ derive d igoal [] lgamma E.s0 Set.empty 1
   in (tree, lgoal, lnames)
 
 fixEnv i (E.Env f1 f2 (d:ds))
-  | i > d = E.Env f1  f2 $ drop (i - d) ds
+  | i > d = E.Env f1  f2 $ drop (i - d + 1) ds
   | otherwise = E.Env f1 f2 ds
 
 maxFreshVar = head . E.envNS
@@ -81,10 +81,6 @@ goalXtoGoalS g = let
 --
 
 isGen goal ancs = any (`embed` goal) ancs && not (Set.null ancs)
-
-isUpwardGen goal ancs = any (isUpwardGenP goal) ancs && not (Set.null ancs)
-isUpwardGenP goal anc = embed goal anc && not (embed anc goal) && length goal == length anc
-
 --
 
 unfold :: G S -> E.Env -> (E.Env, G S)
@@ -121,7 +117,7 @@ checkLeaf :: DGoal -> Set.Set DGoal -> Bool
 checkLeaf = variantCheck
 
 -- |Check if we after abstraction we got a renaming.
-abstractSame [(_, aGoal, _, _)] goal = isVariant aGoal goal
+abstractSame [(aGoal, _)] goal = isVariant aGoal goal
 abstractSame _ _ = False
 
 
@@ -133,7 +129,7 @@ abstract
   -> [(E.Subst, [G S], G.Generalizer, E.NameSupply)]
 abstract ancs g subst ns  =
   let (abstracted, delta) = abstract' ancs g ns
-  in  map (\(g, gen) -> (subst, g, gen, ns)) abstracted
+  in  map (\(g, gen) -> (subst, g, gen, delta)) abstracted
 
 abstractFixed
   :: Set.Set [G S]
@@ -153,6 +149,30 @@ abstract' ancs g delt
     generalize g anc delt
   | otherwise
   = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList (Set.toList ancs)
+
+abstractL
+  :: [[G S]]
+  -> [G S]
+  -> E.NameSupply
+  -> ([([G S], G.Generalizer)], E.NameSupply)
+abstractL ancs g ns
+  | Just anc <- findAnc' g ancs
+  = generalize g anc ns
+  | otherwise
+  = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList ancs
+  where findAnc' g = find (`embed` g) . reverse
+
+abstractS
+  :: Set.Set [G S]
+  -> [G S]
+  -> E.NameSupply
+  -> ([([G S], G.Generalizer)], E.NameSupply)
+abstractS ancs g ns
+  | Just anc <- findAnc g ancs
+  = generalize g anc ns
+  | otherwise
+  = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList (Set.toList ancs)
+  where findAnc' g = find (`embed` g) . reverse
 
 -- |Find a goal for upward abstraction.
 findAncUpward g = find (embed g) . sortBy goalOrdering . Set.toList
@@ -174,13 +194,16 @@ whistleStrict ancs m = find (\b -> embed b m && not (isVariant b m)) ancs
 
 -- |
 whistle :: Set.Set [G S] -> [G S] -> Bool
-whistle ancs goal = any (whistleP goal) ancs
+whistle ancs goal = any (whistleP goal) ancs && not (Set.null ancs)
 
 whistleP goal anc = embed anc goal  && not (isVariant anc goal)
 
 -- |Generalization at its core.
-
-generalize :: [G S] -> [G S] -> E.NameSupply -> ([([G S], G.Generalizer)], E.NameSupply)
+generalize ::
+     [G S] -- |Goal
+  -> [G S] -- |Parent
+  -> E.NameSupply
+  -> ([([G S], G.Generalizer)], E.NameSupply)
 generalize = generalizeCpd
 
 generalizeCpd :: [G S] -> [G S] -> E.NameSupply -> ([([G S], G.Generalizer)], E.NameSupply)

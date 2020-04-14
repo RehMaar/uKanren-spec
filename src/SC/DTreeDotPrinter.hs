@@ -10,8 +10,8 @@ import Data.Maybe (fromJust)
 
 --
 instance DotPrinter DTree where
-  labelNode t@(Unfold ch _ _ _) = addChildren t ch
-  labelNode t@(Abs ch _ _ _) = addChildren t ch
+  labelNode t@(Unfold ch _ _) = addChildren t ch
+  labelNode t@(Abs ch _ _) = addChildren t ch
   labelNode t@(Gen ch _) = addChild t ch
   labelNode t = addLeaf t
 
@@ -20,10 +20,9 @@ dotSigma _ = ""
 
 instance Dot DTree where
   dot Fail = "Fail"
-  dot (Success s)     = "Success <BR/> " ++ dotSigma s
-  dot (Gen _ s)       = printf "Gen <BR/> Generalizer: %s" (E.dotSigma s)
-  -- dot (Abs _ s d _)     = printf "Abs <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
-  dot (Abs _ s d a)     = printf "Abs <BR/> Subst: %s <BR/> Goal: %s <BR/> Anc: %s" (dotSigma s) (dot d) (show $ dot <$> findAnc d a)
-  dot (Unfold ts s d _)     = printf "Unfold <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
-  dot (Renaming goal ancs s _) = printf "Renaming <BR/> Subst: %s <BR/> Goal: %s <BR/> Anc: %s" (dot goal)  (dotSigma s) (show $ dot <$> findRenaming goal ancs)
-  dot (Prune g)       = printf "Prune <BR/> Goal: %s" (dot g)
+  dot (Success s)       = "Success <BR/> " ++ dotSigma s
+  dot (Gen _ s)         = printf "Gen <BR/> Generalizer: %s" (E.dotSigma s)
+  dot (Abs _ s d)       = printf "Abs <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
+  dot (Unfold ts s d)   = printf "Unfold <BR/> Subst: %s <BR/> Goal: %s" (dotSigma s) (dot d)
+  dot (Renaming goal s) = printf "Renaming <BR/> Subst: %s <BR/> Goal: %s" (dot goal)  (dotSigma s)
+  dot (Prune g)         = printf "Prune <BR/> Goal: %s" (dot g)
