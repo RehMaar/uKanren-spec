@@ -44,11 +44,13 @@ class Substitution s where
   sEmpty  :: s
   sLookup :: S -> s -> Maybe Ts
   sInsert :: S -> Ts -> s -> s
+  sDiff :: s -> s -> s
 
 instance Substitution Subst where
   sEmpty = []
   sLookup = lookup
   sInsert a b s = (a, b) : s
+  sDiff = (\\)
 
 type MapSigma = Map.Map S Ts
 
@@ -56,14 +58,18 @@ instance Substitution MapSigma where
   sEmpty  = Map.empty
   sLookup = Map.lookup
   sInsert = Map.insert
+  sDiff   = Map.difference
 
 -- States
 -- |Variables interpretation, whatever it is.
 type Iota  = ([X], X -> Ts)
+-- |Substitution
 type Subst = [(S, Ts)]
+-- |Constraints Store
+type ConstrStore = [(S, Ts)]
+-- |List of free semantic variables
 type NameSupply = [S]
--- type P     = Name -> Def
--- type Env = (P, Iota, NameSupply)
+-- |Environment: definitions of relations, vars interpretation and name supply
 data Env = Env { envDefs :: Map.Map Name Def, envIota :: Iota, envNS :: NameSupply }
 
 envLookupDef (Env defs _ _) name
@@ -72,35 +78,34 @@ envLookupDef (Env defs _ _) name
   | otherwise
   = error $ "No such a defnition in environment: <" ++ name ++ ">"
 
+instance Show Env where
+  show (Env def _ ns) = "Env{" ++ show def ++ ", ns = " ++ show (head ns) ++ "}"
+
 unifyG :: Substitution subst => (S -> Ts -> subst -> Bool) -> Maybe subst -> Ts -> Ts -> Maybe subst
 unifyG _ Nothing _ _ = Nothing
 unifyG f st@(Just subst) u v =
   unify' (walk u subst) (walk v subst)  where
     unify' (V u') (V v') | u' == v' = Just subst
     unify' (V u') (V v') = Just $ sInsert (min u' v') (V $ max u' v') subst
-    unify' (V u') t = 
-      if f u' t subst 
-      then Nothing 
-      else return $ sInsert u' v subst
-    unify' t (V v') = 
-      if f v' t subst 
-      then Nothing 
-      else return $ sInsert v' u subst
+    unify' (V u') t
+      | f u' t subst
+      = return $ sInsert u' v subst
+    unify' t (V v')
+      | f v' t subst
+      = return $ sInsert v' u subst
     unify' (C a as) (C b bs) | a == b && length as == length bs =
       foldl (\ st' (u', v') -> unifyG f st' u' v') st $ zip as bs
     unify' _ _ = Nothing
 
 walk :: Substitution subst => Ts -> subst -> Ts
-walk x@(V v') s =
-  case sLookup v' s of
-    Nothing -> x
-    Just t  -> walk t s
+walk x@(V v') s
+  | Just t <- sLookup v' s
+  = walk t s
 walk u' _ = u'
 
 -- Unification
 unify :: Substitution subst => Maybe subst -> Ts -> Ts -> Maybe subst
-unify =
-    unifyG occursCheck
+unify = unifyG (\s ts -> not . occursCheck s ts)
   where
     occursCheck :: Substitution subst => S -> Ts -> subst -> Bool
     occursCheck u' t s = 
@@ -110,7 +115,7 @@ unify =
         V _ -> False 
         C _ as -> any (\x -> occursCheck u' x s) as
 
-    -- occursCheck u' t s = if elem u' $ fv t then Nothing else s
+-- occursCheck u' t s = if elem u' $ fv t then Nothing else s
 
 unifySubsts :: Subst -> Subst -> Maybe Subst
 unifySubsts one two =
@@ -191,6 +196,7 @@ preEval :: Env -> G X -> (G S, Env, [S])
 preEval = go []
  where
   -- go vars g@(_, i, _) (t1 :=: t2)  = (i <@> t1 :=: i <@> t2, g, vars)
+  go vars g (t1 :#: t2)  = let i = envIota g in (i <@> t1 :#: i <@> t2, g, vars)
   go vars g (t1 :=: t2)  = let i = envIota g in (i <@> t1 :=: i <@> t2, g, vars)
   go vars g (g1 :/\: g2) = let (g1', g' , vars' ) = go vars  g  g1
                                (g2', g'', vars'') = go vars' g' g2
