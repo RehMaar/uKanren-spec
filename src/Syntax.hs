@@ -69,9 +69,15 @@ def = (,,)
 instance {-# OVERLAPPING #-} Show Def where
   show (name, args, body) = printf "%s %s = %s" name (unwords args) (show body)
 
+infix  8 :#:
+infix  8 :=:
+infixr 7 :/\:
+infixr 6 :\/:
+
 -- Goals
 data G a =
     Term a :=: Term a
+  | Term a :#: Term a -- Disequality
   | G a :/\: G a
   | G a :\/: G a
   | Fresh  Name (G a)
@@ -79,6 +85,7 @@ data G a =
   | Let Def (G a) deriving (Eq, Ord, Show)
 
 instance Functor G where
+  fmap f (t :#: u)          = (f <$> t) :#:  (f <$> u)
   fmap f (t :=: u)          = (f <$> t) :=:  (f <$> u)
   fmap f (g :/\: h)         = (f <$> g) :/\: (f <$> h)
   fmap f (g :\/: h)         = (f <$> g) :\/: (f <$> h)
@@ -90,13 +97,15 @@ freshVars :: [Name] -> G t -> ([Name], G t)
 freshVars names (Fresh name goal) = freshVars (name : names) goal
 freshVars names goal = (names, goal)
 
-infix  8 :=:
-infixr 7 :/\:
-infixr 6 :\/:
+
 
 infixr 7 &&&
 infixr 6 |||
 infix  8 ===
+infix  8 =/=
+
+(=/=) :: Term a -> Term a -> G a
+(=/=) = (:#:)
 
 (===) :: Term a -> Term a -> G a
 (===) = (:=:)
@@ -124,6 +133,7 @@ fvg :: G X -> [X]
 fvg = nub . fv'
  where
   fv' (t1 :=:  t2) = fv t1 ++ fv t2
+  fv' (t1 :#:  t2) = fv t1 ++ fv t2
   fv' (g1 :/\: g2) = fv' g1 ++ fv' g2
   fv' (g1 :\/: g2) = fv' g1 ++ fv' g2
   fv' (Invoke _ ts) = concatMap fv ts
@@ -135,6 +145,7 @@ subst_in_term v t t0@(V v0)     = if v == v0 then t else t0
 subst_in_term v t    (C n args) = C n $ map (subst_in_term v t) args
 
 subst_in_goal :: X -> Term X -> G X -> G X
+subst_in_goal v t   (t1 :#:  t2)        = subst_in_term v t t1 =/= subst_in_term v t t2
 subst_in_goal v t   (t1 :=:  t2)        = subst_in_term v t t1 === subst_in_term v t t2
 subst_in_goal v t   (g1 :/\: g2)        = subst_in_goal v t g1 &&& subst_in_goal v t g2
 subst_in_goal v t   (g1 :\/: g2)        = subst_in_goal v t g1 ||| subst_in_goal v t g2
@@ -159,6 +170,7 @@ instance Show a => PrettyPrint (Term a) where
              _  -> printf "C %s [%s]" name (intercalate ", " $ map pretty ts)
 
 instance Show a => PrettyPrint (G a) where
+  pretty (t1 :#:  t2)               = printf "%s /= %s" (pretty t1) (pretty t2)
   pretty (t1 :=:  t2)               = printf "%s = %s" (pretty t1) (pretty t2)
   pretty (g1 :/\: g2)               = printf "(%s /\\ %s)" (pretty g1) (pretty g2)
   pretty (g1 :\/: g2)               = printf "(%s \\/ %s)" (pretty g1) (pretty g2)
@@ -202,6 +214,7 @@ instance Dot a => Dot (Term a) where
              _  -> printf "C %s [%s]" name (unwords $ map dot ts)
 
 instance Dot a => Dot (G a) where
+  dot (t1 :#:  t2)               = printf "%s /= %s" (dot t1) (dot t2)
   dot (t1 :=:  t2)               = printf "%s = %s" (dot t1) (dot t2)
   dot (g1 :/\: g2)               = printf "(%s /\\ %s)" (dot g1) (dot g2)
   dot (g1 :\/: g2)               = printf "(%s \\/ %s)" (dot g1) (dot g2)
