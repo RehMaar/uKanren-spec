@@ -239,9 +239,8 @@ getInvokeName g = error $ "getInvokeName: not Invoke: " ++ show g
 normalize :: G a -> [[G a]]
 normalize (f :\/: g) = normalize f ++ normalize g
 normalize (f :/\: g) = (++) <$> normalize f <*> normalize g
-normalize g@(Invoke _ _) = [[g]]
-normalize g@(_ :=: _) = [[g]]
 normalize (Fresh _ goal) = normalize goal
+normalize g = [[g]]
 
 -- |To avoid code repeatition and exhausting refactor renaming.
 goalToDNF = normalize
@@ -254,6 +253,7 @@ unifyStuff state gs = go gs state [] where
   go ((t :=: u) : gs)      state conjs = do
     s <- E.unify  (Just state) t u
     go gs s conjs
+
 
 -- |Generalized unfold step.
 -- <split> function defines the way to split a goal into a node to
@@ -284,3 +284,40 @@ isRec env goal@(Invoke call _) =
   where
     getInvokes b = concat $ filter isInvoke <$> normalize b
 isRec _ _ = False
+
+disunify :: E.Subst -> E.ConstrStore -> Ts -> Ts -> Maybe E.ConstrStore
+disunify subst cs t1 t2 =
+  let t1'    = E.substitute subst t1
+      t2'    = E.substitute subst t2
+      -- TODO: rewrite unify to return only new subst
+      subst' = E.unify (Just subst) t1' t2'
+      cs'    = flip E.sDiff subst <$> subst'
+ in case cs' of
+     Just []   -> Nothing
+     Just cs'' -> Just $ cs'' ++ cs
+     Nothing   -> Just cs
+
+verifyCS :: E.Subst -> E.ConstrStore -> Maybe E.ConstrStore
+verifyCS = go
+  where
+    go _ [] = Just []
+    go subst (c@(v1, t2):cs) =
+      let subst'  = E.unify (Just subst) (V v1) t2
+          subst'' = flip E.sDiff subst <$> subst'
+      in case subst'' of
+            Nothing -> (c:) <$> go subst cs
+            Just [] -> Nothing
+            Just s  -> ((c:s) ++) <$> go subst cs
+
+-- |Apply unifications and add some more of them.
+unifyGoal :: E.Subst -> E.ConstrStore -> [G S] -> Maybe ([G S], E.Subst, E.ConstrStore)
+unifyGoal subst cs = go subst cs [] where
+  go subst cs conjs []                    = Just (reverse conjs, subst, cs)
+  go subst cs conjs (g@(Invoke _ _) : gs) = go subst cs (g : conjs) gs
+  go subst cs conjs ((t1 :=: t2):gs) = do
+    subst' <- E.unify (Just subst) t1 t2
+    cs'    <- verifyCS subst' cs
+    go subst' cs' conjs gs
+  go subst cs conjs ((t1 :#: t2):gs) = do
+    cs' <- disunify subst cs t1 t2
+    go subst cs' conjs gs
