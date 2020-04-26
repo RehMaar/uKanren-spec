@@ -31,7 +31,6 @@
 module Purification where
     
 import Syntax
-import Driving
 import Data.List
 import Data.Maybe
 import qualified Data.Set        as Set
@@ -57,7 +56,7 @@ type ErasureElem = (Name, Int)
 purification x = trace_pur x $
   --identity x
   --justTakeOutLets x
-  purification_old x
+  purificationOld x
   --purificationWithErasure x
   --conservativePurificationWithErasure x
 
@@ -76,8 +75,8 @@ justTakeOutLets (goal, args) = (goalWithoutLets, args, defs) where
   (goalWithoutLets,    defs) = takeOutLets goalWithClosedLets
 
 {-------------------------------------------}
-purification_old :: (G X, [String]) -> (G X, [String], [Def])
-purification_old (goal, args) =
+purificationOld :: (G X, [String]) -> (G X, [String], [Def])
+purificationOld (goal, args) =
   let purG = totalPurification goalWithClosedLets args in
   let (res, defs) = takeOutLets purG in
   (res, args, defs) where
@@ -89,6 +88,8 @@ purification_old (goal, args) =
   getEssentialVars (Let _ g)       s = getEssentialVars g s
   getEssentialVars (t1 :=:  t2)    s = let vars = Set.fromList $ fv t1 ++ fv t2 in
                                        if Set.null $ Set.intersection s vars then s else Set.union vars s
+  getEssentialVars (t1 :#:  t2)    s = let vars = Set.fromList $ fv t1 ++ fv t2 in
+                                       if Set.null $ Set.intersection s vars then s else Set.union vars s
   getEssentialVars (Invoke _ args) s = let vars = Set.fromList $ concatMap fv args in Set.union vars s
   getEssentialVars (Fresh _ g)     s = getEssentialVars g s
 
@@ -98,6 +99,7 @@ purification_old (goal, args) =
 
   {-------------------------------------------}
   findQuasiEssentialVars :: G X -> (Set X, Set X)
+  findQuasiEssentialVars (t1 :#:  t2) = (Set.fromList $ fv t1, Set.fromList $ fv t2)
   findQuasiEssentialVars (t1 :=:  t2) = (Set.fromList $ fv t1, Set.fromList $ fv t2)
   findQuasiEssentialVars (Invoke _ a) = (Set.empty, Set.fromList $ concatMap fv a)
   findQuasiEssentialVars (g1 :\/: g2) = let (qevs1, evs1) = findQuasiEssentialVars g1 in
@@ -222,6 +224,12 @@ conservativePurificationWithErasure x = (goalAfterPurification, args, defsAfterP
                                                       else (map (subst_in_goal x r) conjs, success)
                                                     else (map (subst_in_goal y l) conjs, success)
     purifyU constrV conjs g@(V x :=: t)           = if Set.member x constrV then (conjs, g)
+                                                    else (map (subst_in_goal x t) conjs, success)
+    purifyU constrV conjs g@(l@(V x) :#: r@(V y)) = if Set.member y constrV then
+                                                      if Set.member x constrV then (conjs, g)
+                                                      else (map (subst_in_goal x r) conjs, success)
+                                                    else (map (subst_in_goal y l) conjs, success)
+    purifyU constrV conjs g@(V x :#: t)           = if Set.member x constrV then (conjs, g)
                                                     else (map (subst_in_goal x t) conjs, success)
     purifyU constrV conjs (g1 :\/: g2)            = let constrV' = foldl (\s -> Set.union s . Set.fromList . fvg) constrV conjs in
                                                     let ([], g1') = purifyU constrV' [] g1 in

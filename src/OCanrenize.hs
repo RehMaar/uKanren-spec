@@ -39,7 +39,6 @@ import System.IO.Temp
 import Data.Char
 import Data.List (intercalate)
 import Syntax
-import Driving
 import Text.Printf
 
 class OCanren a where
@@ -66,6 +65,7 @@ instance OCanren v => OCanren (Term v) where
   ocanren (C (f:o) ts) = printf "(%s)" $ (toLower f : o) ++ ' ' : printArgs (map ocanren ts)
 
 instance OCanren v => OCanren (G v) where
+  ocanren (t1 :#:  t2)  = printf "(%s =/= %s)" (ocanren t1) (ocanren t2)
   ocanren (t1 :=:  t2)  = printf "(%s === %s)" (ocanren t1) (ocanren t2)
   ocanren (g1 :/\: g2)  = printf "(%s &&& %s)" (ocanren g1) (ocanren g2)
   ocanren (g1 :\/: g2)  = printf "(%s ||| %s)" (ocanren g1) (ocanren g2)
