@@ -4,7 +4,6 @@
 
 module L = List
 
-open GT
 open OCanren
 open Std
 open Nat
@@ -13,11 +12,10 @@ open FuluIsPath
 open MaxuIsPath
 open MinuIsPath
 open NrcuIsPath
-open RanuIsPath
 open RecuIsPath
 open SequIsPath
 open FstuIsPath
-open CpdIsPath2
+open CpdIsPath3
 
 let rec eqNat a b q23 =
   fresh (q24) (q24 === (pair a b))
@@ -60,39 +58,76 @@ let gr = ocanren([(1, 2); (2, 3); (3, 1)])
 
 let g = k10
 
-let testOn name x result = 
-        (*Printf.printf "> %s:\n%!" name;*)
-        let t1 = Sys.time() in
-        let lst = Stream.take ~n:x result in
-        let t2 = Sys.time() in
-        Printf.printf "%s: %fs\n%!" name (t2 -. t1);
-(*        Printf.printf "%s Answers: %d\n%!" name @@ L.length lst;
-        L.iter (fun c -> Printf.printf "g: %s\n" @@ show(List.logic) (show(Nat.logic)) @@ c#reify (List.reify Nat.reify)) lst;*)
-        ()
+let id x = x
 
-let testLen x y = 
-(*  testOn "Orig" x (run q (fun q -> lengtho q y &&& isPath q g !!true) id);
-  testOn "CPD " x (run q (fun q -> lengtho q y &&& cpdIsPath2 q g) id);*)
-  testOn "FU  " x (run q (fun q -> lengtho q y &&& fuluIsPath q g) id);
-  testOn "SU  " x (run q (fun q -> lengtho q y &&& sequIsPath q g) id);
-  testOn "MaxU" x (run q (fun q -> lengtho q y &&& maxuIsPath q g) id);
-  testOn "MinU" x (run q (fun q -> lengtho q y &&& minuIsPath q g) id);
-  testOn "RecU" x (run q (fun q -> lengtho q y &&& recuIsPath q g) id);
-  testOn "NrcU" x (run q (fun q -> lengtho q y &&& nrcuIsPath q g) id);
-  testOn "FstU " x (run q (fun q -> lengtho q y &&& fstuIsPath q g) id);
+let testOn name x result = 
+  (*Printf.printf "> %s:\n%!" name;*)
+  let t1 = Sys.time() in
+  let lst = Stream.take ~n:x (run q result id) in
+  let t2 = Sys.time() in
+  Printf.printf "%s: %fs\n%!" name (t2 -. t1);
+(*Printf.printf "%s Answers: %d\n%!" name @@ L.length lst;
+    L.iter (fun c -> Printf.printf "g: %s\n" @@ show(List.logic) (show(Nat.logic)) @@ c#reify (List.reify Nat.reify)) lst;*)
+  ()
+
+let runLine num x f y = 
+  for i = 1 to num do
+      let t1 = Sys.time() in
+      let lst = Stream.take ~n:x (run q (f y) id) in
+      let t2 = Sys.time() in
+      Printf.printf ",%f%!" (t2 -. t1)
+  done
+(*  let avg = (L.fold_right (fun a b -> a +. b) !result 0.0) /. (float_of_int num) in
+*)  (*let stddev = sqrt ((L.fold_right (fun dv v -> ((v -. avg) ** 2.0) +. dv) !result 0.0) /. (float_of_int num)) in*)
+
+let csvLine name n x y f =
+  Printf.printf "%s%!" name;
+  (* Len 10 *)
+  runLine n x f y;
+  (* Len 15 *)
+  (*runLine n x f (ocanren(15));*)
+  (* Len 20 *)
+  (*runLine n x f (ocanren(20));*)
+  Printf.printf "\n%!"
+
+let testCsv x n y = 
+  Printf.printf "Method";
+  for i = 1 to n do
+    Printf.printf ",%d" i
+  done;
+  Printf.printf "\n%!";
+  csvLine "FU  "  n x y (fun y q -> lengtho q y &&& fuluIsPath q g);
+  csvLine "SU  "  n x y (fun y q -> lengtho q y &&& sequIsPath q g);
+  csvLine "MaxU"  n x y (fun y q -> lengtho q y &&& maxuIsPath q g);
+  csvLine "MinU"  n x y (fun y q -> lengtho q y &&& minuIsPath q g);
+  csvLine "RecU"  n x y (fun y q -> lengtho q y &&& recuIsPath q g);
+  csvLine "NrcU"  n x y (fun y q -> lengtho q y &&& nrcuIsPath q g);
+  csvLine "FstU " n x y (fun y q -> lengtho q y &&& fstuIsPath q g);
+  ()
+
+(*let testLen x y = 
+  testOn "Orig" x  (fun q -> lengtho q y &&& isPath q g !!true);
+  testOn "CPD " x  (fun q -> lengtho q y &&& cpdIsPath2 q g);
+  testOn "FU  " x  (fun q -> lengtho q y &&& fuluIsPath q g);
+  testOn "SU  " x  (fun q -> lengtho q y &&& sequIsPath q g);
+  testOn "MaxU" x  (fun q -> lengtho q y &&& maxuIsPath q g);
+  testOn "MinU" x  (fun q -> lengtho q y &&& minuIsPath q g);
+  testOn "RecU" x  (fun q -> lengtho q y &&& recuIsPath q g);
+  testOn "NrcU" x  (fun q -> lengtho q y &&& nrcuIsPath q g);
+  testOn "FstU " x (fun q -> lengtho q y &&& fstuIsPath q g);
   Printf.printf "%!"
 
 let test x = 
-  testOn "Orig" x (run q (fun q -> isPath q g !!true) id);
-  testOn "CPD " x (run q (fun q -> cpdIsPath2 q g) id);
-  testOn "FU  " x (run q (fun q -> fuluIsPath q g) id);
-  testOn "FstU " x (run q (fun q -> fstuIsPath q g) id);
-  testOn "SU  " x (run q (fun q -> sequIsPath q g) id);
-  testOn "MaxU" x (run q (fun q -> maxuIsPath q g) id);
-  testOn "MinU" x (run q (fun q -> minuIsPath q g) id);
-  testOn "RecU" x (run q (fun q -> recuIsPath q g) id);
-  testOn "NrcU" x (run q (fun q -> nrcuIsPath q g) id);
-  Printf.printf "%!"
+  testOn "Orig" x  (fun q -> isPath q g !!true);
+  testOn "CPD " x  (fun q -> cpdIsPath2 q g);
+  testOn "FU  " x  (fun q -> fuluIsPath q g);
+  testOn "FstU " x (fun q -> fstuIsPath q g);
+  testOn "SU  " x  (fun q -> sequIsPath q g);
+  testOn "MaxU" x  (fun q -> maxuIsPath q g);
+  testOn "MinU" x  (fun q -> minuIsPath q g);
+  testOn "RecU" x  (fun q -> recuIsPath q g);
+  testOn "NrcU" x  (fun q -> nrcuIsPath q g);
+  Printf.printf "%!"*)
 
 (*
 let runTest = 
@@ -104,12 +139,11 @@ let runTest =
   test 1000;
   ()*)
 
-let _ = 
-(*
+(*let _ = 
    Printf.printf "#Len 5\n%!";
    testLen 1 (ocanren(5));
    Printf.printf "#Len 7\n%!";
-   testLen 1 (ocanren(7));*)
+   testLen 1 (ocanren(7));
    Printf.printf "#Len 9\n%!";
    testLen 1 (ocanren(9));
    Printf.printf "#Len 11\n%!";
@@ -118,4 +152,7 @@ let _ =
    testLen 1 (ocanren(13));
    Printf.printf "#Len 15\n%!";
    testLen 1 (ocanren(15));
-   ()
+   ()*)
+
+let _ =
+  testCsv 1 10 (ocanren(15))

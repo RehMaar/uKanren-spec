@@ -144,5 +144,3 @@ gGoal = f $ fresh ["x"] $ call "f" [V "x", V "x"]
            (V "x" === L.succ (V "z") &&& call "f" [V "z", V "y"])
            ||| (call "f" [V "x", V "z"] &&& call "h" [V "z", V "y"])
          )) . h
-
-g = [Invoke "loginto" [V 0, V 53, V (54 :: S)]]

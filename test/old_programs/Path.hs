@@ -19,6 +19,7 @@ queryElem1 = fst pathTree $ fresh ["x", "g"] (call "elem" [V "x", V "g", C "true
 queryQueer = fst pathTree $ fresh ["x", "y", "z"] (call "eqPair" [V "x", V "y", C "false" []] &&& call "elem" [V "x", V "z", C "true" []])
 
 env = snd pathTree
+path = fst pathTree
 
 pathTree =
  (\last_goal ->
@@ -43,34 +44,26 @@ pathTree =
       (V "q16" === C "pair" [C "pair" [V "a1", V "a2"], C "pair" [V "b1", V "b2"]]) &&&
       (call "eqNat" [V "a1", V "b1", V "q17"]) &&&
       (call "eqNat" [V "a2", V "b2", V "q18"]) &&&
-      (((V "q17" === C "false" []) &&&
-      (V "q15" === C "false" [])) |||
-      ((V "q17" === C "true" []) &&&
-      (V "q15" === V "q18"))))
+      (((V "q17" === C "false" []) &&& (V "q15" === C "false" [])) |||
+      ((V "q17" === C "true" []) &&& (V "q15" === V "q18"))))
   )) (
   Let (def "elem" ["x", "g", "q10"] (
-    ((V "g" === C "nil" []) &&&
-    (V "q10" === C "false" [])) |||
+    ((V "g" === C "nil" []) &&& (V "q10" === C "false" [])) |||
     (fresh ["y", "ys", "q13"] (
        (V "g" === C "%" [V "y", V "ys"]) &&&
        (call "eqPair" [V "x", V "y", V "q13"]) &&&
-       (((V "q13" === C "true" []) &&&
-       (V "q10" === C "true" [])) |||
-       ((V "q13" === C "false" []) &&&
-       (call "elem" [V "x", V "ys", V "q10"])))))
+       (((V "q13" === C "true" []) &&& (V "q10" === C "true" [])) |||
+       ((V "q13" === C "false" []) &&& (call "elem" [V "x", V "ys", V "q10"])))))
   )) (
   Let (def "isPath" ["c", "g", "q0"] (
-    ((V "c" === C "nil" []) &&&
-    (V "q0" === C "true" [])) |||
+    ((V "c" === C "nil" []) &&& (V "q0" === C "true" [])) |||
     (fresh ["q2"] (
-       (V "c" === C "%" [V "q2", C "nil" []]) &&&
-       (V "q0" === C "true" []))) |||
+    (V "c" === C "%" [V "q2", C "nil" []]) &&& (V "q0" === C "true" []))) |||
     (fresh ["x1", "x2", "xs", "q4", "q5"] (
        (V "c" === C "%" [V "x1", C "%" [V "x2", V "xs"]]) &&&
        (call "elem" [C "pair" [V "x1", V "x2"], V "g", V "q4"]) &&&
        (call "isPath" [C "%" [V "x2", V "xs"], V "g", V "q5"]) &&&
-       (((V "q4" === C "false" []) &&&
-       (V "q0" === C "false" [])) |||
+       (((V "q4" === C "false" []) &&& (V "q0" === C "false" [])) |||
        ((V "q4" === C "true" []) &&&
        (V "q0" === V "q5")))))
   )) (

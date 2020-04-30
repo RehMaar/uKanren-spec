@@ -26,11 +26,24 @@ lookupo =
     )
   ))
 
+lookupoDiseq :: G a -> G a
+lookupoDiseq =
+  let subst = V "subst"
+      var   = V "var"
+      result = V "result"
+  in
+  Let (def "lookupo" ["subst", "var", "result"] (
+    fresh ["key", "val", "tail"]
+      (subst === pair (V "key") (V "val") % V "tail" &&& (
+           (var === V "key" &&& result === V "val")
+        ||| var =/= V "key" &&& call "lookupo" [V "tail", var, result])
+      )
+  ))
+
 
 --
 -- Test lookup
 --
-
 lookupoTest1 = lookupo $ fresh ["res"] $
   call "lookupo" [pair (C "x" []) trueo % pair (C "y" []) falso % nil, C "x" [], V "res"]
 
@@ -41,9 +54,26 @@ lookupoTest3 = lookupo $ fresh ["res", "st", "k"] $
   call "lookupo" [V "st", V "k", V "res"]
 
 lookupoTest4 = lookupo $ fresh ["res", "tail"] $
-  call "lookupo" [pair (C "x" []) trueo % (V "tail"), C "x" [], V "res"]
+  call "lookupo" [pair (C "x" []) trueo % V "tail", C "x" [], V "res"]
 
 lookupoTest5 = lookupo $ fresh ["a", "b", "c", "v", "r"] $ call "lookupo" [pair (V "a") (V "b") % V "c", V "v", V "r"]
+
+--
+-- Test diseq lookupo
+--
+lookupoTestDE1 = lookupoDiseq $ fresh ["res"] $
+  call "lookupo" [pair (C "x" []) trueo % pair (C "y" []) falso % nil, C "x" [], V "res"]
+
+lookupoTestDE2 = lookupoDiseq $ fresh ["res"] $
+  call "lookupo" [pair (C "x" []) trueo % pair (C "y" []) falso % nil, C "k" [], V "res"]
+
+lookupoTestDE3 = lookupoDiseq $ fresh ["res", "st", "k"] $
+  call "lookupo" [V "st", V "k", V "res"]
+
+lookupoTestDE4 = lookupoDiseq $ fresh ["res", "tail"] $
+  call "lookupo" [pair (C "x" []) trueo % V "tail", C "x" [], V "res"]
+
+lookupoTestDE5 = lookupoDiseq $ fresh ["a", "b", "c", "v", "r"] $ call "lookupo" [pair (V "a") (V "b") % V "c", V "v", V "r"]
 
 -------------------------------------------------------------
 
@@ -63,10 +93,12 @@ oro =
       b = V "b"
   in
   Let (def "oro" ["a", "b", "result"] $
-    (a === falso &&& b === falso &&& result === falso) |||
+    (a === trueo &&& result === trueo) |||
+    (a =/= trueo &&& result === b)
+{-    (a === falso &&& b === falso &&& result === falso) |||
     (a === falso &&& b === trueo &&& result === trueo) |||
     (a === trueo &&& b === falso &&& result === trueo) |||
-    (a === trueo &&& b === trueo &&& result === trueo)
+    (a === trueo &&& b === trueo &&& result === trueo)-}
   )
 
 ando :: G a -> G a
@@ -76,10 +108,12 @@ ando =
       b = V "b"
   in
   Let (def "ando" ["a", "b", "result"] $
-    (a === falso &&& b === falso &&& result === falso) |||
+    (a === trueo &&& result === b) |||
+    (a =/= trueo &&& result === falso)
+{-    (a === falso &&& b === falso &&& result === falso) |||
     (a === falso &&& b === trueo &&& result === falso) |||
     (a === trueo &&& b === falso &&& result === falso) |||
-    (a === trueo &&& b === trueo &&& result === trueo)
+    (a === trueo &&& b === trueo &&& result === trueo)-}
   )
 
 noto :: G a -> G a
@@ -89,7 +123,7 @@ noto =
       b = V "b"
   in
   Let (def "noto" ["a", "result"] $
-    (a === trueo&&& result === falso) |||
+    (a === trueo &&& result === falso) |||
     (a === falso &&& result === trueo)
   )
 

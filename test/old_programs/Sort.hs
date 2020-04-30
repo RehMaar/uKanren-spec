@@ -52,6 +52,9 @@ sorto g =
     def "sorto" ["x", "y"] (
       x === nil &&& y === nil |||
       fresh ["s", "xs", "xs'"]
-        ( y === s % xs' &&& call "sorto" [xs, xs'] &&& call "smallesto" [x, s, xs] )
+        ( y === s % xs'
+             &&& call "smallesto" [x, s, xs]
+             &&& call "sorto" [xs, xs']
+        )
     )
   ) $ smallesto g

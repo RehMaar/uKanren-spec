@@ -149,14 +149,14 @@ ocanrenPrint goal = do
 -- DTree test utils
 --
 findGoal :: DT.DGoal -> DT.DTree -> Maybe DT.DTree
-findGoal g t@(DT.Unfold ts _ g')
+findGoal g t@(DT.Unfold ts _ _ g')
   | Emb.isVariant g g' = Just t
   | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
-findGoal g t@(DT.Abs ts _ g')
+findGoal g t@(DT.Abs ts _ _ g')
   | Emb.isVariant g g'  = Just t
   | otherwise = getFirst $ mconcat $ (First . findGoal g) <$> ts
 findGoal g (DT.Gen t _) = findGoal g t
-findGoal g t@(DT.Renaming g' _)
+findGoal g t@(DT.Renaming g' _ _)
   | Emb.isVariant g g' = Just t
 findGoal _ _ = Nothing
 
@@ -227,10 +227,10 @@ statMethods runner goal = do
 statMethods1 = statMethods SCI.run1
 statMethods2 = statMethods SCI.run2
 
-statRandIO goal = do
+{-statRandIO goal = do
   (t, g, ns) <- RU.topLevelIO goal
   statTree t
-  return (t, g, ns)
+  return (t, g, ns)-}
 
 {-statMMethods goal = do
   statMMethod goal "FU  " FU.topLevel
@@ -248,7 +248,7 @@ statRandIO goal = do
 ----------
 ----------
 ----------
-prune :: DT.DTree -> [DT.DGoal]
+{-prune :: DT.DTree -> [DT.DGoal]
 prune (DT.Prune g) = [g]
 prune (DT.Unfold ts _ _) = concat $ prune <$> ts
 prune (DT.Abs ts _ _) = concat $ prune <$> ts
@@ -280,14 +280,15 @@ findA g (DT.Unfold ts _ _)  = getFirst $ mconcat $ First <$> (findA g <$> ts)
 findA g' (DT.Abs ts s g)  | g == g' = Just s
                        | otherwise = getFirst $ mconcat $ First <$> (findA g' <$> ts)
 findA g (DT.Gen t _)    = findA g t
+-}
 
 prunesAncs :: DT.DTree -> [(DT.DGoal, [DT.DGoal])]
 prunesAncs = prunes' []
    where
      prunes' :: [DT.DGoal] -> DT.DTree -> [(DT.DGoal, [DT.DGoal])]
      prunes' ancs (DT.Prune goal) = [(goal, ancs)]
-     prunes' ancs (DT.Unfold ts _ g) = concatMap (prunes' (g:ancs)) ts
-     prunes' ancs (DT.Abs ts _ g) = concatMap (prunes' (g:ancs)) ts
+     prunes' ancs (DT.Unfold ts _ _ g) = concatMap (prunes' (g:ancs)) ts
+     prunes' ancs (DT.Abs ts _ _ g) = concatMap (prunes' (g:ancs)) ts
      prunes' ancs (DT.Gen t _) = prunes' ancs t
      prunes' _ _ = []
 
@@ -303,6 +304,7 @@ printGoalAncs :: [(DT.DGoal, [DT.DGoal])] -> IO ()
 printGoalAncs ds =
     putStrLn $ concat $ intersperse "\n" $ fmap (\(g, ancs) -> show g ++ ": " ++ show ancs) ds
 
+{-
 --
 -- Check if goal contains invokation of `name` relation.
 --
@@ -347,7 +349,7 @@ cutLeaves (DT.Abs ts a b) =
 cutLeaves (DT.Unfold ts a b) =
     (\x -> DT.Unfold x a b) <$> (weird_sequence $ cutLeaves <$> ts)
 cutLeaves _ = Nothing
-
+-}
 
 --
 --
@@ -355,10 +357,10 @@ cutLeaves _ = Nothing
 cutNotPruned :: DT.DTree -> Maybe DT.DTree
 cutNotPruned t@(DT.Prune _) = Just t
 cutNotPruned (DT.Gen t _) = cutNotPruned t
-cutNotPruned (DT.Abs ts a b) =
-    (\x -> DT.Abs x a b) <$> (weird_sequence $ cutNotPruned <$> ts)
-cutNotPruned (DT.Unfold ts a b) =
-    (\x -> DT.Unfold x a b) <$> (weird_sequence $ cutNotPruned <$> ts)
+cutNotPruned (DT.Abs ts a b c) =
+    (\x -> DT.Abs x a b c) <$> (weird_sequence $ cutNotPruned <$> ts)
+cutNotPruned (DT.Unfold ts a b c) =
+    (\x -> DT.Unfold x a b c) <$> (weird_sequence $ cutNotPruned <$> ts)
 cutNotPruned _ = Nothing
 
 -- TODO: find better way
@@ -367,6 +369,7 @@ weird_sequence ts =
  let a = fromJust <$> filter isJust ts
  in if null a then Nothing else Just a
 
+{-
 cutSubtree :: DT.DGoal -> DT.DTree -> Maybe DT.DTree
 cutSubtree = go
   where
@@ -383,3 +386,4 @@ cutSubtree = go
     go g (DT.Gen t _) = go g t
     go g _ = Nothing
 
+-}

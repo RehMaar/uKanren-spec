@@ -15,6 +15,9 @@ zero = C "O" []
 succ :: Term a -> Term a
 succ x = C "S" [x]
 
+suc :: Term a -> Term a
+suc x = C "S" [x]
+
 notZero :: G a -> G a
 notZero g =
   let x = V "x" in
@@ -72,6 +75,12 @@ leo g =
          fresh ["x'", "y'"] (x === succ x' &&& y === succ y' &&& call "leo" [x', y', b])
       )
     ) g
+
+{-
+leo' (x, y)
+ x === y ||| y === S y' &&& leo' x y'
+-}
+
 
 gto :: G a -> G a
 gto g =

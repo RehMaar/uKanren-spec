@@ -18,9 +18,11 @@ import Utils
 
 import qualified LogicInt as LI
 
+import qualified Bool as B
 import qualified Num as N
 import qualified Path
 import qualified Unify
+import qualified List
 
 -- import System.Directory
 
@@ -80,6 +82,52 @@ testMWL = DTR.mapTwoLists [1, 2, 2] [1, 2, 3] == Nothing
        && DTR.mapTwoLists [1] [2] == Just [(1, 2)]
        && DTR.mapTwoLists [1, 2] [2, 5] == Just [(1, 2), (2, 5)]
 
+testD1 =
+  all id
+  [
+  U.disunify es [] (V 1) (V 2)                           == Just [(1, V 2)],
+  U.disunify es [] (C "S" []) (C "S" [])                 == Nothing,
+  -- due to occurCheck this will never be unified
+  U.disunify es [] (V 1) (C "S" [V 1])                   == Just [],
+  -- TODO: the problem: for constructor we need at least one disunify, not all of them.
+  -- for more proper results maybe we need save terms to constraits store, not
+  -- just substitution.
+  U.disunify es [] (C "S" [V 1, V 3]) (C "S" [V 4, V 2]) == Just [(2, V 3), (1, V 4)]
+  ]
+  where
+    es = [] :: E.Subst
+
+testVCS =
+  all id
+  [
+  U.verifyCS s1 c1 == Nothing,
+  U.verifyCS s1 c2 == Nothing,
+  U.verifyCS s1 s2 == Just [(1, C "S" [V 2])],
+  U.verifyCS s2 c3 == Just [(1, C "S" [C "Z" []]), (2, C "Z" [])]
+  ]
+  where
+   s1 = [(1, V 2)]
+   s2 = [(1, C "S" [V 2])]
+   c1 = [(1, V 2)]
+   c2 = [(2, V 1)]
+   c3 = [(1, C "S" [C "Z" []])]
+
+
+testUG =
+  all id
+  [
+   U.unifyGoal s1 c1 g1 == Just ([Invoke "a" [V 1, V 2]], [], [(1, V 2)]),
+   U.unifyGoal s1 c1 g2 == Nothing,
+   U.unifyGoal s1 c1 g3 == Just ([], [(1, V 3), (0, V 3)], [(1, V 2), (2, V 3)])
+  ]
+  where
+    s1 = []
+    c1 = []
+    g1 = [V 1 :#: V 2, Invoke "a" [V 1, V 2]]
+    g2 = [V 1 :#: V 2, V 1 :=: V 2]
+    g3 = [V 1 :#: V 2, C "S" [V 0, V 1] :=: C "S" [V 3, V 0]]
+
+
 ------------------------------------------
 -- Test unfold methods
 ------------------------------------------
@@ -121,17 +169,27 @@ logintTQ = TQ "Logint" LI.logintoQueryTrue (Just LI.logintoEnv) (Just "logintAut
 maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
 -- isPath(graph, path, true)
 isPathTQ = TQ "IsPath" Path.query1 Nothing (Just "pathAuto/src/")
+
+isPathLenTQ = TQ "IsPathOfLength" pathLenQuery Nothing (Just "pathAuto/src/")
+
+pathLenQuery = pathLen $ fresh ["p", "g"] $ call "pathLen" [V "p", V "g"]
+  where
+    pathLen = Let (def "pathLen" ["p", "g"]
+      (call "isPath" [V "p", V "g", B.trueo] &&& call "lengtho" [N.peanify 1, V "p"])
+      ) . Path.path . List.lengtho
 -- 
 unifyTQ  = TQ "Unify" Unify.query (Just env) (Just "unifyAuto/src/")
   where env = "open OCanren\nopen GT\nopen Std\nopen Nat\nopen UnifyTerm\n"
 -- Simple sorting
 sortTQ = TQ "Sort" testSort Nothing (Just "sortAuto/src/")
+-- Lam Quine
+--red2StepTQ = TQ "Red2Step" LamInt.slamoQueryRes2Step Nothing (Just "lamRed2/src")
 
-testMethodsOnTest1 query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methods1
-testMethodsOnTest2 query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methods2
-testMethodsOnTest3 query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methods3
-testMethodsOnTestU query  = mapM_ (testMethodOnTest "test/ocanren/auto/"  query) methodsU
-testMethodsOnTestU2 query = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ methodsU2
+testMethodsOnTest1 query  = mapM_ (testMethodOnTest "test/ocanren/autoSC1/"  query) methods1
+testMethodsOnTest2 query  = mapM_ (testMethodOnTest "test/ocanren/autoSC2/"  query) methods2
+testMethodsOnTest3 query  = mapM_ (testMethodOnTest "test/ocanren/autoSC3/"  query) methods3
+testMethodsOnTestU query  = mapM_ (testMethodOnTest "test/ocanren/autoSC2/"  query) methodsU
+testMethodsOnTestU2 query = mapM_ (testMethodOnTest "test/ocanren/autoSCU2/" query) $ methodsU2
 
 testMethodOnTest prefix (TQ qname query env path) (TM fname fun) = do
    putStrLn $ "Query: " ++ qname ++ " Method: " ++ fname
@@ -139,3 +197,5 @@ testMethodOnTest prefix (TQ qname query env path) (TM fname fun) = do
 
 testMethodOnTestQuick (TQ qname query env _) (TM fname fun) = do
    TestUtils.ocanrenUltraGen env fun (fname ++ qname) (fname ++ qname ++ ".ml") query
+
+lenQ = List.lengtho $ fresh ["p"] $ call "lengtho" [V "p", N.suc N.zero]

@@ -4,17 +4,18 @@ open GT
 open OCanren
 open Std
 open Nat
-open Tester
+open TesterO
 
 open UnifyTerm
 
-open FuluUnify
+(*open FuluUnify
 open MaxuUnify
 open MinuUnify
 open NrcuUnify
 open RanuUnify
 open RecuUnify
 open SequUnify
+*)
 
 (* a : nat, b : nat, q36 : bool *)
 let rec eq_nat a b q36 =
@@ -86,12 +87,12 @@ let runTimeTest x msg result =
 let runOn c x y = 
   Printf.printf "------\n%!";
   (*runTimeTest c "Orig: %f\n%!" @@ runOrig x y;*)
-  runTimeTest c "SU : %f\n%!" @@ runMthd sequUnify x y;
+(*  runTimeTest c "SU : %f\n%!" @@ runMthd sequUnify x y;
   runTimeTest c "MnU: %f\n%!" @@ runMthd minuUnify x y;
   runTimeTest c "FU : %f\n%!" @@ runMthd fuluUnify x y;
   runTimeTest c "MxU: %f\n%!" @@ runMthd maxuUnify x y;
   runTimeTest c "NU : %f\n%!" @@ runMthd nrcuUnify x y;
-  runTimeTest c "RcU: %f\n%!" @@ runMthd recuUnify x y;
+  runTimeTest c "RcU: %f\n%!" @@ runMthd recuUnify x y;*)
   Printf.printf "------\n%!"
 
 let t1 : term = c 0 [v 0; c 1 []]
@@ -130,9 +131,14 @@ let (t3 : term), (t3' : term) =
   f x x (g z t),
   f (g p l) y y
 
-let _ = 
+(*let _ = 
   runOn 1 t1 t1';
   runOn 1 t2 t2';
-  runOn 1 t3 t3'
+  runOn 1 t3 t3'*)
 
 (*let _ = run q (fun q -> check_uni q t1 t1' (!!true)) (fun d -> d)*)
+
+let runL n = runR gunif_reifier show_runif show_lunif n
+
+let _ = 
+  runL 1  q qh (REPR (fun q -> t1 t1' !!true));
