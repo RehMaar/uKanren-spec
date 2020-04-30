@@ -18,6 +18,7 @@ import Data.Maybe (mapMaybe)
 import Data.List (group, sort, groupBy, find, intersect, delete, sortBy)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
+import Data.Foldable (foldl')
 
 import Text.Printf
 import Debug.Trace
@@ -42,9 +43,9 @@ class Show a => UnfoldableGoal a where
   --
   -- `unfold` цели в `a'.
   --
-  unfoldStep :: a -> E.Env -> E.Subst -> ([(E.Subst, a)], E.Env)
+  unfoldStep :: a -> E.Env -> E.Subst -> E.ConstrStore -> ([(E.Subst, E.ConstrStore, a)], E.Env)
 
-type Derivable a =  a -> [DGoal] -> E.Env -> E.Subst -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
+type Derivable a = a -> [DGoal] -> E.Env -> E.Subst -> E.ConstrStore -> Set.Set DGoal -> Int -> (DTree, Set.Set DGoal, S)
 
 type SuperCompGen a = G X -> (DTree' a, G S, [S])
 
@@ -57,7 +58,7 @@ supercomp d g = let
   (lgoal, lgamma, lnames) = goalXtoGoalS g
   lgoal' = normalize lgoal
   igoal = assert (length lgoal' == 1) $ initGoal (head lgoal')
-  tree = fst3 $ derive d igoal [] lgamma E.s0 Set.empty 1
+  tree = fst3 $ derive d igoal [] lgamma E.s0 [] Set.empty 1
   in (tree, lgoal, lnames)
 
 fixEnv i (E.Env f1 f2 (d:ds))
@@ -71,15 +72,14 @@ getVariant goal nodes = let
   in assert (length vs == 1) $ Set.elemAt 0 vs
 
 --
-
 goalXtoGoalS :: G X -> (G S, E.Env, [S])
 goalXtoGoalS g = let
   (goal, _, defs)    = P.justTakeOutLets (g, [])
   gamma              = E.updateDefsInGamma E.env0 defs
   in E.preEval' gamma goal
-
 --
 
+--
 isGen goal ancs = any (`embed` goal) ancs && not (Set.null ancs)
 --
 
@@ -87,7 +87,7 @@ unfold :: G S -> E.Env -> (E.Env, G S)
 unfold g@(Invoke f as) env
   | (n, fs, body) <- E.envLookupDef env f
   , length fs == length as
-  = let i' = foldl extend (E.envIota env) (zip fs as)
+  = let i' = foldl' extend (E.envIota env) (zip fs as)
         (g', env', names) = E.preEval' env{E.envIota = i'}  body
     in (env', g')
   | otherwise = error "Unfolding error: different number of factual and actual arguments"
@@ -98,8 +98,8 @@ extend = uncurry . E.extend
 
 --
 
-unifyAll :: E.Subst -> Disj (Conj (G S)) -> Disj (Conj (G S), E.Subst)
-unifyAll = mapMaybe . unifyStuff
+unifyAll :: E.Subst -> E.ConstrStore -> Disj (Conj (G S)) -> Disj (Conj (G S), E.Subst, E.ConstrStore)
+unifyAll subst cstore = mapMaybe (unifyGoal subst cstore)
 
 --
 -- Conjunction of DNF to DNF
@@ -160,7 +160,7 @@ abstractL ancs g ns
   = generalize g anc ns
   | otherwise
   = error $ "Unable to generalize <" ++ pretty g ++ "> with ancs: " ++ prettyList ancs
-  where findAnc' g = find (`embed` g) . reverse
+  where findAnc' g = find (`embed` g) 
 
 abstractS
   :: Set.Set [G S]
@@ -264,14 +264,15 @@ genUnfoldStep :: UnfoldableGoal a =>
   -> a
   -> E.Env
   -> E.Subst
-  -> ([(E.Subst, a)], E.Env)
-genUnfoldStep split ctr goal env subst = let
+  -> E.ConstrStore
+  -> ([(E.Subst, E.ConstrStore, a)], E.Env)
+genUnfoldStep split ctr goal env subst cstore = let
     (ls, conj, rs) = split env goal
     (newEnv, uConj) = unfold conj env
 
     nConj = goalToDNF uConj
-    unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, construct subst cs ls rs)) <$> unConj
+    unConj = unifyAll subst cstore nConj
+    us = (\(cs, subst, cstore) -> (subst, cstore, construct subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
     construct subst cs ls rs = ctr $ E.substitute subst $ ls ++ cs ++ rs
@@ -318,6 +319,7 @@ unifyGoal subst cs = go subst cs [] where
     subst' <- E.unify (Just subst) t1 t2
     cs'    <- verifyCS subst' cs
     go subst' cs' conjs gs
-  go subst cs conjs ((t1 :#: t2):gs) = do
+  go subst cs conjs ((t1 :#: t2):gs) =
+   do
     cs' <- disunify subst cs t1 t2
     go subst cs' conjs gs

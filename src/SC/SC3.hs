@@ -16,6 +16,7 @@ import Data.Maybe (mapMaybe)
 import Data.List (group, sort, groupBy, find, intersect, delete, sortBy)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
+import Data.Foldable (foldl')
 
 import Text.Printf
 import Debug.Trace
@@ -37,13 +38,15 @@ derive3 = Derive derive'
 derive' :: UnfoldableGoal a => Derivable a
 derive' = derivationStep'
     where
-      derivationStep' goal ancs env subst seen d
+      derivationStep' goal ancs env subst cstore seen d
         -- Empty goal => everything evaluated fine
         | emptyGoal goal
-        = (Success subst, seen, maxFreshVar env)
+        = (Success subst cstore, seen, maxFreshVar env)
         -- If we already seen the same node, stop evaluate it.
         | checkLeaf (getGoal goal) seen
-        = (Renaming (getGoal goal) subst, seen, maxFreshVar env)
+        = (Renaming (getGoal goal) subst cstore, seen, maxFreshVar env)
+        -- | d > 3
+        -- = (Prune (getGoal goal), seen, maxFreshVar env)
         -- If a node is generalization of one of ancsectors generalize.
         | isGen (getGoal goal) (Set.fromList ancs)
         , (aGoals, ns) <- abstractL ancs (getGoal goal) $ E.envNS env
@@ -55,18 +58,18 @@ derive' = derivationStep'
             nSeen = Set.insert rGoal seen
             nEnv = env{E.envNS = ns}
             (seen', trees, maxVarNum) =
-              foldl
+              foldl'
                 (\(seen, ts, m) (goal, gen) ->
-                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m nEnv) subst seen (succ d)
+                  let (t, seen'', mv) = derivationStep' (initGoal goal) nAncs (fixEnv m nEnv) subst cstore seen (succ d)
                       t' = if null gen then t else Gen t gen
                   in (seen'', t':ts, mv)
                 )
                 (nSeen, [], maxFreshVar env)
                 aGoals
-            tree = Abs (reverse trees) subst rGoal
+            tree = Abs (reverse trees) subst cstore rGoal
           in (tree, seen', maxVarNum)
         | otherwise
-        = case unfoldStep goal env subst of
+        = case unfoldStep goal env subst cstore of
             ([], _) -> (Fail, seen, maxFreshVar env)
             (uGoals, nEnv) -> let
                 rGoal = getGoal goal
@@ -74,12 +77,12 @@ derive' = derivationStep'
                 nSeen = Set.insert rGoal seen
 
                 (seen', trees, maxVarNum) =
-                  foldl
-                    (\(seen, ts, m) (subst, goal) ->
-                      let (t, seen'', mv) = derivationStep' goal nAncs (fixEnv m nEnv) subst seen (succ d)
+                  foldl'
+                    (\(seen, ts, m) (subst, cstore, goal) ->
+                      let (t, seen'', mv) = derivationStep' goal nAncs (fixEnv m nEnv) subst cstore seen (succ d)
                       in (seen'', t:ts, mv)
                     )
                     (nSeen, [], maxFreshVar nEnv)
                     uGoals
-                tree = Unfold (reverse trees) subst rGoal
+                tree = Unfold (reverse trees) subst cstore rGoal
               in (tree, seen', maxVarNum)

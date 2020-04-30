@@ -120,20 +120,19 @@ data Call = Call
 makeMarkedTree :: DT.DTree -> MarkedTree
 makeMarkedTree x = go x (DT.leaves x) x
   where
-    c = []
     go :: DT.DTree      -- |Root of the tree
        -> [DT.DGoal]    -- |Leaves of the tree (Only `Renaming` nodes)
        -> DT.DTree      -- |Currently traversed tree.
        -> MarkedTree
     go _     _     DT.Fail                  = Fail
-    go _     _     (DT.Success s)           = Success s c
+    go _     _     (DT.Success s c)           = Success s c
     go root leaves (DT.Gen t s)             = Gen (go root leaves t) s
-    go root leaves (DT.Renaming goal s) = Renaming goal s c
-    go root leaves (DT.Unfold ts s g)     =
+    go root leaves (DT.Renaming goal s c) = Renaming goal s c
+    go root leaves (DT.Unfold ts s c g)     =
       let isVar = any (`isVariant` g) leaves
           ts'   = go root leaves <$> ts
       in Unfold ts' s c g isVar
-    go root leaves (DT.Abs ts s g)        =
+    go root leaves (DT.Abs ts s c g)        =
       let isVar = any (`isVariant` g) leaves
           ts'   = go root leaves <$> ts
       in Abs ts' s c g isVar

@@ -1,6 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-
 module SC.SC1(derive1) where
     
 import SC.DTree
@@ -18,6 +17,7 @@ import Data.Maybe (mapMaybe)
 import Data.List (group, sort, groupBy, find, intersect, delete, sortBy)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
+import Data.Foldable (foldl')
 
 import Text.Printf
 import Debug.Trace
@@ -41,32 +41,36 @@ derive' :: UnfoldableGoal a =>
   -> [DGoal]           -- |Ancsectors.
   -> E.Env             -- |Context.
   -> E.Subst           -- |Substitution.
+  -> E.ConstrStore     -- |Constraint Store
   -> Set.Set DGoal     -- |Already seen.
   -> Int -- depth for debug
   -> (DTree, Set.Set DGoal, S)
-derive' goal ancs env subst seen depth
+derive' goal ancs env subst cstore seen depth
     | checkLeaf (getGoal goal) seen
-    = (Renaming (getGoal goal) subst, seen, maxFreshVar env)
+    = (Renaming (getGoal goal) subst cstore, seen, maxFreshVar env)
+    | depth > 5
+    = (Prune (getGoal goal), seen, maxFreshVar env)
     | otherwise
     = 
     let
       realGoal = getGoal goal
-      newAncs = realGoal : ancs
-    in case unfoldStep goal env subst of
+      newAncs  = realGoal : ancs
+    in case unfoldStep goal env subst cstore of
        ([], _)          -> (Fail, seen, maxFreshVar env)
        (uGoals, newEnv) ->
          let
            newSeen = Set.insert realGoal seen
-           (seen', ts, maxVarNum) = foldl (\(seen, ts, m) g ->
+           (seen', ts, maxVarNum) = foldl' (\(seen, ts, m) g ->
                (\(a, t, i) -> (a, t:ts, max i m)) $
                  evalSubTree' (succ depth) (fixEnv m newEnv) newAncs seen g)
                (newSeen, [], maxFreshVar env) uGoals
-         in (Unfold (reverse ts) subst realGoal, seen', maxVarNum)
+         in (Unfold (reverse ts) subst cstore realGoal, seen', maxVarNum)
    where
-    evalSubTree' :: UnfoldableGoal a => Int -> E.Env -> [DGoal] -> Set.Set DGoal -> (E.Subst, a) -> (Set.Set DGoal, DTree, S)
-    evalSubTree' depth env ancs seen (subst, goal :: a)
+    evalSubTree' :: UnfoldableGoal a =>
+      Int -> E.Env -> [DGoal] -> Set.Set DGoal -> (E.Subst, E.ConstrStore, a) -> (Set.Set DGoal, DTree, S)
+    evalSubTree' depth env ancs seen (subst, cstore, goal :: a)
      | emptyGoal goal
-     = {-trace ">Success" $-} (seen, Success subst, maxFreshVar env)
+     = {-trace ">Success" $-} (seen, Success subst cstore, maxFreshVar env)
      | not (checkLeaf realGoal seen)
      , isGen realGoal (Set.fromList ancs)
      =
@@ -81,11 +85,11 @@ derive' goal ancs env subst seen depth
                 (\(a, t, i) -> (a, t:ts, max i m)) $
                  evalGenSubTree m (succ depth) ancs seen newEnv subst g)
                  (newSeen, [], maxFreshVar env) absGoals
-          in (seen', Abs (reverse ts) subst realGoal, maxVarNum)
+          in (seen', Abs (reverse ts) subst cstore realGoal, maxVarNum)
         | otherwise
         =
           let
-            (tree, seen', maxVarNum) = derive' goal ancs env subst seen depth
+            (tree, seen', maxVarNum) = derive' goal ancs env subst cstore seen depth
           in (seen', tree, maxVarNum)
         where
           realGoal = getGoal goal
@@ -94,6 +98,6 @@ derive' goal ancs env subst seen depth
             let
               env' = fixEnv m env
               igoal :: a = initGoal goal
-              (tree, seen', maxVarNum) = derive' igoal ancs env' subst seen depth
+              (tree, seen', maxVarNum) = derive' igoal ancs env' subst cstore seen depth
               subtree  = if null gen then tree else Gen tree gen
             in (seen', subtree, maxVarNum)

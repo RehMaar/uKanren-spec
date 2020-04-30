@@ -32,20 +32,6 @@ instance UnfoldableGoal RecGoal where
   mapGoal (RecGoal dgoal) f = RecGoal (f dgoal)
   unfoldStep = genUnfoldStep splitGoal RecGoal
 
-{-
-unreqUnfoldStep :: RecGoal -> E.Env -> E.Subst -> ([(E.Subst, RecGoal)], E.Env)
-unreqUnfoldStep (RecGoal dgoal) env subst = let
-    (conj, rest) = splitGoal env dgoal
-    (newEnv, uConj) = unfold conj env
-
-    nConj = goalToDNF uConj
-    unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, suGoal subst cs rest)) <$> unConj
-  in (us, newEnv)
-  where
-    suGoal subst cs rest = RecGoal $ E.substituteConjs subst $ cs ++ rest
--}
-
 splitGoal :: E.Env -> RecGoal -> ([G S], G S, [G S])
 splitGoal env (RecGoal gs) =
   let c = minimumBy ((compare `on` (not . isRec env)) <> compareGoals env) gs

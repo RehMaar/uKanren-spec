@@ -472,6 +472,7 @@ hasVar g x = elem x $ fvg g
 {-------------------------------------------}
 removeUnifications :: (Term X -> Term X -> Bool) -> G X -> G X
 removeUnifications p g@(t1 :=:  t2) = if p t1 t2 then success else g
+removeUnifications p g@(t1 :#:  t2) = if p t1 t2 then success else g
 removeUnifications p   (g1 :\/: g2) = removeUnifications p g1 :\/: removeUnifications p g2
 removeUnifications p   (g1 :/\: g2) = case (removeUnifications p g1, removeUnifications p g2) of
                                         (Invoke "success" [], Invoke "success" []) -> success

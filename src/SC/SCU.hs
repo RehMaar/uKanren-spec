@@ -27,11 +27,11 @@ import           Debug.Trace
 -- |
 toDTree :: UnfoldableGoal a => DTree' a -> DTree
 toDTree Fail                   = Fail
-toDTree (Success a           ) = Success a
-toDTree (Renaming ugoal b) = Renaming (getGoal ugoal) b
+toDTree (Success a c         ) = Success a c
+toDTree (Renaming ugoal b c)   = Renaming (getGoal ugoal) b c
 toDTree (Gen a b             ) = Gen (toDTree a) b
-toDTree (Unfold ts a ugoal) = Unfold (toDTree <$> ts) a (getGoal ugoal)
-toDTree (Abs    ts a ugoal) = Abs (toDTree <$> ts) a (getGoal ugoal)
+toDTree (Unfold ts a c ugoal)  = Unfold (toDTree <$> ts) a c (getGoal ugoal)
+toDTree (Abs    ts a c ugoal)  = Abs (toDTree <$> ts) a c (getGoal ugoal)
 
 
 -- |Context of our algorithm execution.
@@ -65,7 +65,7 @@ runZipper :: UnfoldableGoal a => a -> E.Env -> DTreeZipper a
 runZipper goal env =
   let ctx = Context env
       zipper =
-          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal) [], [])
+          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 [] goal) [], [])
   in  runner zipper ctx
   where
     runner :: UnfoldableGoal a => DTreeZipper a -> Context -> DTreeZipper a
@@ -84,7 +84,7 @@ runZipperN :: UnfoldableGoal a => Int -> a -> E.Env -> DTreeZipper a
 runZipperN n goal env =
   let ctx = Context env
       zipper =
-          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal) [], [])
+          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 [] goal) [], [])
   in  runnerN n zipper ctx
   where
     runnerN 0 z _ = z
@@ -137,15 +137,15 @@ foldTree :: DTree -> DTree
 foldTree = fst . foldTree' Set.empty
   where
     foldTree' :: Set.Set DGoal -> DTree -> (DTree, Set.Set DGoal)
-    foldTree' seen (Unfold ts subst goal)
+    foldTree' seen (Unfold ts subst cstore goal)
       | checkLeaf goal seen
-      = (Renaming goal subst, seen)
+      = (Renaming goal subst cstore, seen)
       | otherwise
       = let (ts', seen') = foldl' (\(ts', seen) tree -> first (:ts') $ foldTree' seen tree) ([], Set.insert goal seen) ts
-        in (Unfold (reverse ts') subst goal, seen')
-    foldTree' seen (Abs ts subst goal)
+        in (Unfold (reverse ts') subst cstore goal, seen')
+    foldTree' seen (Abs ts subst cstore goal)
       = let (ts', seen') = foldl' (\(ts', seen) tree -> first (:ts') $ foldTree' seen tree) ([], Set.insert goal seen) ts
-        in (Abs (reverse ts') subst goal, seen')
+        in (Abs (reverse ts') subst cstore goal, seen')
     foldTree' seen (Gen t subst) = first (flip Gen subst) (foldTree' seen t)
     foldTree' s t = (t, s)
 
@@ -153,21 +153,22 @@ isUpwardGenP goal parent  = isStrictInst goal parent && not (isStrictInst parent
 isUpwardGen goal parents = any (isUpwardGenP goal) parents && not (null parents)
 
 needUpwardGen :: UnfoldableGoal a => Set.Set DGoal -> E.Env -> DTreeMulti a -> Bool
-needUpwardGen parents env (DTreeMulti AbsCon subst goal) = isUpwardGen (getGoal goal) parents
+needUpwardGen parents env (DTreeMulti AbsCon _ _ goal) = isUpwardGen (getGoal goal) parents
 needUpwardGen _ _ _ = False
 
 goalToTree
   :: UnfoldableGoal a =>
      Set.Set DGoal  -- |Parent nodes.
   -> E.Subst        -- |Substitution.
+  -> E.ConstrStore  -- |Constraints Store
   -> a              -- |Goal.
   -> DTree' a
-goalToTree parents subst goal
-  | emptyGoal goal                     = Success subst
-  | checkLeaf (getGoal goal) parents   = Renaming goal subst
-  | isUpwardGen (getGoal goal) parents = Abs [] subst goal
-  | whistle parents (getGoal goal)     = Abs [] subst goal
-  | otherwise                          = Unfold [] subst goal
+goalToTree parents subst cstore goal
+  | emptyGoal goal                     = Success subst cstore
+  | checkLeaf (getGoal goal) parents   = Renaming goal subst cstore
+  | isUpwardGen (getGoal goal) parents = Abs [] subst cstore goal
+  | whistle parents (getGoal goal)     = Abs [] subst cstore goal
+  | otherwise                          = Unfold [] subst cstore goal
 
 -------------------------------------------------------------------------------
 
@@ -185,7 +186,7 @@ stepZipper = stepZipper'
       =
         let Just (parentNode, parents') = stepUntil goUp (isZipperOurParent anc) zipper
             varSubst = zipVars goal anc
-            child = Unfold [] (parentSubst parentNode) (dtmGoal mn)
+            child = Unfold [] (parentSubst parentNode) (parentCStore parentNode) (dtmGoal mn)
             genNode = Gen child varSubst
             node = parentNode{dtnChildren = [genNode]}
         in Just ((node, parents'), ctx)
@@ -196,6 +197,9 @@ stepZipper = stepZipper'
 
             parentSubst (DTreeMultiNode mn _) = dtmSubst mn
             parentSubst _ = error "stepZipper': wrong kind of node as a parent!"
+
+            parentCStore (DTreeMultiNode mn _) = dtmCStore mn
+            parentCStore _ = error "stepZipper': wrong kind of node as a parent!"
 
     -- Empty <children> for MultiNode means that we need to fill it which possible children
     stepZipper' zipper@(DTreeMultiNode mn [], parents) ctx =
@@ -227,22 +231,22 @@ stepZipper = stepZipper'
       -> DTreeMulti a  -- | Node in focus
       -> (Context, [DTree' a])
     -- If node is <Unfold> we need to unfold a goal and return newly created possibly unfinished subtrees.
-    generateChildren ps ctx@(Context env) (DTreeMulti UnfoldCon subst goal) =
-        case unfoldStep goal env subst of
+    generateChildren ps ctx@(Context env) (DTreeMulti UnfoldCon subst cstore goal) =
+        case unfoldStep goal env subst cstore of
         ([], _) -> (ctx, [Fail])
         -- uGoal :: [(E.Subst, UnfoldableGoal a)]
         (uGoals, nEnv) ->
           let parents = Set.fromList (getGoal goal : ps)
-              trees = uncurry (goalToTree parents) <$> uGoals
+              trees = (\(subst, cstore, gl) -> goalToTree parents subst cstore gl) <$> uGoals
           in  (ctx { ctxEnv = nEnv }, trees)
-    generateChildren ps ctx@(Context env) (DTreeMulti AbsCon subst goal) =
+    generateChildren ps ctx@(Context env) (DTreeMulti AbsCon subst cstore goal) =
       -- aGoals ::[(E.Subst, [G S], G.Generalizer)]
       let (aGoals, ns) = abstractFixed (Set.fromList ps) (getGoal goal) subst $ E.envNS env
           nEnv = env{E.envNS = ns}
           trees =
               (\(subst, nGoal, gen) ->
                   let parents = Set.fromList ps
-                      tree = goalToTree parents subst (initGoal nGoal :: a) in
+                      tree = goalToTree parents subst cstore (initGoal nGoal :: a) in
                   if null gen then tree else Gen tree gen
               ) <$> aGoals
       in  (ctx { ctxEnv = nEnv }, trees)
@@ -266,7 +270,7 @@ instance Show Context2 where
 runZipper2 goal env =
   let ctx = Context2 env Set.empty
       zipper =
-          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal) [], [])
+          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 [] goal) [], [])
   in  runner zipper ctx
   where
     runner :: UnfoldableGoal a => DTreeZipper a -> Context2 -> DTreeZipper a
@@ -282,7 +286,7 @@ runDebug2 n gl =
 runZipper2N n goal env =
   let ctx = Context2 env Set.empty
       zipper =
-          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 goal) [], [])
+          (DTreeMultiNode (DTreeMulti UnfoldCon E.s0 [] goal) [], [])
   in  runnerN n zipper ctx
   where
     runnerN 0 z _ = z
@@ -304,7 +308,7 @@ stepZipper2 = stepZipper'
       =
         let (Just (parentNode, parents')) = stepUntil goUp (isZipperOurParent anc) zipper
             varSubst = zipVars goal anc
-            child = Unfold [] (parentSubst parentNode) (dtmGoal mn)
+            child = Unfold [] (parentSubst parentNode) (parentCStore parentNode) (dtmGoal mn)
             genNode = Gen child varSubst
             node = parentNode{dtnChildren = [genNode]}
         in Just ((node, parents'), ctx{ctxSeen = Set.fromList $ getGoal <$> readyNodes (node, parents')})
@@ -317,13 +321,17 @@ stepZipper2 = stepZipper'
         parentSubst (DTreeMultiNode mn _) = dtmSubst mn
         parentSubst _ = error "stepZipper': wrong kind of node as a parent!"
 
+        parentCStore (DTreeMultiNode mn _) = dtmCStore mn
+        parentCStore _ = error "stepZipper': wrong kind of node as a parent!"
+
     stepZipper' zipper@(DTreeMultiNode mn [], parents) ctx
       | checkLeaf (getGoal $ dtmGoal mn) (ctxSeen ctx)
       = let goal  = dtmGoal mn
             subst = dtmSubst mn
+            cstore = dtmCStore mn
             env   = ctxEnv2 ctx
             parentSet = Set.fromList $ parentGoals parents
-            node = RenamingEnd goal subst
+            node = RenamingEnd goal subst cstore
             endZipper = (DTreeEndNode node, parents)
         in (, ctx) <$> goUp endZipper
 
@@ -343,23 +351,23 @@ stepZipper2 = stepZipper'
 
     generateChildren :: forall a . UnfoldableGoal a =>
       [DGoal] -> Context2 -> DTreeMulti a -> (Context2, [DTree' a])
-    generateChildren ps ctx@(Context2 env _) (DTreeMulti UnfoldCon subst goal) =
+    generateChildren ps ctx@(Context2 env _) (DTreeMulti UnfoldCon subst cstore goal) =
         -- trace ("Unfold: " ++ show goal ++ "\n") $
-        case unfoldStep goal env subst of
+        case unfoldStep goal env subst cstore of
         ([], _) -> (ctx, [Fail])
         -- uGoal :: [(E.Subst, UnfoldableGoal a)]
         (uGoals, nEnv) ->
           let parents = Set.fromList (getGoal goal : ps)
-              trees = uncurry (goalToTree parents) <$> uGoals
+              trees = (\(subst, cstore, gl) -> goalToTree parents subst cstore gl) <$> uGoals
           in  (ctx { ctxEnv2 = nEnv }, trees)
-    generateChildren ps ctx@(Context2 env _) (DTreeMulti AbsCon subst goal) =
+    generateChildren ps ctx@(Context2 env _) (DTreeMulti AbsCon subst cstore goal) =
       -- aGoals ::[(E.Subst, [G S], G.Generalizer)]
       let (aGoals, ns) = abstractFixed (Set.fromList ps) (getGoal goal) subst $ E.envNS env
           nEnv = env{E.envNS = ns}
           trees =
               (\(subst, nGoal, gen) ->
                   let parents = Set.fromList ps
-                      tree = goalToTree parents subst (initGoal nGoal :: a) in
+                      tree = goalToTree parents subst cstore (initGoal nGoal :: a) in
                   if null gen then tree else Gen tree gen
               ) <$> aGoals
       in  (ctx { ctxEnv2 = nEnv }, trees)

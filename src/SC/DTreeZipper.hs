@@ -51,18 +51,18 @@ lzShiftUntil p ~zipper@(c, _)
 
 -- |Leaf nodes description
 data DTreeEnd a = FailEnd
-                | SuccessEnd E.Subst
-                | RenamingEnd a E.Subst
+                | SuccessEnd E.Subst E.ConstrStore
+                | RenamingEnd a E.Subst E.ConstrStore
 
 instance Show (DTreeEnd a) where
   show FailEnd        = "FailEnd"
-  show (SuccessEnd s) = "SuccessEnd"
+  show SuccessEnd{} = "SuccessEnd"
   show RenamingEnd{}  = "RenamingEnd"
 
 endToNode :: DTreeEnd a -> DTree' a
 endToNode FailEnd           = Fail
-endToNode (SuccessEnd s   ) = Success s
-endToNode (RenamingEnd d s) = Renaming d s
+endToNode (SuccessEnd s c)  = Success s c
+endToNode (RenamingEnd d s c) = Renaming d s c
 
 -- |Description of `Unfold` and `Abs` nodes
 data MNodeType = UnfoldCon | AbsCon
@@ -72,12 +72,13 @@ data MNodeType = UnfoldCon | AbsCon
 data DTreeMulti a = DTreeMulti
                   { dtmMnodeType :: MNodeType
                   , dtmSubst     :: E.Subst
+                  , dtmCStore    :: E.ConstrStore
                   , dtmGoal      :: a
                   }
   deriving Show
 
 mnodeToNode :: DTreeMulti a -> [DTree' a] -> DTree' a
-mnodeToNode (DTreeMulti typ s d) children = tpFun typ children s d
+mnodeToNode (DTreeMulti typ s c d) children = tpFun typ children s c d
  where
   tpFun UnfoldCon = Unfold
   tpFun AbsCon    = Abs
@@ -112,10 +113,10 @@ parents = snd
 -- | Focus on a node
 dTreeNode :: DTree' a -> DTreeNode a
 dTreeNode Fail            = DTreeEndNode FailEnd
-dTreeNode (Success s    ) = DTreeEndNode (SuccessEnd s)
-dTreeNode (Renaming d  s) = DTreeEndNode (RenamingEnd d s)
-dTreeNode (Unfold cs s d) = DTreeMultiNode (DTreeMulti UnfoldCon s d) cs
-dTreeNode (Abs cs s  d)   = DTreeMultiNode (DTreeMulti AbsCon s d) cs
+dTreeNode (Success s c  ) = DTreeEndNode (SuccessEnd s c)
+dTreeNode (Renaming d s c) = DTreeEndNode (RenamingEnd d s c)
+dTreeNode (Unfold cs s c d) = DTreeMultiNode (DTreeMulti UnfoldCon s c d) cs
+dTreeNode (Abs cs s c d)   = DTreeMultiNode (DTreeMulti AbsCon s c d) cs
 dTreeNode (Gen c s      ) = DTreeGenNode s c
 
 -- | Create a zipper
@@ -143,10 +144,10 @@ readyNodes (_, parents) = concatMap ready' parents
     readyLC (c, _) = concatMap readyInTree c
 
     readyInTree :: DTree' a -> [a]
-    readyInTree (Unfold ts _ gl) = gl : concatMap readyInTree ts
-    readyInTree (Abs ts _ gl) = gl : concatMap readyInTree ts
+    readyInTree (Unfold ts _ _ gl) = gl : concatMap readyInTree ts
+    readyInTree (Abs ts _ _ gl) = gl : concatMap readyInTree ts
     readyInTree (Gen t _) = readyInTree t
-    readyInTree (Renaming gl _) = [gl]
+    readyInTree (Renaming gl _ _) = [gl]
     readyInTree _ = []
 
 -- |Zipper walkers
@@ -170,23 +171,23 @@ goNextChild (DTreeMultiNode dc cs, p) = do
 goNextChild (DTreeGenNode s c, p) = Just $ dTreeZipper (DTreeGenParent s : p) c
 
 isEmptyChild :: DTree' a -> Bool
-isEmptyChild (Unfold [] _ _ ) = True
-isEmptyChild (Abs    [] _ _ ) = True
+isEmptyChild (Unfold [] _ _ _ ) = True
+isEmptyChild (Abs    [] _ _ _ ) = True
 isEmptyChild (Gen t _       ) = isEmptyChild t
 isEmptyChild _                = False
 
 -- |Go upward.
 goUp :: DTreeZipper a -> Maybe (DTreeZipper a)
-goUp (c, (DTreeGenParent gen) : ps) =
-  goUp (DTreeGenNode gen (nodeToDTree c), ps)
-goUp (c, (DTreeMNodeParent mn childrenContext) : ps) =
-  Just (DTreeMultiNode mn (zipperList (nodeToDTree c, childrenContext)), ps)
+goUp (c, (DTreeGenParent gen) : ps)
+  = goUp (DTreeGenNode gen (nodeToDTree c), ps)
+goUp (c, (DTreeMNodeParent mn childrenContext) : ps)
+  = Just (DTreeMultiNode mn (zipperList (nodeToDTree c, childrenContext)), ps)
 goUp _ = Nothing
 
 -- |Go to the right child or upward.
 goRightOrUp :: DTreeZipper a -> Maybe (DTreeZipper a)
-goRightOrUp (c, DTreeGenParent gen : ps) =
-  goUp (DTreeGenNode gen (nodeToDTree c), ps)
+goRightOrUp (c, DTreeGenParent gen : ps)
+  = goUp (DTreeGenNode gen (nodeToDTree c), ps)
 goRightOrUp (c, DTreeMNodeParent mn childrenContext : ps)
   | Just (nc, newChildrenContext) <- lzRight lz = Just
     (dTreeNode nc, DTreeMNodeParent mn newChildrenContext : ps)

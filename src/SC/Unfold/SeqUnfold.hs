@@ -34,14 +34,13 @@ instance UnfoldableGoal SUGoal where
 
   unfoldStep = seqUnfoldStep
 
-seqUnfoldStep :: SUGoal -> E.Env -> E.Subst -> ([(E.Subst, SUGoal)], E.Env)
-seqUnfoldStep (SUGoal dgoal idx) env subst = let
+seqUnfoldStep (SUGoal dgoal idx) env subst cstore = let
     (newIdx, (immut, conj, mut)) = splitGoal idx dgoal
     (newEnv, uConj) = unfold conj env
 
     nConj = goalToDNF uConj
-    unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, suGoal subst immut cs mut newIdx)) <$> unConj
+    unConj = unifyAll subst cstore nConj
+    us = (\(cs, subst, cstore) -> (subst, cstore, suGoal subst immut cs mut newIdx)) <$> unConj
   in (us, newEnv)
   where
     suGoal subst immut cs mut newIdx = let

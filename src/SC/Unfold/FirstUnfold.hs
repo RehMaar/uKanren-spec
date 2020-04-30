@@ -31,14 +31,13 @@ instance UnfoldableGoal FstGoal where
   mapGoal (FstGoal dgoal) f = FstGoal (f dgoal)
   unfoldStep = unreqUnfoldStep
 
-unreqUnfoldStep :: FstGoal -> E.Env -> E.Subst -> ([(E.Subst, FstGoal)], E.Env)
-unreqUnfoldStep (FstGoal dgoal) env subst = let
+unreqUnfoldStep (FstGoal dgoal) env subst cstore = let
     (ls, conj, rs) = splitGoal env dgoal
     (newEnv, uConj) = unfold conj env
 
     nConj = goalToDNF uConj
-    unConj = unifyAll subst nConj
-    us = (\(cs, subst) -> (subst, suGoal subst cs ls rs)) <$> unConj
+    unConj = unifyAll subst cstore nConj
+    us = (\(cs, subst, cstore) -> (subst, cstore, suGoal subst cs ls rs)) <$> unConj
   in (us, newEnv)
   where
     suGoal subst cs ls rs = FstGoal $ E.substituteConjs subst $ ls ++ cs ++ rs
