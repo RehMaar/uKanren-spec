@@ -16,6 +16,7 @@ import           Utils
 import           Debug.Trace
 import           Control.Applicative ((<|>))
 import           Data.Maybe (listToMaybe)
+import           Data.Foldable (foldl')
 
 map1in4 :: (a -> b) -> (a, c, d, e) -> (b, c, d, e)
 map1in4 f (x, y, z, t) = (f x, y, z, t)
@@ -40,7 +41,7 @@ instance Generalization S (Term S) where
 instance Generalization S (f S) => Generalization S [f S] where
   generalize vs s1 s2 ns ms | length ns == length ms =
     map1in4 reverse $
-    foldl (\(gs, gen1, gen2, vs) (t1, t2) ->
+    foldl' (\(gs, gen1, gen2, vs) (t1, t2) ->
              map1in4 (:gs) $ generalize vs gen1 gen2 t1 t2 
           ) 
           ([], s1, s2, vs) 
