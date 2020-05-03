@@ -1,5 +1,15 @@
+#all:
+#	pdflatex -output-directory src src/main.tex
+
 all:
-	pdflatex -output-directory src src/main.tex
+	cd src && \
+	pdflatex main.tex && \
+	biber main && \
+	pdflatex main.tex
+
+rebuild:
+	cd src && \
+	pdflatex main.tex
 
 .PHONY: clean
 clean:

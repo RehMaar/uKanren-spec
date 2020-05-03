@@ -1,0 +1,43 @@
+\section{Специализация miniKanren}
+
+\input{mk.tex}
+
+\subsection{Реализация суперкомпиляции}
+\input{mk_sc.tex}
+
+%\section{Алгоритм суперкомпиляции}
+% \begin{figure}[h!]
+% \begin{lstlisting}[mathescape,language=MyLang]
+%   data Tree where
+%     Failure     :: Tree
+%     Success     :: Substitution $\rarrow$ Tree
+%     Abstraction :: Expression $\rarrow$ Substitution $\rarrow$ Tree
+%     Unfolding   :: Expression $\rarrow$ Substitution $\rarrow$ Tree
+%     Renaming    :: Expression $\rarrow$ Substitution $\rarrow$ Tree
+% \end{lstlisting}
+% \end{figure}
+% 
+% 
+% \begin{figure}[h!]
+% \begin{algorithmic}
+% \Function{drive}{tree, expression}
+%   \If {expression is renaming of some parent in the tree}
+%     \State {add leaf to tree}
+%   \ElsIf {$\exists \text{parent}:$ parent is embeded in expression}
+%     \State {add abstraction node in tree}
+%     \State {abstracted-expr <- abstract expression (parents in tree)}
+%     \ForAll{expr : abstracted-expr}
+%       \State \Call{drive}{tree, expr}
+%     \EndFor
+%   \Else
+%     \State {children <- unfold expression}
+%     \State {add unfolding node in tree}
+%     \ForAll{child : children}
+%       \State \Call{drive}{tree, child}
+%     \EndFor
+%   \EndIf
+% \EndFunction
+% \end{algorithmic}
+% \caption{Базовый алгоритм прогонки}
+% \end{figure}
+% 
