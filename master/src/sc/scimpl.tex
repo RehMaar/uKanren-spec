@@ -1,21 +1,15 @@
-\section{Специализация miniKanren}
-
-\input{mk.tex}
-
-\subsection{Реализация суперкомпиляции}
-\input{mk_sc.tex}
-
-%\section{Алгоритм суперкомпиляции}
-% \begin{figure}[h!]
-% \begin{lstlisting}[mathescape,language=MyLang]
-%   data Tree where
-%     Failure     :: Tree
-%     Success     :: Substitution $\rarrow$ Tree
-%     Abstraction :: Expression $\rarrow$ Substitution $\rarrow$ Tree
-%     Unfolding   :: Expression $\rarrow$ Substitution $\rarrow$ Tree
-%     Renaming    :: Expression $\rarrow$ Substitution $\rarrow$ Tree
-% \end{lstlisting}
-% \end{figure}
+\begin{figure}[h!]
+\begin{lstlisting}[mathescape,language=Haskell]
+  data ProcessTree where
+    Failure     :: Tree
+    Success     :: Substitution $\rarrow$ Tree
+    Abstraction :: Expression $\rarrow$ Substitution $\rarrow$ Tree
+    Unfolding   :: Expression $\rarrow$ Substitution $\rarrow$ Tree
+    Renaming    :: Expression $\rarrow$ Substitution $\rarrow$ Tree
+\end{lstlisting}
+\caption{Описание дерева процессов.}
+\label{fig:ptree}
+\end{figure}
 % 
 % 
 % \begin{figure}[h!]
