@@ -1,8 +1,12 @@
-\documentclass[12pt, a4paper] {ncc}
+\documentclass[14pt, a4paper] {ncc}
 \usepackage[utf8] {inputenc}
 \usepackage[T2A]{fontenc}
 \usepackage[english, russian] {babel}
 \usepackage[top=20mm, bottom=20mm, left=25mm, right=10mm]{geometry}
+
+% Чтобы зачёркивать символы
+\usepackage[makeroom]{cancel}
+
 \usepackage{xcolor}
 \usepackage{tikz}
 
@@ -32,6 +36,9 @@
 % по умолчанию не добавляется
 \usepackage{indentfirst}
 
+% Красивый маркер ненумерованного списка в виде тире
+\def\labelitemi{--}
+
 % Times New Roman
 \usepackage{pscyr}
 \renewcommand{\rmdefault}{ftm}
@@ -47,6 +54,55 @@
 \fancyhead[C]{\thepage}
 \renewcommand{\headrulewidth}{0pt}
 
+\addto\captionsrussian{
+% "Оглавление" вместо "Содержание"
+  \def\figurename{{Оглавление}}
+% подпись "Рисунок" вместо "Рис"
+  \def\figurename{{Рисунок}}
+}
+
+% Каждый пункт оглавления должен быть с отточием
+\usepackage{titletoc}
+% Максимальная вложенность содержания (только разделы, подразделы и
+% "пункты")
+\setcounter{tocdepth}{3}
+
+% Возможность переопределять оглавление и его стиль
+\usepackage{tocloft}
+% Слово "Оглавление" заглавными буквами
+\makeatletter
+\patchcmd{\@cftmaketoctitle}{\cfttoctitlefont\contentsname}{\cfttoctitlefont\MakeUppercase{\contentsname}}{}{}
+\makeatother
+
+% Самое длинное тире в качестве разделителя в подписях к рисункам,
+% таблицам, листингам и др.
+\usepackage{caption}
+\DeclareCaptionLabelSeparator{emdash}{ --- }
+\captionsetup{labelsep=emdash}
+
+% Подпись к таблице должна быть по левому краю
+\captionsetup[table]{singlelinecheck=false}
+
+% Сквозная нумерация таблиц, формул, рисунков
+%\renewcommand{\theequation}{\arabic{equation}}
+%\renewcommand{\thetable}{\arabic{table}}
+%\renewcommand{\thefigure}{\arabic{figure}}
+
+
+% Обязательно переносить слова, чтобы соблюсти поля документа. Для
+% соблюдения полей можно пренебречь правилами для тех слов и
+% словосочетаний, о которых не знают словаря переносов (ruhyphen или
+% ruenhyph). Оно почему-то работает. Взято с:
+%
+%   http://www.latex-community.org/forum/viewtopic.php?p=70342#p70342
+%
+\tolerance 1414
+\hbadness 1414
+\emergencystretch 1.5em
+\hfuzz 0.3pt
+\widowpenalty=10000
+\vfuzz \hfuzz
+\raggedbottom
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 \lstdefinelanguage{MyLang}
@@ -63,6 +119,8 @@
 \newcommand{\ukanren}{$\mu$Kanren }
 
 \newcommand{\origin}[1]{(англ. {\it #1})}
+
+\newcommand{\rel}[1]{$\text{#1}^o$}
 
 \newcommand{\todo}[1]{{\bf\color{red}TODO: #1}}
 %%%%%%%%%%%%%%%%%%%%%%%%%
