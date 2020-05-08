@@ -1,4 +1,4 @@
-\documentclass[14pt, a4paper] {ncc}
+\documentclass[14pt, a4paper] {extarticle}
 \usepackage[utf8] {inputenc}
 \usepackage[T2A]{fontenc}
 \usepackage[english, russian] {babel}
@@ -77,7 +77,6 @@
 
 % Самое длинное тире в качестве разделителя в подписях к рисункам,
 % таблицам, листингам и др.
-\usepackage{caption}
 \DeclareCaptionLabelSeparator{emdash}{ --- }
 \captionsetup{labelsep=emdash}
 
@@ -114,7 +113,8 @@
 
 \lstset{language=Haskell}
 \lstset {
-mathescape,extendedchars=\true,frame=single,basicstyle=\ttfamily
+mathescape,extendedchars=\true,basicstyle=\ttfamily
+%frame=single,
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -141,7 +141,7 @@ mathescape,extendedchars=\true,frame=single,basicstyle=\ttfamily
 \begin{document}
 \setcounter{figure}{0}
 
-% \tableofcontents
+%\tableofcontents
 %\newpage
 %\input{src/sec_intro.tex}
 %\newpage
@@ -152,5 +152,7 @@ mathescape,extendedchars=\true,frame=single,basicstyle=\ttfamily
 \input{results/results.tex}
 %\newpage
 %\input{src/sec_concl.tex}
+
+% \printbibliography
 
 \end{document}
