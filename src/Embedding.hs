@@ -49,7 +49,7 @@ instance Homeo [G a] where
 class (Eq b) => Instance a b | b -> a where
   inst :: b -> b -> Map.Map a (Term a) -> Maybe (Map.Map a (Term a))
 
-  -- |e1 is an **instance** of e2, if exists a substitution O
+  -- |e2 is an **instance** of e1, if exists a substitution O
   -- such as e1 O = e2.
   -- e1 `inst` e2 = O => substitute O e1 = e2
   isInst :: b -> b -> Bool
@@ -92,12 +92,9 @@ instance (Eq a, Ord a) => Instance a (G a) where
 
 
 instance (Eq a, Ord a) => Instance a [G a] where
-  -- Sort before checking to allow conjuntions with same names but mixed orders:
-  -- a & b == b & a.
   inst as bs subst
     | length as == length bs
     = foldl' (\s (a, b) -> s >>= \s -> inst a b s) (Just subst) $ zip as bs
-    --(zip (sort as) (sort bs))
   inst _ _ _ = Nothing
 
 

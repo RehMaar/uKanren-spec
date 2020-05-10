@@ -56,9 +56,9 @@ type ErasureElem = (Name, Int)
 purification x = trace_pur x $
   --identity x
   --justTakeOutLets x
-  purificationOld x
+  --purificationOld x
   --purificationWithErasure x
-  --conservativePurificationWithErasure x
+  conservativePurificationWithErasure x
 
 {-------------------------------------------}
 {-------------------------------------------}
@@ -336,6 +336,7 @@ defToRules (n, a, g) = map (\(s, f) -> (applyInFunc s (n, ta), map (applyInFunc 
 
   gToRules :: G X -> [(Subst, Funcs)]
   gToRules ((V v) :=: t) = [([(v, t)], [])]
+  gToRules ((V v) :#: t) = [([(v, t)], [])]
   gToRules (Invoke n a)  = [([], [(n, a)])]
   gToRules (Fresh _ g)   = gToRules g
   gToRules (g1 :\/: g2)  = gToRules g1 ++ gToRules g2

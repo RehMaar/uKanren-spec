@@ -32,7 +32,9 @@ residualizeSubst subst =
 
 residualizeCStore :: E.ConstrStore -> G X
 residualizeCStore subst =
-  foldl1 (&&&) $ map (\(s, ts) -> toX (V s) =/= toX ts) $ reverse subst
+  foldl1 (&&&) $ map (\(s, ts) -> toX (V s) =/= toX ts) $ reverse $ filterSame subst
+
+filterSame = map head . group . sort
 
 --
 -- Marked Derivation Tree

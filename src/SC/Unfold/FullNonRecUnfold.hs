@@ -34,6 +34,7 @@ instance UnfoldableGoal FullNUGoal where
   mapGoal (FullNUGoal dgoal) f = FullNUGoal (f dgoal)
   unfoldStep = fnrUnfoldStep
 
+{-
 fnrUnfoldStep (FullNUGoal dgoal) env subst cstore = let
     (ls, conj, rs) = splitGoal env dgoal
     (newEnv, uConj) = FU.unfoldAll env conj
@@ -50,3 +51,20 @@ splitGoal env gs =
   case partition (not . isRec env) gs of
      ([], r) -> let (ls, g, rs) = NU.splitGoal env r in (ls, [g], rs)
      ((n:ns), r) -> (ns, [n], r)
+-}
+
+fnrUnfoldStep (FullNUGoal dgoal) env subst cstore = let
+    (ls, conjs, rs) = splitGoal' env dgoal
+    (newEnv, uConj) = FU.unfoldAll env conjs
+    nConj = conjOfDNFtoDNF (goalToDNF <$> uConj)
+    unConj = unifyAll subst cstore nConj
+    us = (\(cs, subst, cstore) -> (subst, cstore, suGoal subst cs ls rs)) <$> unConj
+  in (us, newEnv)
+  where
+    suGoal subst cs ls rs = FullNUGoal $ E.substitute subst $ ls ++ cs ++ rs
+
+splitGoal' :: E.Env -> DGoal -> ([G S], [G S], [G S])
+splitGoal' env gs =
+    case partition (isRec env) gs of
+       (ls, []) -> ([], ls, [])
+       (ls, rs) -> ([], rs, ls)

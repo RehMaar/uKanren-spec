@@ -15,7 +15,7 @@ import Utils
 import DotPrinter
 
 import Data.Maybe (mapMaybe)
-import Data.List (group, sort, groupBy, find, intersect, delete, sortBy)
+import Data.List (group, sort, groupBy, find, intersect, delete, sortBy, intercalate)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
 import Data.Foldable (foldl')
@@ -90,7 +90,7 @@ unfold g@(Invoke f as) env
   = let i' = foldl' extend (E.envIota env) (zip fs as)
         (g', env', names) = E.preEval' env{E.envIota = i'}  body
     in (env', g')
-  | otherwise = error "Unfolding error: different number of factual and actual arguments"
+  | otherwise = error $ "Unfolding error: different number of factual and actual arguments of " ++ pretty g
 unfold g env = (env, g)
 
 extend :: E.Iota -> (X, Ts) -> E.Iota
@@ -198,6 +198,8 @@ whistle ancs goal = any (whistleP goal) ancs && not (Set.null ancs)
 
 whistleP goal anc = embed anc goal  && not (isVariant anc goal)
 
+whistleP' goal anc = homeo anc goal  && not (isVariant anc goal)
+
 -- |Generalization at its core.
 generalize ::
      [G S] -- |Goal
@@ -293,7 +295,7 @@ disunify subst cs t1 t2 =
       -- TODO: rewrite unify to return only new subst
       subst' = E.unify (Just subst) t1' t2'
       cs'    = flip E.sDiff subst <$> subst'
- in case cs' of
+  in case cs' of
      Just []   -> Nothing
      Just cs'' -> Just $ cs'' ++ cs
      Nothing   -> Just cs
@@ -323,3 +325,52 @@ unifyGoal subst cs = go subst cs [] where
    do
     cs' <- disunify subst cs t1 t2
     go subst cs' conjs gs
+
+
+toScheme :: G X -> String
+toScheme g =
+  let (goal, defs) = P.takeOutLets g
+      defsS = intercalate "\n" (toDefine <$> defs)
+      goalS = toGoal goal
+  in defsS ++ "\n" ++ goalS
+  where
+    toGoal goal =
+       "(define test " ++ toS' goal ++ ")"
+
+    toDefine (name, args, body) =
+      "(define " ++ name ++ "\n" ++
+      "   (lambda (" ++ intercalate " " args ++ ")\n" ++
+      "   " ++ toS' body ++
+      "\n   ))"
+
+
+    toS' :: G X -> String
+    toS' (t1 :=: t2) = "(== " ++ toST t1 ++ " " ++ toST t2 ++ ")"
+    toS' (t1 :#: t2) = "(=/= " ++ toST t1 ++ " " ++ toST t2 ++ ")"
+    toS' (g1 :/\: g2) = toS' g1 ++ " " ++ toS' g2
+    toS' (g1 :\/: g2) = "(conde (" ++ toS' g1 ++ ") (" ++ toS' g2 ++ "))"
+    toS' (Fresh x g) = "(fresh (" ++ x ++ ")" ++ toS' g ++ ")"
+    toS' (Invoke name args) = "(" ++ name ++ " " ++ toSlist args ++ ")"
+
+    toSlist args = intercalate " " (toST <$> args)
+
+    toST (C "Nil" []) = "'()"
+    toST (C "%" [h, hs]) = "`(" ++ toST' h ++ " . " ++ toST' hs ++ ")"
+    toST (C "Cons" [h, hs]) = "`(" ++ toST' h ++ " . " ++ toST' hs ++ ")"
+    toST (C "app" [r, l]) = "`(" ++ toST' r ++ "  " ++ toST' l ++ ")"
+    toST (C "pair" [r, l]) = "`(" ++ toST' r ++ " . " ++ toST' l ++ ")"
+    toST (C n []) = '\'' : n
+    toST (C name term) = "`(" ++ name ++ " " ++ toSTlist term ++ ")"
+    toST (V name) = name
+
+
+    toST' (C "Nil" []) = "()"
+    toST' (C "%" [h, hs]) = "(" ++ toST' h ++ " . " ++ toST' hs ++ ")"
+    toST' (C "Cons" [h, hs]) = "(" ++ toST' h ++ " . " ++ toST' hs ++ ")"
+    toST' (C "app" [r, l]) = "(" ++ toST' r ++ " " ++ toST' l ++ ")"
+    toST' (C "pair" [r, l]) = "(" ++ toST' r ++ " . " ++ toST' l ++ ")"
+    toST' (C n []) = '\'' : n
+    toST' (C name term) = "(" ++ name ++ " " ++ toSTlist term ++ ")"
+    toST' (V name) = ',' : name
+
+    toSTlist terms = intercalate " " (toST' <$> terms)

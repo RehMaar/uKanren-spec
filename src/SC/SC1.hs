@@ -48,8 +48,8 @@ derive' :: UnfoldableGoal a =>
 derive' goal ancs env subst cstore seen depth
     | checkLeaf (getGoal goal) seen
     = (Renaming (getGoal goal) subst cstore, seen, maxFreshVar env)
-    | depth > 5
-    = (Prune (getGoal goal), seen, maxFreshVar env)
+   --  | depth > 5
+   --  = (Prune (getGoal goal), seen, maxFreshVar env)
     | otherwise
     = 
     let
