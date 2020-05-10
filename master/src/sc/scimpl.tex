@@ -60,8 +60,10 @@ data Tree where
 \item \lstinline{Abstraction} обознает узел, который может быть обобщён на одного из родителей.
       После обобщения может появится несколько конфигураций, которые являются результатом применения разделения.
       Эти конфигурации добавляются в качестве списка дочерних поддеревьев в текущий узел. 
-\item \lstinline{Generalizer} \todo{описать после того, как опишешь обобщение}
-\item \lstinline{Unfolding} обознает шаг символьного вычисления, на котором  
+\item \lstinline{Generalizer} хранит себе унификатор, который порождается во время обобщения
+      двух термов, и поддерево с обобщённой конфигурацией.
+\item \lstinline{Unfolding} обознает шаг символьного вычисления, на котором произошёл шаг вычислений
+      и по рассматриваемой на этом шаге конфигурации породились новые конфигурации.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,7 +115,7 @@ g(a, b) = g'(a)$\land$g''(b)
 \label{fig:unfoldEx}
 \end{figure}
 
-Допустим, на шаге суперкомпиляции алгоритм обрабаывает конфигурацию
+Допустим, на шаге суперкомпиляции алгоритм обрабатывает конфигурацию
 \lstinline{f($\text{v}_\text{1}$)$\land$g($\text{v}_\text{1}$, $\text{v}_\text{2}$)}
 хотим сделать шаг символьного вычисления. Рассмотрим несколько способов породить новые конфигурации.
 \begin{itemize}
@@ -141,6 +143,18 @@ g(a, b) = g'(a)$\land$g''(b)
 пример которой был показан выше, при которой мы заменяем определния всех реляционных вызовов
 конфигурации.
 
+В суперкомпиляции, в отличие от методов частичной дедукции, в обобщение включён
+шаг обобщения вверх, при котором происходит не подвешивание обобщённой конфигурации
+в качестве потомка конфигурации, которая обобщалась, но замена самого родителя на
+новую конфигурацию, поддерево же родителя уничтожается. Для определения
+необходимости обобщать вверх введём предикат $e_1 \genup e_2$, который
+определяет, что $e_1 \strictinst e_2$ и $e_2 \not\strictinst e_1$.
+Такое ограничение необходимо из-за того, что суперкомпилятор оперирует
+конъюнкциями выражений и делает операции разделения и обобщения вниз
+за один шаг с конъюнкциями возможно разной длины, однако для обобщения
+вверх необходимо удоставериться, что одни \todo{todo}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Описание общего алгоритма суперкомпиляции
@@ -149,36 +163,44 @@ g(a, b) = g'(a)$\land$g''(b)
 
 \subsubsection{Обобщённый алгоритм суперкомпиляции}
 
-Обобщённый алгоритм суперкомпиляции представлен на рисунке~\ref{fig:scalgogen}.
-\todo{Подробнее:)}
+На основе введёных выше терминов и операторов можно составить обобщённый алгоритм
+суперкомпиляции, который не затрагивает особенности и трудности реализации на Haskell.
+Обобщённый алгоритм суперкомпиляции на псевдокоде представлен на рисунке~\ref{fig:scalgogen}.
 
 \begin{figure}[h!]
-\begin{lstlisting}[mathescape,language=Haskell,extendedchars=\true,frame=single,basicstyle=\ttfamily]
-drive(env, tree, expression):
-  if expression is empty
+\begin{lstlisting}
+drive(env, tree, configuration):
+  if configuration is empty
   then add(env, tree, success node)
-  else if $\exists \text{parent}:$ expression is renaming of parent
+  else if $\exists$ parent: configuration $\variant$ parent
   then add(env, tree, renaming node)
-  $\text{\color{red}TODO: Ввести нотацию для } \embed^+$
-  else if $\exists$ parent: parent $\embed^+$ expression
+  else if $\exists$ parent: parent $\genup$ configuration
   then
-     node $\larrow$ abstractUp(expression, parent)
+     node $\larrow$ generalize(configuration, parent)
      addUp(env, tree, parent, node)
-  else else if $\exists$ parent: parent $\embed^*$ expression
+  else if $\exists$ parent: parent $\embed^+$ configuration
   then
-    add(abstraction, node)
-    children $\larrow$ abstract(expression, parent)
+    add(env, tree, abstraction, node)
+    children $\larrow$ generalize(configuration, parent)
     $\forall \text{child} \in \text{children}:$
-      drive(tree, child)
+      drive(env, tree, child)
   else
-    add(unfolding node)
-    children $\larrow$ unfold(expression)
+    add(env, tree, unfolding node)
+    children $\larrow$ unfold(env, configuration)
     $\forall \text{child} \in \text{children}:$
-      drive(tree, child)
+      drive(env, tree, child)
 \end{lstlisting}
-\caption{Обобщённый алгоритм суперкомпиляции}
+\caption{Обобщённый алгоритм суперкомпиляции.}
 \label{fig:scalgogen}
 \end{figure}
+
+
+% Привести пример
+
+% \begin{figure}[h!]
+% \caption{Пример порождённого дерева для запроса X}
+% \label{fig:treeExample}
+% \end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

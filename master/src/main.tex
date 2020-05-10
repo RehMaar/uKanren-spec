@@ -113,8 +113,13 @@
 
 \lstset{language=Haskell}
 \lstset {
-mathescape,extendedchars=\true,basicstyle=\ttfamily
-%frame=single,
+mathescape,
+extendedchars=\true,
+basicstyle=\small\ttfamily,
+numberstyle=\small\ttfamily,
+numbers=left,
+stepnumber=1,
+frame=single,
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -124,6 +129,10 @@ mathescape,extendedchars=\true,basicstyle=\ttfamily
 \newcommand{\embed}{\unlhd}
 \newcommand{\inst}{\preccurlyeq}
 \newcommand{\strictinst}{\prec}
+% \newcommand{\variant}{\leftrightarrow}
+\newcommand{\variant}{\approx}
+\newcommand{\genup}{\lessdot}
+
 \newcommand{\ukanren}{$\mu$Kanren }
 \newcommand{\forcpd}{конъюнктивной частичной дедукции }
 \newcommand{\cpd}{конъюнктивная частичная дедукция }
@@ -148,7 +157,7 @@ mathescape,extendedchars=\true,basicstyle=\ttfamily
 \input{review/review.tex}
 %\newpage
 \input{sc/sc.tex}
-%\newpage
+\newpage
 \input{results/results.tex}
 %\newpage
 %\input{src/sec_concl.tex}
