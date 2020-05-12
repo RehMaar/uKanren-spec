@@ -1,18 +1,66 @@
 \section{Тестирование}
 \label{sec:testing}
 
-В качестве основной конкретной реализации \ukanren для тестирования
-использовался OCanren\footnote{https://github.com/JetBrains-Research/OCanren}\cite{ocanren}.
-
 \subsection{Тестовое окружение}
 
-Тесты запускались на \todo{моём ноутбуке}.
+В качестве основной конкретной реализации \ukanren для тестирования
+использовался OCanren\footnote{https://github.com/JetBrains-Research/OCanren}\cite{ocanren},
+встроенный в OCaml\cite{ocanren}.
+Для некоторых тестов для использовался faster-miniKanren\footnote{https://github.com/miniKanren/faster-miniKanren},
+версия miniKanren, встроенная в Scheme.
+
+Тесты запускались на платформе: Intel Core i5-6200U CPU, 2.30GHz, DDR4, 12GiB.
 
 Для тестирования суперкомпилятора и его модификаций использовался следующий алгоритм.
 \begin{enumerate}
-\item На вход предоставляется программа на внутреннем DSL \ukanren библиотеки.
+\item На вход предоставляется программа на внутреннем DSL \ukanren библиотеки специализации.
 \item Программа и запрос, на который будет происходит специализация, подаются на вход суперкомпилятору.
 \item По дереву процессов, порождённому суперкомпилятором, строится остаточная программа.
-\item Остаточная программа транслируется в OCanren и запускается в заранее подготовленном окружении.
+\item Остаточная программа транслируется в OCanren/faster-miniKanren и
+      запускается в заранее подготовленном окружении с тестовыми запросами.
 \end{enumerate}
 
+
+Реализованный суперкомпилятор сравивался с реализацией \forcpd для $\mu$Kanren\footnote{\url{https://github.com/kajigor/uKanren_transformations}},
+а также c реализацией \forcpd для Prolog --- системой ECCE\footnote{\url{https://github.com/leuschel/ecce}}.
+Для последнего требовалось оттранслировать программу на \ukanren в Prolog, специализировать
+её на запрос, далее оттранслировать результирующую программу в OCanren. Все необходимые средства
+для этого также предоставлялись указанной библиотекой специализации.
+
+\subsection{Набор тестов}
+
+% Набор мелких тестов на базовую валидацию сгенерированных программ.
+
+\begin{itemize}
+\item Отношение сортировки \rel{sort}(list, result). Запросы:
+    \begin{itemize}
+    \item оптимизация сортировки: \rel{sort}(xs, ys);
+    \item генерация отсортированных последовательностей: \rel{sort}(xs, xs).
+    \end{itemize}
+\item Отношение, проверяющее принадлежность пути графу \rel{isPath}(path, graph, result).
+      Специализация \rel{isPath}(path, graph, true). Запросы:
+    \begin{itemize}
+    \item генерация $n$ произвольных путей в случайном графе;
+    \item поиск пути заданного размера в случайном графе: \\ $\text{isPath}^o_s$(p, g)$\land$\rel{length}(p, N).
+    \end{itemize}
+\item Интерпретатор формул логики высказываний \rel{logint}(formula, subst, result). Запросы:
+    \begin{itemize}
+    \item поиск $n$ решений заданной формулы;
+    \item генерация $n$ формул с подстановке размера $n$.
+    \end{itemize}
+\item Интерпретатор лямбда-исчисления \rel{lam}(expr, result). Запросы:
+	\begin{itemize}
+	\item генерация $n$ выражений в нормальной форме \rel{lam}(expr, expr);
+	\item генерация $n$ выражений, редуцирующихся к заданному выражению \rel{lam}(expr, E).
+	\end{itemize}
+\item Проверка типов в просто типизировнном лямбда-исчислении \rel{infer(type, expr)}.
+    \begin{itemize}
+	\item Поиск $n$ обителей заданного типа.
+	\item Генерация выражений, соответствующих заданной спецификации типа и выржения. Специализируется выражение:\\
+	      \rel{infer}(type, expr) $\land$ type $\equiv$ TYPE\_SPEC $\land$ expr $\equiv$ EXPR\_SPEC.
+    \end{itemize}
+\item Интерпретатор простого подмножества Scheme.
+   \begin{itemize}
+   \item \todo{Интересный тест!}
+   \end{itemize}
+\end{itemize}
