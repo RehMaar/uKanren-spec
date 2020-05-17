@@ -2,7 +2,7 @@
 \usepackage[utf8] {inputenc}
 \usepackage[T2A]{fontenc}
 \usepackage[english, russian] {babel}
-\usepackage[top=20mm, bottom=20mm, left=25mm, right=15mm]{geometry}
+\usepackage[top=20mm, bottom=20mm, left=30mm, right=15mm]{geometry}
 
 % Чтобы зачёркивать символы
 \usepackage[makeroom]{cancel}
@@ -62,8 +62,11 @@
   \def\figurename{{Рисунок}}
 }
 
+
 % Каждый пункт оглавления должен быть с отточием
 \usepackage{titletoc}
+
+
 % Максимальная вложенность содержания (только разделы, подразделы и
 % "пункты")
 \setcounter{tocdepth}{3}
@@ -87,6 +90,7 @@
 %\renewcommand{\theequation}{\arabic{equation}}
 %\renewcommand{\thetable}{\arabic{table}}
 %\renewcommand{\thefigure}{\arabic{figure}}
+
 
 
 % Обязательно переносить слова, чтобы соблюсти поля документа. Для
@@ -150,20 +154,24 @@ frame=single,
 \begin{document}
 \setcounter{figure}{0}
 
-%\tableofcontents
-%\newpage
-%\input{intro.tex}
-%\newpage
+\tableofcontents
+\newpage
+\input{intro.tex}
+\newpage
 \input{review/review.tex}
-%\newpage
+\newpage
 \input{env/env.tex}
-%\newpage
+\newpage
 \input{sc/sc.tex}
-%\newpage
+\newpage
 \input{results/results.tex}
-%\newpage
-%\input{concl.tex}
-%\newpage
-%\printbibliography
+\newpage
+\input{concl.tex}
+\newpage
+
+\phantomsection
+\renewcommand{\refname}{СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ}
+\addcontentsline{toc}{section}{СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ}
+\printbibliography
 
 \end{document}

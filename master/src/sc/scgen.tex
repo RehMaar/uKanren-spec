@@ -4,84 +4,84 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-На основе введёных выше терминов и операторов можно составить обобщённый алгоритм
-суперкомпиляции, который не затрагивает особенности и трудности реализации на Haskell.
-% Однако прежде необходимо ввести ряд необходимых понятий.
+% На основе введёных выше терминов и операторов можно составить обобщённый алгоритм
+% суперкомпиляции, который не затрагивает особенности и трудности реализации на Haskell.
+% % Однако прежде необходимо ввести ряд необходимых понятий.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Описание окружения
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%\emph{Окружение} для суперкомпиляции должно сохранять следующие объекты:
-%\begin{itemize}
-%\item подстановку, в которой содержатся все накопленные непротиворечивые унификации,
-%      необходимую в процессе прогонки для проверки новых унификаций;
-%\item первую свободную семантическую переменную, необходимую для генерации свежих переменных,
-%      к примеру, при абстракции;
-%\item определение программы, необходимое для замены вызова на своё тело.
-%\end{itemize}
-% 
-% \todo{Что-то ещё об этом нужно написать!}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %% Описание окружения
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %
+% %\emph{Окружение} для суперкомпиляции должно сохранять следующие объекты:
+% %\begin{itemize}
+% %\item подстановку, в которой содержатся все накопленные непротиворечивые унификации,
+% %      необходимую в процессе прогонки для проверки новых унификаций;
+% %\item первую свободную семантическую переменную, необходимую для генерации свежих переменных,
+% %      к примеру, при абстракции;
+% %\item определение программы, необходимое для замены вызова на своё тело.
+% %\end{itemize}
+% % 
+% % \todo{Что-то ещё об этом нужно написать!}
 
-Обобщённый алгоритм суперкомпиляции в псевдокоде представлен на рисунке~\ref{fig:scalgogen}.
+% Обобщённый алгоритм суперкомпиляции в псевдокоде представлен на рисунке~\ref{fig:scalgogen}.
 
-\begin{figure}[h!]
-% обобщение вверх
-% else if $\exists$ parent: parent $\genup$ configuration
-% then
-%    node $\larrow$ generalize(configuration, parent)
-%    addUp(env, tree, parent, node)
+% \begin{figure}[h!]
+% % обобщение вверх
+% % else if $\exists$ parent: parent $\genup$ configuration
+% % then
+% %    node $\larrow$ generalize(configuration, parent)
+% %    addUp(env, tree, parent, node)
 
-\begin{lstlisting}[escapechar=@]
-supercomp(program, query):
-  env $\larrow$ createEnv program
-  configuration $\larrow$ initialize query
-  graph $\larrow$ emptyTree
-  drive(env, graph, configuration)
-  return residualize graph
+% \begin{lstlisting}[escapechar=@]
+% supercomp(program, query):
+%   env $\larrow$ createEnv program
+%   configuration $\larrow$ initialize query
+%   graph $\larrow$ emptyTree
+%   drive(env, graph, configuration)
+%   return residualize graph
 
-drive(env, graph, configuration):
-  if configuration is empty  @\label{line:success}@
-  then add(env, graph, success node)
-  else if $\exists$ parent: configuration $\variant$ parent @\label{line:renaming}@
-  then add(env, graph, renaming node)
-  else if $\exists$ parent: parent $\embed^+$ configuration @\label{line:abstraction}@
-  then
-    add(env, graph, abstraction node)
-    children $\larrow$ generalize(configuration, parent) @\label{line:gen}@
-    $\forall \text{child} \in \text{children}:$
-      drive(env, graph, child)
-  else @\label{line:unfolding}@
-    add(env, graph, unfolding node)
-    children $\larrow$ unfold(env, configuration) @\label{line:unfold}@
-    $\forall \text{child} \in \text{children}:$
-      drive(env, graph, child)
-\end{lstlisting}
-\caption{Обобщённый алгоритм суперкомпиляции.}
-\label{fig:scalgogen}
-\end{figure}
+% drive(env, graph, configuration):
+%   if configuration is empty  @\label{line:success}@
+%   then add(env, graph, success node)
+%   else if $\exists$ parent: configuration $\variant$ parent @\label{line:renaming}@
+%   then add(env, graph, renaming node)
+%   else if $\exists$ parent: parent $\embed^+$ configuration @\label{line:abstraction}@
+%   then
+%     add(env, graph, abstraction node)
+%     children $\larrow$ generalize(configuration, parent) @\label{line:gen}@
+%     $\forall \text{child} \in \text{children}:$
+%       drive(env, graph, child)
+%   else @\label{line:unfolding}@
+%     add(env, graph, unfolding node)
+%     children $\larrow$ unfold(env, configuration) @\label{line:unfold}@
+%     $\forall \text{child} \in \text{children}:$
+%       drive(env, graph, child)
+% \end{lstlisting}
+% \caption{Обобщённый алгоритм суперкомпиляции.}
+% \label{fig:scalgogen}
+% \end{figure}
 
-Алгоритм суперкомпиляции принимает на себя программу и запрос,
-на который необходимо специализировать программу, и после
-инициализации начальных значений, включающих в себя некоторое \emph{окружения программы},
-в котором хранятся все вспомогательные структуры, запускает процесс прогонки.
-Прогонка производится до схождения и производит следующие действия в
-зависимости от состояния:
-\begin{itemize}
-\item если конфигурация пустая (строка~\ref{line:success}), это означает, что вычисления
-      успешно сошлись в конкретную подстановку. В таком случае происходит добавление
-      в граф листового узла с этой подстановкой;
-\item если существует такая родительская конфигурация, что она является вариантом текущей (строка~\ref{line:renaming}),
-      то происходит свёртка и в граф добавляется листовой узел с ссылкой на родителя;
-\item если же среди родителей находится такой, на котором срабатывает свисток (строка~\ref{line:abstraction}),
-      тогда производится обобщение, порождающее дочерние конфигурации (строка~\ref{line:gen}),
-      на которых продолжается процесс прогонки;
-\item иначе происходит шаг символьного вычисления (строка~\ref{line:unfolding}), на котором
-      порождаются конфигурации.
+% Алгоритм суперкомпиляции принимает на себя программу и запрос,
+% на который необходимо специализировать программу, и после
+% инициализации начальных значений, включающих в себя некоторое \emph{окружения программы},
+% в котором хранятся все вспомогательные структуры, запускает процесс прогонки.
+% Прогонка производится до схождения и производит следующие действия в
+% зависимости от состояния:
+% \begin{itemize}
+% \item если конфигурация пустая (строка~\ref{line:success}), это означает, что вычисления
+%       успешно сошлись в конкретную подстановку. В таком случае происходит добавление
+%       в граф листового узла с этой подстановкой;
+% \item если существует такая родительская конфигурация, что она является вариантом текущей (строка~\ref{line:renaming}),
+%       то происходит свёртка и в граф добавляется листовой узел с ссылкой на родителя;
+% \item если же среди родителей находится такой, на котором срабатывает свисток (строка~\ref{line:abstraction}),
+%       тогда производится обобщение, порождающее дочерние конфигурации (строка~\ref{line:gen}),
+%       на которых продолжается процесс прогонки;
+% \item иначе происходит шаг символьного вычисления (строка~\ref{line:unfolding}), на котором
+%       порождаются конфигурации.
 
-\end{itemize}
+% \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
