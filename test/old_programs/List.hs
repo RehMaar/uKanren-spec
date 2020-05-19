@@ -87,6 +87,14 @@ maxLengtho g =
     m = V "m"
     l = V "l"
 
+lenLengtho :: G a -> G a
+lenLengtho g =
+  Let (def "lenLengtho" ["x", "m", "l"] (call "lengtho" [x, m] &&& call "lengtho" [x, l])) $ lengtho g
+  where
+    x = V "x"
+    m = V "m"
+    l = V "l"
+
 copy :: G a -> G a
 copy g =
   Let (def "copy" ["l", "c"]

@@ -288,6 +288,11 @@ isRec env goal@(Invoke call _) =
     getInvokes b = concat $ filter isInvoke <$> normalize b
 isRec _ _ = False
 
+unfoldAll :: E.Env -> Conj (G S) -> (E.Env, Conj (G S))
+unfoldAll env = foldl' unfold' (env, [])
+  where
+    unfold' (env, goals) inv = (:goals) <$> unfold inv env
+
 disunify :: E.Subst -> E.ConstrStore -> Ts -> Ts -> Maybe E.ConstrStore
 disunify subst cs t1 t2 =
   let t1'    = E.substitute subst t1

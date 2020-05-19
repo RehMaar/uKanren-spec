@@ -17,6 +17,8 @@ import SC.DTree
 import Utils
 
 import qualified LogicInt as LI
+import qualified LamInt as Lam
+import qualified InferStlc as Infer
 
 import qualified Bool as B
 import qualified Num as N
@@ -144,27 +146,39 @@ data TestQuery = TQ { tqName :: String, tqQuery :: G X, env :: Maybe String, tmD
 methods runner =
   [
     --TM "ranu" (RU.topLevel 17),
-    TM "sequ" (runner "SU"),
-    TM "nrcu" (runner "NU"),
-    TM "recu" (runner "RU"),
-    TM "minu" (runner "MnU"),
-    TM "maxu" (runner "MxU"),
-    TM "fulu" (runner "FU"),
-    TM "fstu" (runner "FstU")
+      TM "sequ" (runner "SU")
+    , TM "nrcu" (runner "NU")
+    , TM "recu" (runner "RU")
+    , TM "minu" (runner "MnU")
+    , TM "maxu" (runner "MxU")
+    , TM "fstu" (runner "FstU")
+    , TM "fulu" (runner "FU")
+    , TM "fnu"  (runner "FnU")
   ]
 
-methods1 = methods SCI.run1
-methods2 = methods SCI.run2
-methods3 = methods SCI.run3
-methodsU = methods SCI.runU
-methodsU2 = methods SCI.runU2
+methods1 =  ("SC1", methods SCI.run1)
+methods2 =  ("SC2", methods SCI.run2)
+methods3 =  ("SC3", methods SCI.run3)
+methodsU =  ("SCU", methods SCI.runU)
+methodsU2 = ("SCU2", methods SCI.runU2)
+methodsU3 = ("SCU3", methods SCI.runU3)
 
 -- reverso(a, a)
 palindromeTQ = TQ "Pldrm" testRev' Nothing (Just "pldrmAuto/src/")
 -- doubleAppend(a, b, c, d)
 dappTQ = TQ "Dapp" testDA Nothing (Just "dappAuto/src/")
+revTQ = TQ "Rev" testReversoSame Nothing (Just "dappAuto/src/")
 -- loginto(form, subst, true)
+-- TODO: bug residualize: for FstU SCU2
 logintTQ = TQ "Logint" LI.logintoQueryTrue (Just LI.logintoEnv) (Just "logintAuto/src/")
+
+lamTQ = TQ "Lam" Lam.slamoQueryId (Just Lam.slamoEnv) (Just "lam/src/")
+quineTQ = TQ "Quine" Lam.slamoQueryQuine (Just Lam.slamoEnv) (Just "quines/src/")
+
+inferTQ = TQ "Infer" Infer.inferoQuerySimple (Just Infer.inferoEnv) (Just "inferAuto/src/")
+
+genSpecTQ = TQ "Infer" Infer.genBySpecQuery (Just Infer.inferoEnv) (Just "inferAuto/src/")
+
 -- maxLengtho(..)
 maxlenTQ = TQ "MaxLen" testMaxLen Nothing (Just "maxLenAuto/src/")
 -- isPath(graph, path, true)
@@ -185,17 +199,59 @@ sortTQ = TQ "Sort" testSort Nothing (Just "sortAuto/src/")
 -- Lam Quine
 --red2StepTQ = TQ "Red2Step" LamInt.slamoQueryRes2Step Nothing (Just "lamRed2/src")
 
-testMethodsOnTest1 query  = mapM_ (testMethodOnTest "test/ocanren/autoSC1/"  query) methods1
-testMethodsOnTest2 query  = mapM_ (testMethodOnTest "test/ocanren/autoSC2/"  query) methods2
-testMethodsOnTest3 query  = mapM_ (testMethodOnTest "test/ocanren/autoSC3/"  query) methods3
-testMethodsOnTestU query  = mapM_ (testMethodOnTest "test/ocanren/autoSC2/"  query) methodsU
-testMethodsOnTestU2 query = mapM_ (testMethodOnTest "test/ocanren/autoSCU2/" query) $ methodsU2
+
+testMethodsOnTest1 query  = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ snd methods1
+testMethodsOnTest2 query  = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ snd methods2
+testMethodsOnTest3 query  = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ snd methods3
+testMethodsOnTestU query  = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ snd methodsU
+testMethodsOnTestU2 query = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ snd methodsU2
+testMethodsOnTestU3 query = mapM_ (testMethodOnTest "test/ocanren/auto/" query) $ snd methodsU3
 
 testMethodOnTest prefix (TQ qname query env path) (TM fname fun) = do
    putStrLn $ "Query: " ++ qname ++ " Method: " ++ fname
-   TestUtils.ocanrenUltraGen env fun (fname ++ qname) (toTestPath prefix path $ fname ++ qname) query
+   let testPath = toTestPath prefix path $ fname ++ qname
+   TestUtils.ocanrenUltraGen env fun (fname ++ qname) testPath query
+
+
+
+testMethodsOnTest1' query  = mapM_ (testMethodOnTest' "test/ocanren/auto/" (fst methods1) query) $ snd methods1
+testMethodsOnTest2' query  = mapM_ (testMethodOnTest' "test/ocanren/auto/" (fst methods2) query) $ snd methods2
+testMethodsOnTest3' query  = mapM_ (testMethodOnTest' "test/ocanren/auto/" (fst methods3) query) $ snd methods3
+testMethodsOnTestU' query  = mapM_ (testMethodOnTest' "test/ocanren/auto/" (fst methodsU) query) $ snd methodsU
+testMethodsOnTestU2' query = mapM_ (testMethodOnTest' "test/ocanren/auto/" (fst methodsU2) query) $ snd methodsU2
+testMethodsOnTestU3' query = mapM_ (testMethodOnTest' "test/ocanren/auto/" (fst methodsU3) query) $ snd methodsU3
+
+
+testMethodOnTest' prefix methodPrefix (TQ qname query env path) (TM fname fun) = do
+   putStrLn $ "Query: " ++ qname ++ " Method: " ++ fname
+   let testPath = toTestPath prefix path $ fname ++ qname ++ methodPrefix
+   TestUtils.ocanrenUltraGen env fun (fname ++ qname ++ methodPrefix) testPath query
+
+testAllMethods query = mapM_ (\f -> f query) [testMethodsOnTest1', testMethodsOnTest2', testMethodsOnTest3', testMethodsOnTestU', testMethodsOnTestU2', testMethodsOnTest3']
 
 testMethodOnTestQuick (TQ qname query env _) (TM fname fun) = do
    TestUtils.ocanrenUltraGen env fun (fname ++ qname) (fname ++ qname ++ ".ml") query
 
 lenQ = List.lengtho $ fresh ["p"] $ call "lengtho" [V "p", N.suc N.zero]
+
+---------------------------------------------------------
+---------------------------------------------------------
+---------------------------------------------------------
+---------------------------------------------------------
+--
+-- Test queries
+--
+--
+---------------------------------------------------------
+
+-- specialize (doubleAppend list1 list2 list3 result)
+testDoubleAppendo = testDA
+
+-- specialize (reverso list result)
+testReverso = testRev
+-- specialize (reverso list list)
+testReversoSame = testRev'
+
+-- specialize (maxLengtho list max length)
+testMaxLengtho = testMaxLen
+

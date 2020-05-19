@@ -1,13 +1,32 @@
 module InferStlc where
 
 import Syntax
-import LamInt as Lam
+import qualified LamInt as Lam
 import List
 
 -- arrow type
 arr x y = C "arr" [x, y]
 -- primitive type
 p x = C "p" [x]
+
+pair x y = C "pair" [x, y]
+
+lookupo :: G a -> G a
+lookupo =
+  let subst = V "subst"
+      var   = V "var"
+      result = V "result"
+  in
+  Let (def "lookupo" ["subst", "var", "result"] (
+    fresh ["key", "val", "tail"]
+    (subst === pair (V "key") (V "val") % V "tail" &&& (
+      (var === V "key" &&& result === V "val")
+      ||| (
+       -- NOTE: diseq
+       -- var =/= V "key" &&&
+       call "lookupo" [V "tail", var, result]))
+    )
+  ))
 
 infero1 :: G a -> G a
 infero1 = Let (def "infero1" ["env", "expr", "type"] $
@@ -25,10 +44,12 @@ infero1 = Let (def "infero1" ["env", "expr", "type"] $
           V "type" === arr (V "lt") (V "rt") &&&
           call "infero1" [Lam.pair (V "hd") (V "lt") % V "env", V "body", V "rt"]
         )
-  ) . Lam.lookupo
+  ) . lookupo
 
 infero :: G a -> G a
 infero = Let (def "infero" ["expr", "type"] $ call "infero1" [nil, V "expr", V "type"]) . infero1
+
+inferoEnv ="open GT\nopen OCanren\nopen Std\nopen Nat\nopen GLam\nopen GTyp"
 
 -------------------------------------------------
 -------------------------------------------------

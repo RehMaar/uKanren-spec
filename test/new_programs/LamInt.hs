@@ -94,6 +94,8 @@ slamo =
     expr = V "expr"
     result = V "result"
 
+slamoEnv ="open GT\nopen OCanren\nopen Std\nopen Nat\nopen GLam"
+
 {-
 var x -> var x
 
@@ -148,3 +150,4 @@ slamoQueryQuine = slamo $ fresh ["p1"] $ call "slamo" [V "p1", V "p1"]
 substoQuery1 = substo $ fresh ["a", "b", "c", "d"] $ call "substo" [V "a", V "b", V "c", V "d"]
 
 -- Запрос: генерировать редуцируемые за два шага термы определённого типа
+--

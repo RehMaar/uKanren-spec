@@ -88,9 +88,9 @@ unifyTree =
       (fresh ["v1", "v2", "q25"] (
          (V "q11" === C "pair" [C "var_" [V "v1"], C "var_" [V "v2"]]) &&&
          (call "get_term" [V "v1", V "subst", V "q25"]) &&&
-         ((fresh ["t1'"] (
-             (V "q25" === C "some" [V "t1'"]) &&&
-             (call "check_uni" [V "subst", V "t1'", V "t2", V "q31"]))) |||
+         ((fresh ["t1Q"] (
+             (V "q25" === C "some" [V "t1Q"]) &&&
+             (call "check_uni" [V "subst", V "t1Q", V "t2", V "q31"]))) |||
          (fresh ["q27"] (
             (V "q25" === C "none" []) &&&
             (call "get_term" [V "v2", V "subst", V "q27"]) &&&

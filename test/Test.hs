@@ -32,6 +32,7 @@ import qualified List as L
 import qualified Sort as L
 import qualified Num as L
 import qualified Programs as L
+import qualified OtherPrograms as L
 
 import TestUtils
 
@@ -51,9 +52,19 @@ testMaxLen = L.maxLengtho $ fresh ["x", "m", "l"] $
     m = V "m"
     l = V "l"
 
+testLenLen = L.lenLengtho $ fresh ["x", "m", "l"] $
+  call "lenLengtho" [x, m, l]
+  where
+    x = V "x"
+    m = V "m"
+    l = V "l"
+
 -- Test double appendo
 testDA = L.doubleAppendo $ fresh ["a", "b", "c", "d"]
               (call "doubleAppendo" [V "a", V "b", V "c", V "d"])
+
+testApp = L.appendo $ fresh ["a", "b", "c"]
+              (call "appendo" [V "a", V "a", V "c"])
 
 
 -- Test double appendo
@@ -144,3 +155,49 @@ gGoal = f $ fresh ["x"] $ call "f" [V "x", V "x"]
            (V "x" === L.succ (V "z") &&& call "f" [V "z", V "y"])
            ||| (call "f" [V "x", V "z"] &&& call "h" [V "z", V "y"])
          )) . h
+
+
+
+px = Let (def "px" ["x"] $
+		fresh ["r"] $
+		call "addo" [L.peanify 1, V "x", V "r"] &&&
+		call "addo" [V "x", L.peanify 1, V "r"]
+  ) . L.addo
+
+pxQuery = px $ fresh ["x"] $ call "px" [V "x"]
+
+nr = Let (def "nr" ["x", "y", "r"] $
+     fresh ["r1", "r2"] $
+     call "ando" [V "x", V "y", V "r1"] &&&
+     call "oro" [V "x", V "y", V "r1"] &&&
+     call "nr" [V "r1", V "r2", V "r"]
+   ) . LI.ando . LI.oro
+
+nrQ = nr $ fresh ["x", "y", "r"] $ call "nr" [V "x", V "y", V "r"]
+
+testAddComm = L.addo $ L.eqNat $ fresh ["v1", "v2", "a", "b"] $
+      call "addo" [V "a", V "b", V "v1"] &&&
+      call "addo" [V "a", V "b", V "v2"] &&&
+      call "eq"   [V "v1", V "v2"]
+
+testAddComm' = L.addo $ fresh ["v1", "a", "b"] $
+      call "addo" [V "a", V "b", V "v1"] &&&
+      call "addo" [V "a", V "b", V "v1"]
+
+testAdd1Comm = L.addo $ fresh ["v1", "a"] $
+      call "addo" [V "a", L.peanify 1, V "v1"] &&&
+      call "addo" [L.peanify 1, V "a", V "v1"]
+
+testAdd1Comm' = L.addo $ L.eqNat $ fresh ["v1", "v2", "a"] $
+      call "addo" [V "a", L.peanify 1, V "v1"] &&&
+      call "addo" [L.peanify 1, V "a", V "v2"] &&&
+      call "eq"   [V "v1", V "v2"]
+
+
+--- TODO: perform?
+testA = a $ fresh ["x"] $ call "a" [V "x"]
+  where
+    a = Let (def "a" ["x"] $
+    					 (V "x" === L.zero) |||
+    					 fresh ["y"] (V "x" === L.suc (V "y") &&& call "a" [V "y"])
+            )

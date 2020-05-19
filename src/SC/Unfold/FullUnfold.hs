@@ -37,10 +37,10 @@ fullUnfoldStep (FUGoal goal) env subst cstore = let
   in (unifiedGoal, newEnv)
 
 -- Return value is Conj (G S), but now (G S) is a body of corresponding Invoke.
-unfoldAll :: E.Env -> Conj (G S) -> (E.Env, Conj (G S))
-unfoldAll env = foldl' unfold' (env, [])
-  where
-    unfold' (env, goals) inv = (:goals) <$> unfold inv env
+--unfoldAll :: E.Env -> Conj (G S) -> (E.Env, Conj (G S))
+--unfoldAll env = foldl' unfold' (env, [])
+  --where
+    --unfold' (env, goals) inv = (:goals) <$> unfold inv env
 
 showUnified :: Disj (E.Subst, Conj (G S)) -> String
 showUnified = concatMap (\(subst, conj) -> "(" ++ show (null subst) ++ ", " ++ show conj ++ ")")

@@ -1,4 +1,7 @@
+{-# LANGUAGE TupleSections #-}
 module TestUtils where
+
+import Control.Monad.Random
 
 import System.Process (system)
 import System.Exit (ExitCode)
@@ -132,6 +135,29 @@ specCPD goal =
 ocanrenDoubleSpec goal = ocanrenWithoutSpec "a" $ spec $ spec goal
 -}
 
+pur specMethod goal = let
+    (tree, logicGoal, _) = specMethod goal
+    (f, names) = DTR.topLevel tree
+    (goal', names', defs) = P.purification (f, vident <$> names)
+    (goal'', names'', defs'') = (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+  in foldl (flip Let) (fresh' names'' goal'') defs''
+  where
+    fresh' [] g = g
+    fresh' a g = fresh a g
+
+scp specMethod goal = let
+    (tree, logicGoal, _) = specMethod goal
+  in DTR.topLevel tree
+
+spec specMethod goal = let
+    (tree, logicGoal, _) = specMethod goal
+    (f, names) = DTR.topLevel tree
+    (goal', names', defs) = P.identity (f, vident <$> names)
+    (goal'', names'', defs'') = (goal', names', (\(n1, n2, n3) -> (n1, n2, fromJust $ DTR.simplify n3)) <$> defs)
+  in foldl (flip Let) (fresh' names'' goal'') defs''
+  where
+    fresh' [] g = g
+    fresh' a g = fresh a g
 
 {-
 ocanrenPrint goal = do
@@ -226,6 +252,9 @@ statMethods runner goal = do
 
 statMethods1 = statMethods SCI.run1
 statMethods2 = statMethods SCI.run2
+statMethods3 = statMethods SCI.run3
+statMethodsU = statMethods SCI.runU
+statMethodsU2 = statMethods SCI.runU2
 
 {-statRandIO goal = do
   (t, g, ns) <- RU.topLevelIO goal
@@ -387,3 +416,39 @@ cutSubtree = go
     go g _ = Nothing
 
 -}
+
+{-
+generateGraph n m = evalRand (do tree <- mapM (\i -> do j <- getRandomR (0, i-1)
+                                                        (b :: Bool) <- getRandom
+                                                        pure $ if b then (i, j) else (j, i)) [1..n-1]
+                                 rest <- replicateM (m - n + 1) $ do i <- getRandomR (0, n-2)
+                                                                     j <- getRandomR (i+1, n-1)
+                                                                     (b :: Bool) <- getRandom
+                                                                     pure $ if b then (i, j) else (j, i)
+                                 pure $ tree ++ rest) . mkStdGen
+-}
+
+generateGraph :: Int -> Int -> Int -> [(Int, Int)]
+generateGraph n m = evalRand (do tree <- forM [1..n-1] $ \i ->
+                                           getEdge i           <$>
+                                           getRandomR (0, i-1) <*>
+                                           getRandom
+                                 rest <- replicateM (m - n + 1) $
+                                   getRandomR (0, n-2) >>=
+                                   \i -> getEdge i             <$>
+                                         getRandomR (i+1, n-1) <*>
+                                         getRandom
+                                 pure $ tree ++ rest) . mkStdGen
+    where getEdge :: Int -> Int -> Bool -> (Int, Int)
+          getEdge i j True = (i, j)
+          getEdge i j False = (j, i)
+
+digraphToGraph :: [(Int, Int)] -> [(Int, Int)]
+digraphToGraph = concatMap (\(a, b) -> [(a, b), (b, a)])
+example = generateGraph 10 20 42
+
+showGraph graph = do
+  let a1 = intercalate ";" ((\(a, b) -> show a ++ " -> " ++ show b) <$> graph)
+  let dot = "digraph { " ++ a1 ++ " }"
+  system $ "dot <<< \"" ++ dot ++ "\" > /tmp/graph.dot"
+  system $ "xdot /tmp/graph.dot"

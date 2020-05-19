@@ -71,7 +71,7 @@ instance Dot MarkedTree where
   dot Fail = "Fail"
   dot (Success s _)   = "Success <BR/> " ++ dotSigma s
   dot (Gen _ s)     = "Gen <BR/> Generalizer: " ++ dotSigma s
-  dot (Abs _ s c d f) = printf "Abs %s <BR/> Subst: %s <BR/> CS: $s <BR/> Goal: %s" (showF f) (dotSigma s) (dotSigma c) (dot d)
+  dot (Abs _ s c d f) = printf "Abs %s <BR/> Subst: %s <BR/> CS: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dotSigma c) (dot d)
   dot (Unfold ts s c d f) = printf "Unfold %s <BR/> Subst: %s <BR/> CS: %s <BR/> Goal: %s" (showF f) (dotSigma s) (dotSigma c) (dot d)
   dot (Renaming goal s c) = printf "Renaming <BR/> Goal: %s <BR/> Subst: %s <BR/> CS: %s" (dot goal) (dotSigma s) (dotSigma c)
 
@@ -216,10 +216,15 @@ isInvoke (Invoke _ _) = True
 isInvoke _ = False
 
 -- |Collect all invocation from the derivation tree.
+-- TODO: bug on genSpecTQ for FnU and FU -- same ident
 collectCallNames = go
   where
-    go cs (Abs ts _ _ goal True)     = let c = (goal, genCall' cs goal) in foldl go (c:cs) ts
-    go cs (Unfold  ts _ _ goal True) = let c = (goal, genCall' cs goal) in foldl go (c:cs) ts
+    go cs (Abs ts _ _ goal True)
+     | not $ any (\c -> isVariant goal (fst c)) cs
+     = let c = (goal, genCall' cs goal) in foldl go (c:cs) ts
+    go cs (Unfold  ts _ _ goal True)
+     | not $ any (\c -> isVariant goal (fst c)) cs
+     = let c = (goal, genCall' cs goal) in foldl go (c:cs) ts
     go cs (Unfold  ts _ _ _ _)       = foldl go cs ts
     go cs (Abs ts _ _ _ _)           = foldl go cs ts
     go cs (Gen t _)                  = go cs t
@@ -231,7 +236,9 @@ topLevel t = topLevel' $ cutFailedDerivations $ makeMarkedTree t
     topLevel' mt'@(Unfold f1 f2 f4 goal f3) = let
       mt = rearrangeTree $ Unfold f1 f2 f4 goal True
       cs = collectCallNames [] mt
+		  -- in trace (show cs) $ let
       (defs, body) = res cs [] [] mt
+      -- in trace (show ((\d -> d (V "a" :=: V "a")) <$> defs)) $ let
       topLevelArgs = getArgsForPostEval cs goal
       in (foldDefs defs $ postEval topLevelArgs goal body, topLevelArgs)
 
@@ -247,7 +254,9 @@ foldGoals f gs  = foldr1 f gs
 
 res = go where
     -- Make a call and form a new definition.
-    helper cs s c ts subst cstore goal foldf = let
+    helper cs s c ts subst cstore goal foldf =
+      -- trace ("\nGoal: " ++ show goal ++ "\nSubst: " ++ show subst ++ "\nS: " ++ show s ++ "\n") $
+      let
         -- Collect the rest definitions and body off the call.
         (defs, goals) = unzip $ go cs (subst `union` s) (cstore `union` c) <$> ts
         -- Finding a call.
@@ -269,6 +278,7 @@ res = go where
 
 
     go cs s c (Unfold ts subst cstore dg True) = helper cs s c ts subst cstore dg (:\/:)
+
 
     go cs s c (Unfold ts subst cstore dg _)    = let
         diff = subst \\ s
@@ -295,7 +305,7 @@ res = go where
         (defs, goals) = unzip $ go cs un unCS <$> ts
       in (concat defs, applySubst diff $ applyCStore diffCS $ foldGoals (:/\:) goals)
     -- For `Gen` we just print generalizer before the rest of the body.
-    go cs s c (Gen t subst) = applySubst (subst \\ s) <$> go cs (s `union` subst) c t
+    go cs s c (Gen t subst) = applySubst (subst \\ s) <$> go cs (s {-`union` subst-}) c t
     -- For `Renaming` we just search for an invokation.
     go cs s c (Renaming dg subst cstore) =
         ([], applySubst (subst \\ s) $ applyCStore (cstore \\ c) $ findInvoke cs dg)

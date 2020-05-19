@@ -55,7 +55,7 @@ splitGoal env gs =
 
 fnrUnfoldStep (FullNUGoal dgoal) env subst cstore = let
     (ls, conjs, rs) = splitGoal' env dgoal
-    (newEnv, uConj) = FU.unfoldAll env conjs
+    (newEnv, uConj) = unfoldAll env conjs
     nConj = conjOfDNFtoDNF (goalToDNF <$> uConj)
     unConj = unifyAll subst cstore nConj
     us = (\(cs, subst, cstore) -> (subst, cstore, suGoal subst cs ls rs)) <$> unConj

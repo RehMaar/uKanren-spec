@@ -141,3 +141,41 @@ countPrunes (Abs ts _ _ _) = sum (countPrunes <$> ts)
 countPrunes (Gen t _     ) = countPrunes t
 countPrunes (Prune _     ) = 1
 countPrunes _              = 0
+
+
+{-
+Would be cool to simplify programs like
+a(x) = x == 0 || x == S(y) & a(y)
+
+-}
+{-simplifyTree :: DTree -> DTree
+simplifyTree = go . transitionsCompression
+  where
+    go (Unfold [sc, r] s cs goal)
+      | isSuccess sc
+      , isRenaming goal r
+      = Unfold [sc] s cs goal
+    go (Unfold ts s cs goal) = Unfold (go <$> ts) s cs goal
+    go (Abs ts s cs goal) = Abs (go <$> ts) s cs goal
+
+    go (Gen t s) = Gen (go t) s
+    go t = t
+
+    isSuccess Success{} = True
+    isSuccess _ = False
+
+    isRenaming goal (Renaming g s cs) = isVariant g goal
+    isRenaming _ _ = False-}
+
+
+transitionsCompression :: DTree -> DTree
+transitionsCompression = go
+  where
+    go (Unfold [t] _ _ _) = go t
+    go (Unfold ts s cs goal) = Unfold (go <$> ts) s cs goal
+
+    go (Abs [t] _ _ _) = go t
+    go (Abs ts s cs goal) = Abs (go <$> ts) s cs goal
+
+    go (Gen t s) = Gen (go t) s
+    go t = t

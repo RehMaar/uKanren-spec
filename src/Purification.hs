@@ -56,9 +56,9 @@ type ErasureElem = (Name, Int)
 purification x = trace_pur x $
   --identity x
   --justTakeOutLets x
-  --purificationOld x
+  purificationOld x
   --purificationWithErasure x
-  conservativePurificationWithErasure x
+  --conservativePurificationWithErasure x
 
 {-------------------------------------------}
 {-------------------------------------------}
@@ -207,7 +207,9 @@ conservativePurificationWithErasure x = (goalAfterPurification, args, defsAfterP
   mainFuncs      = defToRules ("main", args, goalWithoutLets)
   internalFuncs  = map defToRules defs
   initialErasure = Map.fromList $ map (\(n,a,_) -> (n, [1..length a])) defs
-  erasure        = removeRedundantArgs (mainFuncs ++ concat internalFuncs) initialErasure
+  erasure        =
+      trace ("IE: " ++ show initialErasure)
+      removeRedundantArgs (mainFuncs ++ concat internalFuncs) initialErasure
 
   goalAfterPurification  = snd $ purify "main" args goalWithoutLets
   defsAfterPurification  = filter (not . null . snd3) $ map (\(n, a, g) -> let (a', g') = purify n a g in (n, a', g')) defs
