@@ -4,3 +4,12 @@ _build
 *.native
 *.cabal
 *.dot
+auto*
+
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.run.xml
+*.toc
