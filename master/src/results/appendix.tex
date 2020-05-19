@@ -1,67 +1,50 @@
-\begin{figure}[h!]
-\begin{lstlisting}
-doubleAppend a b c d =
-  fresh (t)
-   (appendo a b t $\land$ appendo t c d)
-appendo y4 y5 y6 =
-  (y4 $\equiv$ [] $\land$ y6 $\equiv$ y5) $\lor$
-  fresh (ty t h)
-   (y4 $\equiv$ h :: t $\land$
-    y6 $\equiv$ h :: ty $\land$
-    appendo t y5 ty)
-\end{lstlisting}
-\caption{Программа для тестирования \lstinline{doubleAppend}}
-\end{figure}
+\section*{ПРИЛОЖЕНИЕ А}
+
+%\begin{figure}[h!]
+%\begin{lstlisting}
+%doubleAppend z1 z2 z3 z4 =
+%  (z1 $\equiv$ nil () $\land$ app3 z2 z3 z4) $\lor$
+%  fresh (fE fB fA)
+%    (z1 $\equiv$ fA :: fB $\land$
+%    (z4 $\equiv$ fA :: fE) $\land$
+%    appD fB z2 z3 fE)
+%
+%appD z1 z2 z3 z4 =
+%  (z1 $\equiv$ nil ()  $\land$ app3 z2 z3 z4) $\lor$
+%  fresh (fE fB fA)
+%   (z1 $\equiv$ fA :: fB $\land$
+%   (z4 $\equiv$ fA :: fE) $\land$
+%    appD fB z2 z3 fE)
+%
+%app3 z1 z2 z3 =
+%  (z1 $\equiv$ nil () $\land$ (z2 $\equiv$ z3)) $\lor$
+%  fresh (fD fC fB fA)
+%    (z1 $\equiv$ fA :: fB $\land$
+%    (z3 $\equiv$ fA :: fD) $\land$
+%    app3 fB z2 fD)
+%\end{lstlisting}
+%\caption{Специализированная системой ECCE программа \lstinline{doubleAppend}}
+%\end{figure}
+
 
 \begin{figure}[h!]
-\begin{lstlisting}
-doubleAppend z1 z2 z3 z4 =
-  (z1 $\equiv$ nil () $\land$ app3 z2 z3 z4) $\lor$
-  fresh (fE fB fA)
-    (z1 $\equiv$ fA :: fB $\land$
-    (z4 $\equiv$ fA :: fE) $\land$
-    appD fB z2 z3 fE)
-
-appD z1 z2 z3 z4 =
-  (z1 $\equiv$ nil ()  $\land$ app3 z2 z3 z4) $\lor$
-  fresh (fE fB fA)
-   (z1 $\equiv$ fA :: fB $\land$
-   (z4 $\equiv$ fA :: fE) $\land$
-    appD fB z2 z3 fE)
-
-app3 z1 z2 z3 =
-  (z1 $\equiv$ nil () $\land$ (z2 $\equiv$ z3)) $\lor$
-  fresh (fD fC fB fA)
-    (z1 $\equiv$ fA :: fB $\land$
-    (z3 $\equiv$ fA :: fD) $\land$
-    app3 fB z2 fD)
+\begin{lstlisting}{language=Haskell}
+generateGraph :: Int -> Int -> Int -> [(Int, Int)]
+generateGraph n m =
+   evalRand (do tree <- forM [1..n-1] $\textdollar$ \i ->
+                   getEdge i           <$\textdollar$>
+                   getRandomR (0, i-1) <*>
+                   getRandom
+                rest <- replicateM (m - n + 1) $\textdollar$
+                   getRandomR (0, n-2) >>=
+                     \i -> getEdge i       <$\textdollar$>
+                           getRandomR (i+1, n-1) <*>
+                           getRandom
+                pure $\textdollar$ tree ++ rest) . mkStdGen
+    where getEdge :: Int -> Int -> Bool -> (Int, Int)
+          getEdge i j True = (i, j)
+          getEdge i j False = (j, i)
 \end{lstlisting}
-\caption{Специализированная системой ECCE программа \lstinline{doubleAppend}}
-\end{figure}
-
-\begin{figure}[h!]
-\begin{lstlisting}
-doubleAppendo a b c d =
-  fresh (x4) (appD a b x4 c d)
-
-appD a b t c d =
-   fresh (x7 x6 x5 x10 x9 x8)
-     (a $\equiv$ [] $\land$ b $\equiv$ t $\land$
-       (t $\equiv$ [] $\land$ c $\equiv$ d $\lor$
-       (t $\equiv$ x8 :: x9) $\land$ d $\equiv$ x8 :: x10 $\land$
-        appendo x9 c x10
-     ) $\lor$
-     (a $\equiv$ x5 :: x6 $\land$
-      t $\equiv$ x5 :: x7 $\land$
-      d $\equiv$ x5 :: x10 $\land$
-      appD x6 b x7 c x10) ) 
-
-app a b c =
-  fresh (x13 x12 x11)
-   (a $\equiv$ [] $\land$ b $\equiv$ c $\lor$
-   (a $\equiv$ x11 :: x12 $\land$
-    c $\equiv$ x11 :: x13 $\land$
-    app x12 b x13))
-\end{lstlisting}
-\caption{Суперкомпилированная программа \lstinline{doubleAppend}}
+\caption{Генератор случайного ориентированного графа с заданными параметрами.}
+\label{fig:graphGen}
 \end{figure}
