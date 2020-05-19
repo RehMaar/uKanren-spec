@@ -1,0 +1,47 @@
+% Для начала разберём, как базовый суперкомпилятор ведёт себя на
+% базовом наборе программ, результат которых несложно проанализировать.
+
+% \begin{itemize}
+% \item Классическая программа \lstinline{doubleAppend}~\cite{cpd}, которая используется для
+%       проверки наличия эффекта дефорестации (\todo{В приложении}).
+% %\item Другая классическая программа \lstinline{maxLength}~\cite{cpd}, которая
+% %      используется для проверки наличия эффекта таплинга.
+% \end{itemize}
+
+Классическая программа для тестирования эффектов специализации называется
+\lstinline{doubleAppend}, представленная в приложении \todo{},
+в которой происходит конкатенация списков трёх списков.
+Во многих бенчмарках~\cite{cpdPract, controlPoly} это программа используется
+про проверки эффекта дефорестации.
+
+Рассмотрим дерево процессов на рисунке~\ref{fig:dappTree}, которое порождается применением базового
+суперкомпилятора к программе \lstinline{doubleAppend}, причём в
+качестве аргументов будут простые свободные переменные, из-за чего
+будет просто оптмизироваться сама структура программы.
+
+%\begin{figure}[h!]
+%\center
+%\begin{tikzpicture}[->,node distance=3cm, sibling distance=6.2cm, level distance=2cm]
+%  \tikzstyle{conf}=[rectangle,draw, rounded corners=.8ex,align=center]
+%  \node[conf] (root)   at (0, 0)     {{\it Unfolding} \\ \lstinline{doubleAppend(a, b, c, abc)}};
+%  \node[conf] (appapp) at (0, -2)    {{\it Unfolding} \\ \lstinline{app(a, b, $\text{v}_0$)$\land$app($\text{v}_0$, c, abc)}};
+%  \node[conf] (app1)   at (-0.3, -6) {{\it Unfolding} \\ \lstinline{app($\text{v}_1$, c, $\text{v}_2$)} \\ $\{$ a $\mapsto$ [], b $\mapsto$ $\text{v}_0$, \\ $\text{v}_0 \mapsto \_ : \text{v}_1$, \\ $\ \ $ abc $\mapsto \_ : \text{v}_2$ $\}$};
+%  \node[conf] (app2)   at (7, -5.39) {{\it Renaming} \\ \lstinline{app($\text{v}_5$, b, $\text{v}_6$)$\land$app($\text{v}_6$, c, $\text{v}_7$)} \\ $\{$ a $\mapsto \text{h} : \text{v}_5$  $\text{v}_0 \mapsto \text{h} : \text{v}_6 $  abc $\mapsto \text{h} : \text{v}_7$  $\}$};
+%  \node[conf] (appS)   at (-4,-6)    {{\it Success} \\ $\{$ a $\mapsto$ [], \\ \ \ b $\mapsto$ [],\\ \ \ $\text{v}_0 \mapsto$ [], \\ \ \ c $\mapsto$ abc $\}$};
+%  \node[conf] (app11)  at (2,  -10)  {{\it Renaming} \\ \lstinline{app($\text{v}_3$, c, $\text{v}_4$)} \\ $\{\text{v}_1 \mapsto \_ : \text{v}_3 $ \\ $\ \ \ \ \text{v}_2 \mapsto \_ : \text{v}_4 $  $\}$};
+%  \node[conf] (app1S)  at (-2, -9.7) {{\it Success} \\ $\{ \text{v}_1 \mapsto [],$ \\ $\ \ c \ \mapsto \text{v}_2 \}$};
+%  \draw[-latex] (root) -- (appapp);
+%  \draw[-latex] (appapp) -- (appS.north);
+%  \draw[-latex] (appapp) -- (app1);
+%  \draw[-latex] (appapp) -- (app2);
+%  \draw[-latex] (app1) -- (app1S);
+%  \draw[-latex] (app1) -- (app11);
+%  \draw[-latex,dashed] (app2) edge [bend right] (root);
+%  \draw[-latex,dashed] (app11) edge [bend right] (app1);
+%\end{tikzpicture}
+%\caption{Дерево процессов для программы \lstinline{doubleAppend}}
+%\label{fig:dappTree}
+%\end{figure}
+
+В приведённом дереве
+
