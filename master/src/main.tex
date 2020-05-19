@@ -115,7 +115,7 @@
   keywordstyle=\bfseries\color{black}
 }
 
-\lstset{language=Haskell}
+%\lstset{language=Haskell}
 \lstset {
 mathescape,
 extendedchars=\true,
@@ -124,6 +124,7 @@ numberstyle=\ttfamily,
 numbers=left,
 stepnumber=1,
 frame=single,
+morekeywords={data, type, if, then, else, class, where, return}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,7 +157,7 @@ frame=single,
 
 %\tableofcontents
 %\newpage
-%\input{intro.tex}
+\input{intro.tex}
 %\newpage
 \input{review/review.tex}
 %\newpage
@@ -166,9 +167,9 @@ frame=single,
 %\newpage
 \input{results/results.tex}
 %\newpage
-%\input{concl.tex}
-%\newpage
+\input{concl.tex}
 
+%\newpage
 %\phantomsection
 %\renewcommand{\refname}{СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ}
 %\addcontentsline{toc}{section}{СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ}
