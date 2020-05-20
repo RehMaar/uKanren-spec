@@ -37,7 +37,7 @@ generateGraph n m =
                    getRandom
                 rest <- replicateM (m - n + 1) $\textdollar$
                    getRandomR (0, n-2) >>=
-                     \i -> getEdge i       <$\textdollar$>
+                     \i -> getEdge i             <$\textdollar$>
                            getRandomR (i+1, n-1) <*>
                            getRandom
                 pure $\textdollar$ tree ++ rest) . mkStdGen
