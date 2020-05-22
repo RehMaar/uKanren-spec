@@ -22,26 +22,19 @@ Saint Petersburg, Russia}
 \begin{document}
 \maketitle
 
-%\begin{abstract}
-
 In this paper we research methods of supercompilation~\cite{introSC} in the context of relational program specialization.
 We implement a supercompiler for \miniKanren with different unfolding strategies and compare them.
-
-%\end{abstract}
-
-%\section{Introduction}
 
 {\it Relational programming} is a pure form of logic programming in which programs are
 written as {\it relations}. In relations {\it input} and {\it output} arguments are indistinguishable,
 therefore a relational program solves a whole class of problems.
 For instance, an addition relation describes both addition and subtraction.
 An interesting application of the technique is {\it relational interpreters} --- interpreters written in a relational language.
-%Besides computing the output from an input or running a program in {\it a backward direction},
-Relational interpreters are capable to both verify a solution for a problem and search for it~\cite{lozov2019}.
+Relational interpreters are capable to both searching for a solution to a problem and verifying the solution~\cite{lozov2019}.
 
 \miniKanren is a family of domain-specific languages specially designed for relational programming~\cite{friedmanSchemer}.
 Relational programs implemented in \miniKanren are capable of running in all directions, however, in the context of a particular
-task, especially for running in backward directions, computation performance can be highly insufficient.
+task, especially for running in the backward directions, computation performance can be highly inefficient.
 
 Specialization is a technique of automatic program optimization. A {\it specializer} takes a program $P$ and a part
 of its input $I_s$ and produces a new program that behaves the same way on the rest of its input $I_d$ as the original
@@ -50,113 +43,76 @@ $\llbracket spec(P, I_s) \rrbracket (I_d) \equiv \llbracket P \rrbracket (I_s, I
 
 A specializer (in form of {\it conjunctive partial deduction, CPD}~\cite{cpd}) has been implemented and applied to
 relational programs in \miniKanren in~\cite{lozov2019}. Despite the fact that CPD gives a performance boost
-comparing to original programs in most cases, %specialized programs still carries some overhead of interpretation.
+compared to original programs in most cases,
 there are still possible ways for improvement.
 
-%\section{Supercompilation Strategies}
-
-{\it Supercompilation} is a method of program transformation. Supercompiler symbolically
+{\it Supercompilation} is a method of program transformation. Supercompilers symbolically
 executes a program for a given {\it configuration} --- an expression with free variables ---
 tracing a computation history with a {\it graph of configurations} and builds an equivalent {\it residual}
 program without redundant computations.
 Supercompilation steps are the following.
-%\begin{itemize}
 
-%\item
 {\it  Driving} is a process of symbolic execution in compliance with reduction rules which results in a possibly infinite tree.
-      % with a resulting possibly infinite tree of configurations.
-      Branching appears when there are several possible ways to run the computation.
-%\item
+Branching appears when there are several possible ways to run the computation.
 The goal of {\it folding} is to avoid building an infinite tree by turning it into a finite graph.
-      %from which the original infinite tree could be recovered.
-      When a supercompiler analyses a configuration it may happen that it is a renaming of the one already encountered and hence
-      would lead to the same configuration subtree.
-      In this situatuin a supercompiler links them avoiding repetition of computations.
-%\item
-  {\it Generalization}~\cite{generalize} is another way to avoid an infinite tree when no folding operations can be done.
-     Generalized configurations are more general and possess less information about their arguments than original ones
-	 %but have more chances to be folded.
-	 and can be folded eventually.
-     % Generalization step is applied only when a {\it whistle} decides it is necessary.
-     A predicate called {\it whistle} holds when a generalization step is needed.
-%\item
-  {\it Residualization} is a process of generating a residual program from a graph of configurations.
-%\end{itemize}
+When a supercompiler analyses a configuration it may happen to be a renaming of the one already encountered and hence
+would lead to the same configuration subtree.
+In this situation a supercompiler links their nodes in the graph avoiding repetition of computations.
+{\it Generalization}~\cite{generalize} is another way to avoid an infinite tree when no folding operations can be done.
+Generalized configurations are more general and possess less information about their arguments than original ones
+and can be folded eventually.
+A predicate called {\it whistle} holds when a generalization step is needed.
+{\it Residualization} is a process of generating a residual program from a graph of configurations.
 
-%\subsection{Supercompilation for \miniKanren}
-
-% Более плавный переход к суперкомпиляции mk.
-
-%Supercompilation for \miniKanren is build on several approaches.
 We adapted supercompilation for \miniKanren the following way.
 An expression in the core language is {\it a conjunction} of two expressions, {\it a disjunction} of two expressions, {\it a unification}
 of two terms or {\it a call} of a relational definition.
 Disjuncts are independent, hence give rise to branches while driving.
 Meanwhile, a conjunction of relational calls alongside with a computed substitution forms a configuration.
 
-% + подстановки не должны конфликтовать
-%A conjunction means that all conjuncts must be evaluated to successful unifications at the same time. % and their substitutions must be.
-%A disjunction permits at least one successful computation and disjuncts may be evaluated separately.
-% Сказать, что дизюнкты независимы, а конъюнкция 
-%In terms of supercompilation it means that a disjunction is a form of computational branching and a conjuntion is a configuration.
-%
-% A supercompiler must preserve semantics of a language, however, \miniKanren evaluation is a search process that
-% is inapplicable for supercompilation, therefore, a supercompiler cannot follow its operational semantic~\cite{mksemantic},
-% but able to preserve a denotational one.
-
-Foremost, we pop all fresh variables to the top level and transform a configuration to a disjunctive normal form (DNF).
-%, such a transformation is applied to each configuration after unfolding during supercompilation.
+First, we pop all fresh variables to the top level and transform a configuration to a disjunctive normal form (DNF).
 A first step in driving performs all unifications within a disjunct and applies a substitution computed
 from successful unifications on previous steps.
-% After that either all conjuncts are unified and a supercompiler can stop analysing a branch
-% or there is at least one relation call that must be symbolically computed.
-What is left are the sequence of calls to be symbolically evaluated.
-%Supercompilation of a conjunction consists of replacing at least one of the calls (or {\it unfolding}) with its definition,
-%normalization of the whole unfolded configuration to DNF and further resulting disjuncts analysis.
-%A supercompiler have to replace at least one of the calls with its definition --- {\it unfold} it.
+What remains is the sequence of calls to be symbolically evaluated.
 For further computation a supercompiler must replace at least one of the calls with its definition --- {\it unfold} it.
-Choosing a specific set of calls for unfolding may change time and quality of specialization, but it is not clear
+Choosing a specific set of calls for unfolding may change time efficiency of the specialized code and quality of specialization,
+but it is not clear
 what unfolding strategy is the best for particular tasks.
 
-We implemented a positive supercompiler for \miniKanren using a {\it homeomorphic embedding}~\cite{homeoEmb} as a whistle
+We implemented a supercompiler for \miniKanren using a {\it homeomorphic embedding}~\cite{homeoEmb} as a whistle
 and CPD-like abstraction algorithm for generalization~\cite{cpd}.
-%Also we implemented the following unfolding strategies.
-%{\it Full unfold} strategy unfolds all conjuncts simultaneously, so
-%resulting set of configurations is a cartesian product of conjunctions' definitions.
-%However, we expect that this strategy could lead to huge residual programs and take a long specialization time.
 We implemented the following unfolding strategies:
 \begin{itemize}
 \item {\it Full unfold} unfolds all conjuncts simultaneously, so
-      resulting set of configurations is a cartesian product of normalized definitions of conjuncts.
+      the resulting set of configurations is a Cartesian product of the normalized definitions of conjuncts.
 \item {\it Sequential unfold} unfolds conjuncts one by one.
-\item {\it Recursive unfold}     prioritizes calls which have at least one recursive call.
-\item {\it Non-recursive unfold} prioritizes calls which do not have any recursive calls.
+\item {\it Recursive unfold}     prioritizes calls that have at least one recursive call.
+\item {\it Non-recursive unfold} prioritizes calls that do not have any recursive calls.
 \item {\it Maximal size unfold}  prioritizes calls with the largest definitions.
-\item {\it Minimal size unfold}  prioritizes calls with the least definitions.
+\item {\it Minimal size unfold}  prioritizes calls with the smallest definitions.
 \end{itemize}
 
-%\subsection{Results}
-
-%Also we present testing results for the implemented supercompiler with described strategies and comparison with
 We compare strategies with the original unspecialized interpreters and the CPD specializer.
 As a specific implementation of \miniKanren we use \textsc{OCanren}~\cite{ocanren};
 the supercompiler is written in \textsc{Haskell}\footnote{\url{https://github.com/RehMaar/uKanren-spec}}.
 
-First, we compare the performance of the solvers for path searching problem. We ran the search on a complete graph $K_{10}$,
-searching for a path of lengths 9, 11, 13 or 15. The results are presented in Table~\ref{tab:paths}.
+First, we compare the performance of the solver for a path searching problem \textit{isPath(path, graph, result)}.
+The relation was specialized on a query \textit{isPath(_, _, True)}.
+We ran the search on a complete graph $K_{10}$, searching for a path of lengths 9, 11, 13 or 15.
+The results are presented in Table~\ref{tab:paths}.
 
-Secondly, we compare the performance of synthesis of valid propositional logic formulas. We ran the search for 1000 formulas
-in the empty substitution and in the substitution with a single free variable. The results are presented in Table~\ref{tab:logic}.
+Secondly, we compare the performance of synthesis of valid propositional logic formulas \textit{int(formula, subst, result)}.
+The relation was specialized on a query \textit{int(_, _, True)}.
+We ran the search for 1000 formulas with no free variables and with a single free variable.
+The results are presented in Table~\ref{tab:logic}.
 
 Based on our preliminary results we conclude that supercompilation is a viable approach for \miniKanren specialization.
 We believe more research should be done to find less ad hoc unfolding strategies that are justified by program properties.
 
-%
 \begin{table}[!h]
 \small
-%\parbox{.5\textwidth} {
 \begin{minipage}[t]{.4\textwidth}
-\begin{tabular}{|l|c|c|c|c|}
+\begin{tabular}{|p{2.5cm}|c|c|c|c|}
 \hline
 Path length & 9 & 11 & 13 & 15 \\ \hline
 \hline
@@ -172,38 +128,31 @@ Minimal size & 0.014s & 0.02s & 0.022s & 0.027s \\
 \end{tabular}
 \caption{Searching for paths in $K_{10}$.}
 \label{tab:paths}
-%}
 \end{minipage}
-%\end{table}
-%% 
-%\begin{table}[ht]
 \qquad
 \qquad
 \qquad
 \quad
-%\parbox{.4\textwidth}{
 \begin{minipage}[t]{.4\textwidth}
-\begin{tabular}{|p{3cm}|c|c|}
+\begin{tabular}{|p{3.5cm}|c|c|}
 \hline
-Free variables in substitution & 0 free vars & 1 free var  \\ \hline
+Free variables in formula& 0 free vars & 1 free var  \\ \hline
 \hline
 No specialization       & 0.280s & 0.195s  \\
 CPD           & 3.330s & 1.893s  \\
 \hline
-Full          & $>$ 1m   & $>$ 1 m  \\
-Sequential    & 0.282s & 0.150s \\
-Non recursive & 0.070s & 0.050s \\
-Recursive     & 0.450s & 0.108s \\
-Maximal size  & 0.193s & 0.136s \\
-Minimal size  & 0.065s & 0.046s \\
+Full               & -       &  - \\
+Sequential         & 0.153s  & 0.090s \\
+Non recursive      & 0.113s & 0.047s \\
+Recursive          & 0.205s & 0.080s \\
+Maximal size       & 0.157s & 0.085s \\
+Minimal size       & 0.068s & 0.058s \\
 \hline
 \end{tabular}
 \caption{Searching for valid formulas in a given substitution}
 \label{tab:logic}
-%}
 \end{minipage}
 \end{table}
-%\nocite{*}
 \bibliographystyle{eptcs}
 \bibliography{main}
 
