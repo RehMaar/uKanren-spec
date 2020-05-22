@@ -5,6 +5,13 @@
 \newcommand{\miniKanren}{\textsc{miniKanren}\ }
 
 \usepackage{stmaryrd}
+\usepackage{listings}
+
+\lstset {
+mathescape,
+extendedchars=\true,
+basicstyle=\ttfamily
+}
 
 \title{Supercompilation Strategies for \miniKanren}
 \author{Maria Kuklina
@@ -96,23 +103,62 @@ We compare strategies with the original unspecialized interpreters and the CPD s
 As a specific implementation of \miniKanren we use \textsc{OCanren}~\cite{ocanren};
 the supercompiler is written in \textsc{Haskell}\footnote{\url{https://github.com/RehMaar/uKanren-spec}}.
 
-First, we compare the performance of the solver for a path searching problem \textit{isPath(path, graph, result)}.
+First, we compare the performance of a solver for a path searching problem \textit{isPath(path, graph, result)}.
+The \textit{result} parameter is \textit{True} when \textit{path} is a path of \textit{graph}.
 The relation was specialized on a query \textit{isPath(_, _, True)}.
-We ran the search on a complete graph $K_{10}$, searching for a path of lengths 9, 11, 13 or 15.
+We ran the search on a complete graph $K_{10}$, searching for paths of lengths 9, 11, 13 or 15.
+An example of running a query is in Figure~\ref{fig:runQuery1}.
 The results are presented in Table~\ref{tab:paths}.
 
-Secondly, we compare the performance of synthesis of valid propositional logic formulas \textit{int(formula, subst, result)}.
+\begin{figure}[h!]
+\begin{lstlisting}
+run q (fun p $\to$ length p 9  &&& isPath p k_10)
+\end{lstlisting}
+\caption{Example of a query for the first test in \textsc{OCanren}.}
+\label{fig:runQuery1}
+\end{figure}
+
+Here we can see that supercompilation gives a huge performance boost;
+however, the choice of a strategy doesn't have a notable impact.
+This leads to an interesting conclusion that for some programs
+it doesn't really matters how to supercompile them.
+In the case of the given relation, this is due to how its conjunctions
+are small in size.
+
+Secondly, we compare the performance of synthesis of propositional logic formulas \textit{int(formula, subst, result)}
+that have the value of \textit{result} with the given substitution \textit{subst}.
 The relation was specialized on a query \textit{int(_, _, True)}.
 We ran the search for 1000 formulas with no free variables and with a single free variable.
+An example of running a query for searching for formulas with a single free variable is in Figure~\ref{fig:runQuery2}.
 The results are presented in Table~\ref{tab:logic}.
 
-Based on our preliminary results we conclude that supercompilation is a viable approach for \miniKanren specialization.
-We believe more research should be done to find less ad hoc unfolding strategies that are justified by program properties.
+\begin{figure}[h!]
+\begin{lstlisting}
+run qr (fun f q $\to$ int f (!< q))
+\end{lstlisting}
+\caption{Example of a query for the second test in \textsc{OCanren}.}
+\label{fig:runQuery2}
+\end{figure}
+
+In this example, we can see that the CPD approach sometimes
+actually worsens programs.
+Also, despite that the \textit{Full} unfold strategy could give a huge performance boost
+on small programs,
+it is unable to handle big and complex relations
+with high branching.
+\textit{Non-recursive} and \textit{minimal size} strategies give the best results
+due to the fact that they perform constant propagation better.
+For the non-recursive strategy,
+the reason for it
+is that 
+the given relation is comprised of non-recursive calls, 
+and the minimal size strategy excels
+because the logic connectives have very simple definitions.
 
 \begin{table}[!h]
 \small
 \begin{minipage}[t]{.4\textwidth}
-\begin{tabular}{|p{2.5cm}|c|c|c|c|}
+\begin{tabular}{|p{2.45cm}|c|c|c|c|}
 \hline
 Path length & 9 & 11 & 13 & 15 \\ \hline
 \hline
@@ -132,9 +178,8 @@ Minimal size & 0.014s & 0.02s & 0.022s & 0.027s \\
 \qquad
 \qquad
 \qquad
-\quad
 \begin{minipage}[t]{.4\textwidth}
-\begin{tabular}{|p{3.5cm}|c|c|}
+\begin{tabular}{|p{2.7cm}|c|c|}
 \hline
 Free variables in formula& 0 free vars & 1 free var  \\ \hline
 \hline
@@ -153,6 +198,11 @@ Minimal size       & 0.068s & 0.058s \\
 \label{tab:logic}
 \end{minipage}
 \end{table}
+
+Based on our preliminary results we conclude that supercompilation is a viable approach for \miniKanren specialization.
+We believe more research should be done to find less ad hoc unfolding strategies that are justified by program properties.
+
+
 \bibliographystyle{eptcs}
 \bibliography{main}
 
