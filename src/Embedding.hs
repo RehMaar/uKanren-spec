@@ -1,5 +1,36 @@
-module Embedding where
+{-
+  Copyright 2019 Ekaterina Verbitskaia
+  
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+  
+  1. Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+  
+  2. Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+  
+  3. Neither the name of the copyright holder nor the names of its contributors
+  may be used to endorse or promote products derived from this software without
+  specific prior written permission.
+  
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+  Changed by Maria Kuklina.
+-}
+
+module Embedding where
+    
 import Syntax
 import Utils
 
@@ -11,6 +42,8 @@ import qualified Data.Map.Strict as Map
 
 infixl 6 <|
 
+
+-- |Definition of homeomorphic embedding.
 class AlwaysEmbeddable a => Homeo a where
   couple :: a -> a -> Bool
   diving :: a -> a -> Bool
@@ -46,12 +79,10 @@ instance Homeo [G a] where
   homeo gs hs =
     any (all (uncurry homeo) . zip gs) (subconjs hs (length gs))
 
+-- |Definition of an instance.
 class (Eq b) => Instance a b | b -> a where
   inst :: b -> b -> Map.Map a (Term a) -> Maybe (Map.Map a (Term a))
 
-  -- |e2 is an **instance** of e1, if exists a substitution O
-  -- such as e1 O = e2.
-  -- e1 `inst` e2 = O => substitute O e1 = e2
   isInst :: b -> b -> Bool
   isInst x y = isJust $ inst x y Map.empty
 
@@ -111,7 +142,7 @@ instance AlwaysEmbeddable [G a] where
 instance AlwaysEmbeddable (Term a) where
   isAlwaysEmbeddable = const True
 
--- Strict homeomorphic embedding. Explore: use a variants check instead of the instance check.
+-- |Definition of strict homeomorphic embedding.
 class (Homeo b, Instance a b, Eq b) => Embed a b | b -> a where
   embed :: b -> b -> Bool
   embed g h = isAlwaysEmbeddable g || g == h || homeo g h && not (isStrictInst h g)
